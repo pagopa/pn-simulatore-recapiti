@@ -2,7 +2,7 @@
 
 ## Fase 1
 
-### CU1.1 - Pianificazione settimanale automatizzata
+### CU1.1 - Pianificazione settimanale automatizzata (commesse e capacità di default)
 - **Attore principale**: Step Function (Hesplora)  
 - **Descrizione**:  
   La Step Function (Hesplora) invoca automaticamente, a cadenza settimanale, l’algoritmo di pianificazione (tramite l’operazione `RUN_ALGORITHM` della Lambda), utilizzando le capacità e le commesse di produzione (senza modificarle).  
@@ -11,7 +11,7 @@
 
 ---
 
-### CU1.2 - Simulazione con modifica delle capacità
+### CU1.2 - Simulazione con modifica delle capacità (commesse di default)
 - **Attore principale**: Utente (via WebApp Hesplora)  
 - **Descrizione**:  
   L’utente avvia una simulazione con l'obiettivo di modificare solo le capacità reali sia di BAU che di picco a partire da un mese specifico; queste vengono recuperate dalla WebApp (con frequenza da definire) nella relativa sorgente DynamoDB/S3 e messe a disposizione dell'utente. In base alle sue scelte viene creato un file (secondo le modalità definite dall’algoritmo) con i dati delle capacità modificate che verrà salvato in una specifica tabella/bucket e richiamato nella lambda.  
@@ -22,8 +22,11 @@
   I risultati vengono raccolti e salvati su un database (da definire se dalla Step Function o dalla Lambda).  
 
 ---
+---
 
-### CU1.3 - Simulazione con postalizzazioni mock
+## Fase 2
+
+### CU2.1 - Simulazione con postalizzazioni mock (commesse e capacità di default)
 - **Attore principale**: Utente (via WebApp Hesplora)  
 - **Descrizione**:  
   L’utente avvia una simulazione con l'obiettivo di lanciare l'algoritmo di pianificazione con nuove postalizzazioni mock (da capire se esiste un algoritmo interno a PagoPA che generi postalizzazioni mock attraverso il settaggio di alcuni parametri: prodotto, regione, numero di postalizzazione) a partire da un mese specifico.  
@@ -38,7 +41,7 @@
 
 ---
 
-### CU1.4 - Simulazione con modifica delle capacità e postalizzazioni mock
+### CU2.2 - Simulazione con modifica delle capacità e postalizzazioni mock (commesse di default)
 - **Attore principale**: Utente (via WebApp Hesplora)  
 - **Descrizione**:  
   L’utente avvia una simulazione con duplice obiettivo:  
@@ -53,65 +56,3 @@
     4. `DELETE_DATA` tramite Lambda.  
 - **Output**:  
   I risultati vengono raccolti e salvati su un database (da definire se dalla Step Function o dalla Lambda).  
-
----
----
-
-## Fase 2
-
-### CU2.1 - Simulazione con modifica delle commesse
-- **Attore principale**: Utente (via WebApp Hesplora)  
-- **Descrizione**:  
-  L’utente avvia una simulazione con l'obiettivo di modificare le commesse degli enti a partire da un mese specifico; queste vengono recuperate dalla WebApp (con frequenza da definire) nella relativa sorgente DynamoDB/S3 e messe a disposizione dell'utente. In base alle sue scelte viene creato un file (secondo le modalità definite dall’algoritmo) con i dati delle commesse modificate che verrà salvato in una specifica tabella/bucket e richiamato nella lambda (con parametri ancora da definire).
-  Le capacità rimarranno quelle di produzione.  
-  La Step Function (Hesplora) effettua le seguenti operazioni:
-    1. `RUN_ALGORITHM` tramite Lambda, con parametri ancora da definire vengono date in input le commesse modificate ed il mese/data di simulazione, il resto farà riferimento ai dati di produzione (capacità).  
-- **Output**:  
-  I risultati vengono raccolti e salvati su un database (da definire se dalla Step Function o dalla Lambda).  
-
----
-
-### CU2.2 - Simulazione con modifica delle commesse e postalizzazioni mock
-- **Attore principale**: Utente (via WebApp Hesplora)  
-- **Descrizione**:  
-  L’utente avvia una simulazione con l'obiettivo di lanciare l'algoritmo di pianificazione con nuove postalizzazioni mock (da capire se esiste un algoritmo interno a PagoPA che generi postalizzazioni mock attraverso il settaggio di alcuni parametri: prodotto, regione, numero di postalizzazione) a partire da un mese specifico, e modificare le commesse degli enti a partire da un mese specifico; queste vengono recuperate dalla WebApp (con frequenza da definire) nella relativa sorgente DynamoDB/S3 e messe a disposizione dell'utente. In base alle sue scelte viene creato un file (secondo le modalità definite dall’algoritmo) con i dati delle commesse modificate che verrà salvato in una specifica tabella/bucket e richiamato nella lambda (con parametri ancora da definire).
-  Le capacità rimarranno quelle di produzione.   
-  La Step Function (Hesplora) effettua le seguenti operazioni:
-    1. Genera le postalizzazioni mock (sfruttando o meno algoritmo esistente).  
-    2. `IMPORT_DATA` tramite Lambda (caricamento csv delle postalizzazioni mock).  
-    3. `RUN_ALGORITHM` tramite Lambda, con parametri ancora da definire vengono date in input le commesse modificate ed il mese/data di simulazione, il resto farà riferimento ai dati di produzione (capacità).    
-    4. `DELETE_DATA` tramite Lambda.  
-- **Output**:  
-  I risultati vengono raccolti e salvati su un database (da definire se dalla Step Function o dalla Lambda).  
-
----
-
-### CU2.3 - Simulazione con modifica delle capacità e delle commesse
-- **Attore principale**: Utente (via WebApp Hesplora)  
-- **Descrizione**:  
-  L’utente avvia una simulazione con duplice obiettivo:  
-    1. Modificare le capacità reali sia di BAU che di picco a partire da un mese specifico; queste vengono recuperate dalla WebApp (con frequenza da definire) nella relativa sorgente DynamoDB/S3 e messe a disposizione dell'utente. In base alle sue scelte viene creato un file (secondo le modalità definite dall’algoritmo) con i dati delle capacità modificate che verrà salvato in una specifica tabella/bucket e richiamato nella lambda.      
-    2. Modificare le commesse degli enti a partire da un mese specifico; queste vengono recuperate dalla WebApp (con frequenza da definire) nella relativa sorgente DynamoDB/S3 e messe a disposizione dell'utente. In base alle sue scelte viene creato un file (secondo le modalità definite dall’algoritmo) con i dati delle commesse modificate che verrà salvato in una specifica tabella/bucket e richiamato nella lambda (con parametri ancora da definire).  
-
-  La Step Function (Hesplora) effettua le seguenti operazioni:
-    1. `RUN_ALGORITHM` tramite Lambda, con parametri ancora da definire vengono date in input le commesse modificate, il nome della tabella/bucket con le capacità modificate ed il mese/data di simulazione.  
-- **Output**:  
-  I risultati vengono raccolti e salvati su un database (da definire se dalla Step Function o dalla Lambda).
-
----
-
-### CU2.4 - Simulazione con modifica delle capacità, delle commesse e delle postalizzazioni mock
-- **Attore principale**: Utente (via WebApp Hesplora)  
-- **Descrizione**:  
-  L’utente avvia una simulazione con tre obiettivi:  
-    1. Modificare le capacità reali sia di BAU che di picco a partire da un mese specifico; queste vengono recuperate dalla WebApp (con frequenza da definire) nella relativa sorgente DynamoDB/S3 e messe a disposizione dell'utente. In base alle sue scelte viene creato un file (secondo le modalità definite dall’algoritmo) con i dati delle capacità modificate che verrà salvato in una specifica tabella/bucket e richiamato nella lambda.      
-    2. Modificare le commesse degli enti a partire da un mese specifico; queste vengono recuperate dalla WebApp (con frequenza da definire) nella relativa sorgente DynamoDB/S3 e messe a disposizione dell'utente. In base alle sue scelte viene creato un file (secondo le modalità definite dall’algoritmo) con i dati delle commesse modificate che verrà salvato in una specifica tabella/bucket e richiamato nella lambda (con parametri ancora da definire).    
-    3. Lanciare l'algoritmo di pianificazione con nuove postalizzazioni mock (da capire se esiste un algoritmo interno a PagoPA che generi postalizzazioni mock attraverso il settaggio di alcuni parametri: prodotto, regione, numero di postalizzazione).  
-
-  La Step Function (Hesplora) effettua le seguenti operazioni:
-    1. Genera le postalizzazioni mock (sfruttando o meno algoritmo esistente).   
-    2. `IMPORT_DATA` tramite Lambda (caricamento csv delle postalizzazioni mock).  
-    3. `RUN_ALGORITHM` tramite Lambda, con parametri ancora da definire vengono date in input le commesse modificate, il nome della tabella/bucket con le capacità modificate ed il mese/data di simulazione.  
-    4. `DELETE_DATA` tramite Lambda.  
-- **Output**:  
-  I risultati vengono raccolti e salvati su un database (da definire se dalla Step Function o dalla Lambda).
