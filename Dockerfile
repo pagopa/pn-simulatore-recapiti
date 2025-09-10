@@ -1,3 +1,3 @@
-FROM 911845998067.dkr.ecr.eu-south-1.amazonaws.com/alpine:latest
+FROM 911845998067.dkr.ecr.eu-south-1.amazonaws.com/alpine:3.17
 
 CMD ["echo", "Build complete"]
