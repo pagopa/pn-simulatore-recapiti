@@ -1,4 +1,4 @@
-FROM python:3.13
+FROM python:3.13.7-slim-bookworm
 
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -19,7 +19,7 @@ EXPOSE 8000
 
 # specificare 'dev' o 'prod' per la variabile d'ambiente DJANGO_ENV al momento del run
 CMD if [ "$DJANGO_ENV" = "prod" ] ; then \
-      gunicorn PagoPA.wsgi:application --bind 0.0.0.0:8000 --workers 3 ; \
+      gunicorn --chdir ./WebApp PagoPA.wsgi:application --bind 0.0.0.0:8000 --workers 3; \
     else \
-      python manage.py runserver 0.0.0.0:8000 ; \
+      python WebApp/manage.py runserver 0.0.0.0:8000 ; \
     fi
