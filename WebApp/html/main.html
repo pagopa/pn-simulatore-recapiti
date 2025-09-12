@@ -1,0 +1,44 @@
+<!doctype html>
+{% load static %}
+<html lang="it">
+	<head>
+
+		<!-- CSS file -->
+		<link rel="stylesheet" type="text/css" href="{% static 'css/stile.css' %}">
+
+		<!-- Required meta tags -->
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		
+		<!-- Font Awesome -->
+		<link rel="stylesheet" type="text/css" href="{% static 'fontawesome/css/all.css' %}">
+
+		<!-- Titolo della Web App che appare nella scheda del browser -->
+		<title>PagoPA - Simulatore</title>
+
+		<!-- BOOTSTRAP CSS -->
+		<link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+
+		<!-- PLOTLY -->
+		<script src="{% static 'js/plotly-3.1.0.min.js' %}"></script>
+
+
+	</head> 
+	<body>
+
+	<div class="container-xxl">
+	<br>
+    {% block content %}
+
+    {% endblock content %}
+	</div>
+
+
+	<br><br><br><br>
+	{% block scripts %}
+
+	{% endblock %}
+	<!-- BOOTSTRAP JS -->
+	<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    </body>
+</html>

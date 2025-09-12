@@ -1,0 +1,110 @@
+.margini-customizzati{
+  padding-left: 20rem; 
+  padding-right: 20rem;
+}
+
+
+p{
+  margin-bottom: 0;
+}
+
+.hvr-reveal2{
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: perspective(1px) translateZ(0);
+  transform: perspective(1px) translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  position: relative;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.hvr-reveal2 a {
+  position: relative;
+  z-index: 2;
+}
+
+.hvr-reveal2:before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  border-color: #3c97d6;
+  border-style: solid;
+  border-width: 0;
+  -webkit-transition-property: border-width;
+  transition-property: border-width;
+  -webkit-transition-duration: 0.1s;
+  transition-duration: 0.1s;
+  -webkit-transition-timing-function: ease-out;
+  transition-timing-function: ease-out;
+}
+.hvr-reveal2:hover:before, .hvr-reveal2:focus:before, .hvr-reveal2:active:before {
+  -webkit-transform: translateY(0);
+  transform: translateY(0);
+  border-width: 4px;
+}
+
+.hvr-reveal2:hover{
+  -moz-transform: scale(1.05);
+  -webkit-transform: scale(1.05);
+  -o-transform: scale(1.05);
+  -ms-transform: scale(1.05);
+  -webkit-transform: scale(1.05);
+  transform: scale(1.05);
+
+  -webkit-transition: transform 0.5s ease-in-out;
+  -moz-transition:transform 0.5s ease-in-out;
+  -ms-transition:transform 0.5s ease-in-out;
+}
+
+
+/* Forza Choices.js a usare tutta la larghezza disponibile */
+.choices {
+  width: 10% !important;
+  background-color: white; 
+}
+
+/* Rende il contenitore flessibile, se dentro a un input-group */
+.input-group .choices {
+  flex: 1 1 auto !important;
+  background-color: white; 
+}
+
+/* Target principale dell’input Choices */
+.choices__inner {
+  font-size: 16px !important;         
+  background-color: white !important; 
+}
+
+/* Per il testo delle opzioni nel menu a tendina */
+.choices__list--dropdown .choices__item {
+  font-size: 16px !important; 
+  background-color: white !important;   /* sfondo menu */
+}
+
+.choices__placeholder {
+  text-align: center;
+}
+
+/* documenti utente */
+.file-list {
+  margin-top: 1rem;
+}
+.file-item {
+  margin: 0.5rem 0;
+}
+.file-item button {
+  margin-left: 1rem;
+  color: red;
+  cursor: pointer;
+}
+
+
+#table_takeoff_landings {
+  max-height: 100px;
+  overflow-y: auto;
+}
