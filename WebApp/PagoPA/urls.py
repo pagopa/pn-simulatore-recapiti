@@ -21,4 +21,8 @@ from Simulatore.views import *
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', homepage, name='home'),
+    path('calendario', calendario, name='calendario'),
+    path('bozze', bozze, name='bozze'),
+    path('nuova_simulazione', nuova_simulazione, name='nuova_simulazione'),
+    path('login', login, name='login')
 ]
