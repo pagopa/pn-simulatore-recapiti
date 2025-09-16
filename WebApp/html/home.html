@@ -63,7 +63,7 @@
 <div align="center">
     <div class="card w-50">
         <div class="card-body">
-            <b>Legenda</b>: &nbsp;&nbsp;&nbsp;<span style="color:#77dd77;">&#9632;</span> Lavorata&nbsp;&nbsp;&nbsp;<span style="color:#fdfd96;">&#9632;</span> In lavorazione&nbsp;&nbsp;&nbsp;<span style="color:#9bb6cb;">&#9632;</span> Schedulata&nbsp;&nbsp;&nbsp;<span style="color:#dd492e;">&#9632;</span> Non completata</p>
+            <b>Legenda</b>: &nbsp;&nbsp;&nbsp;<span style="color:#77dd77;">&#9632;</span> Lavorata&nbsp;&nbsp;&nbsp;<span style="color:#f4d980;">&#9632;</span> In lavorazione&nbsp;&nbsp;&nbsp;<span style="color:#9bb6cb;">&#9632;</span> Schedulata&nbsp;&nbsp;&nbsp;<span style="color:#dd492e;">&#9632;</span> Non completata</p>
         </div>
     </div>
 </div>
@@ -76,6 +76,7 @@
     var fullDate = new Date();
 	var currentDate = fullDate.getFullYear() + "_" + (fullDate.getMonth() + 1).toString().padStart(2, "0") + "_" + fullDate.getDate().toString().padStart(2, "0");
 	new DataTable('#tabella_simulazioni', {
+        // rimuoviamo il vecchio ordinamento per inserire il nuovo con columnControl 
         ordering: {
             indicators: false,
             handler: false
@@ -104,7 +105,7 @@
                         $(td).css('background-color', '#77dd77')
                     }
                     else if (cellData == 'In lavorazione' ){
-                        $(td).css('background-color', '#fdfd96')
+                        $(td).css('background-color', '#f4d980')
                     }
                     else if (cellData == 'Schedulata' ){
                         $(td).css('background-color', '#9bb6cb')
