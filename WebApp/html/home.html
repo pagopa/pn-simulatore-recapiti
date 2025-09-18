@@ -28,6 +28,11 @@
                         <a type="button" title="Visualizza dettagli" class="btn btn-outline-success" href="#"><i class="fa-solid fa-magnifying-glass"></i></a>
                     </span>
 
+                    <!-- Nuova simulazione partendo dallo stesso input --> 
+                    <span>
+                        <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href="#"><i class="fa-solid fa-file-circle-plus"></i></a>
+                    </span>
+
                     {% if simulazione.stato == 'Schedulata' %}
 
                         <!-- Modifica scheduling --> 
@@ -40,16 +45,11 @@
                             <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#"><i class="fa-solid fa-trash"></i></a></td>
                         </span>
 
-                    {% elif simulazione.stato == 'Non completata' %}
+                    {% elif simulazione.stato == 'Non completata' or simulazione.stato == 'In lavorazione' %}
 
 
 
-                    {% else %}
-
-                        <!-- Nuova simulazione partendo dallo stesso input --> 
-                        <span>
-                            <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href="#"><i class="fa-solid fa-file-circle-plus"></i></a>
-                        </span>
+                    {% elif simulazione.stato == 'Lavorata' %}
 
                         <!-- Confronto con automatizzata --> 
                         <span>
