@@ -2,14 +2,7 @@
 {% block content %}
 {% load static %}
 
-<h1 class="text-center font-color-blue-pagopa">LISTA SIMULAZIONI</h1>
-
-<br><br>
-
-<!-- Bottone nuova simulazione -->
-<div>
-    <a href="{% url 'nuova_simulazione' %}"><button type="button" class="btn btn-primary" title="nuova_simulazione"><b><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</b></button></a>
-</div>
+<br>
 
 <!-- DATATABLES: tabella_simulazioni -->
 <table class="table table-fluid table-hover table-striped table-bordered" id="tabella_simulazioni" style="text-align:center;">
@@ -26,47 +19,61 @@
         {% for simulazione in lista_simulazioni %}
             <tr>
                 <td style="text-align:center;">{{simulazione.timestamp_esecuzione}}</td>
-                <td style="text-align:center;">{{simulazione.stato}}</td>
+                <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}Lavorata 🟢{% elif simulazione.stato == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.stato == 'Schedulata' %}Schedulata 📅{% elif simulazione.stato == 'Non completata' %}Non completata 🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.utente}}</td>
                 <td style="text-align:center;">{{simulazione.nome_simulazione}}</td>
                 <td>
-                    <!-- Dettaglio simulazione -->
+                    <!-- Visualizza dettagli -->
                     <span>
-                        <a type="button" title="Maggiori info" class="btn btn-outline-success" href="#"><i class="fa-solid fa-magnifying-glass"></i></a>
+                        <a type="button" title="Visualizza dettagli" class="btn btn-outline-success" href="#"><i class="fa-solid fa-magnifying-glass"></i></a>
                     </span>
 
-                    <!-- Confronto con automatizzata --> 
-                    <span>
-                        <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="#"><i class="fa-solid fa-chart-area"></i><i class="fa-solid fa-chart-line"></i></a>
-                    </span>
+                    {% if simulazione.stato == 'Schedulata' %}
 
-                    <!-- Confronto con altra simulazione --> 
-                    <span>
-                        <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="#"><i class="fa-solid fa-chart-area"></i><i class="fa-solid fa-chart-area"></i></a>
-                    </span>
+                        <!-- Modifica scheduling --> 
+                        <span>
+                            <a type="button" title="Modifica scheduling" class="btn btn-outline-secondary" href="#"><i class="fa-solid fa-pen-to-square"></i></a>
+                        </span>
 
-                    <!-- Nuova simulazione partendo dallo stesso input --> 
-                    <span>
-                        <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href="#"><i class="fa-solid fa-file-circle-plus"></i></a>
-                    </span>
+                        <!-- Elimina scheduling --> 
+                        <span>
+                            <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#"><i class="fa-solid fa-trash"></i></a></td>
+                        </span>
 
-                    <!-- Visualizza risultati --> 
-                    <span>
-                        <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="#"><i class="fa-solid fa-chart-area"></i></a>
-                    </span>
+                    {% elif simulazione.stato == 'Non completata' %}
+
+
+
+                    {% else %}
+
+                        <!-- Nuova simulazione partendo dallo stesso input --> 
+                        <span>
+                            <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href="#"><i class="fa-solid fa-file-circle-plus"></i></a>
+                        </span>
+
+                        <!-- Confronto con automatizzata --> 
+                        <span>
+                            <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                        </span>
+
+                        <!-- Confronto con altra simulazione --> 
+                        <span>
+                            <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
+                        </span>
+
+                        <!-- Visualizza risultati --> 
+                        <span>
+                            <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="#"><i class="fa-solid fa-chart-line"></i></a>
+                        </span>
+
+                    {% endif %}
+
+                    
                 </td>
             </tr>
         {% endfor %}
     </tbody>
 </table>
-<!-- Legenda -->
-<div align="center">
-    <div class="card w-50">
-        <div class="card-body">
-            <b>Legenda</b>: &nbsp;&nbsp;&nbsp;<span style="color:#77dd77;">&#9632;</span> Lavorata&nbsp;&nbsp;&nbsp;<span style="color:#f4d980;">&#9632;</span> In lavorazione&nbsp;&nbsp;&nbsp;<span style="color:#9bb6cb;">&#9632;</span> Schedulata&nbsp;&nbsp;&nbsp;<span style="color:#dd492e;">&#9632;</span> Non completata</p>
-        </div>
-    </div>
-</div>
 {% endblock content %}
 
 
@@ -81,10 +88,11 @@
             indicators: false,
             handler: false
         },
+        // ordinamento decrescente sulla prima colonna
         order: [[0, 'desc']],
+        pageLength : 10,
+		lengthMenu: [[10, 20, 50, -1], [10, 20, 50, 'All']],
         responsive: true,
-		pageLength : 5,
-		lengthMenu: [[5, 10, 20, -1], [5, 10, 20, 'All']],
         columnDefs:[
             {
                 targets: [0,2,3],
@@ -98,26 +106,29 @@
                 targets: -1,        
                 columnControl: []
             },
-            {
-                targets: 1,
-                "createdCell": function (td, cellData, rowData, row, col){
-                    if (cellData == 'Lavorata' ) {
-                        $(td).css('background-color', '#77dd77')
-                    }
-                    else if (cellData == 'In lavorazione' ){
-                        $(td).css('background-color', '#f4d980')
-                    }
-                    else if (cellData == 'Schedulata' ){
-                        $(td).css('background-color', '#9bb6cb')
-                    }
-                    else if (cellData == 'Non completata' ){
-                        $(td).css('background-color', '#dd492e')
-                    }
-                }
-            },
         ],
         bAutoWidth: false,
 		layout: {
+            // bottone Nuova simulazione
+            topStart: {
+                buttons: [
+                    {
+                        text: '<b><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</b>',
+                        className: 'btn-primary',
+                        action: function () {
+                            window.location.href = "{% url 'nuova_simulazione' %}";
+                        },
+                        init: function(api, node, config) {
+                            $(node).removeClass('btn-secondary')
+                        }
+                    }
+                ]
+            },
+            // entries per page
+            bottomStart: 'pageLength',
+            // mostra quanti elementi vengono mostrati
+            bottom2Start: 'info',
+            // esportazione tabella
 			bottom2End: 
 				{
 				buttons: [
