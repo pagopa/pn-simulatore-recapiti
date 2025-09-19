@@ -8,7 +8,7 @@
 <table class="table table-fluid table-hover table-striped table-bordered" id="tabella_bozze" style="text-align:center;">
     <thead>
         <tr>
-            <th style="text-align:center;">Data di scheduling</th>
+            <th style="text-align:center;">Timestamp di scheduling</th>
             <th style="text-align:center;">Nome simulazione</th>
             <th style="text-align:center;">Utente</th>
             <th style="text-align:center;">Descrizione</th>
@@ -23,14 +23,14 @@
                 <td style="text-align:center;">{{singola_bozza.utente}}</td>
                 <td style="text-align:center;">{{singola_bozza.descrizione}}</td>
                 <td>
-                    <!-- Modifica scheduling --> 
+                    <!-- Modifica bozza --> 
                     <span>
-                        <a type="button" title="Modifica scheduling" class="btn btn-outline-secondary" href="#"><i class="fa-solid fa-pen-to-square"></i></a>
+                        <a type="button" title="Modifica bozza" class="btn btn-outline-secondary" href="#"><i class="fa-solid fa-pen-to-square"></i></a>
                     </span>
 
-                    <!-- Elimina scheduling --> 
+                    <!-- Elimina bozza --> 
                     <span>
-                        <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#"><i class="fa-solid fa-trash"></i></a></td>
+                        <a type="button" title="Elimina bozza" class="btn btn-outline-danger" href="#"><i class="fa-solid fa-trash"></i></a></td>
                     </span>
                 </td>
             </tr>
@@ -59,7 +59,7 @@
         columnDefs:[
             {
                 targets: [0,1,2,3],
-                columnControl: ['order', ['orderAsc', 'orderDesc', 'search']],
+                columnControl: ['order', ['search']],
             },
             { // rimuoviamo ordinamento e filtri sull'ultima colonna
                 targets: -1,        

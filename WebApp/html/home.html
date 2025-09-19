@@ -55,8 +55,8 @@
                                         <br>
                                         <div class="row">
                                             <div class="col text-center">
-                                                <p><b>Downlad capacità di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
-                                                <p><b>Downlad postalizzazioni di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                                                <p><b>Download capacità di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                                                <p><b>Download postalizzazioni di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
                                             </div>
                                         </div>
                                     </div>
@@ -133,11 +133,11 @@
         columnDefs:[
             {
                 targets: [0,2,3],
-                columnControl: ['order', ['orderAsc', 'orderDesc', 'search']],
+                columnControl: ['order', ['search']],
             },
             {
                 targets: 1,
-                columnControl: ['order', ['orderAsc', 'orderDesc', 'searchList']],
+                columnControl: ['order', ['searchList']],
             },
             { // rimuoviamo ordinamento e filtri sull'ultima colonna
                 targets: -1,        
