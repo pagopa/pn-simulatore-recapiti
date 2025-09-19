@@ -22,11 +22,48 @@
                 <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}Lavorata 🟢{% elif simulazione.stato == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.stato == 'Schedulata' %}Schedulata 📅{% elif simulazione.stato == 'Non completata' %}Non completata 🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.utente}}</td>
                 <td style="text-align:center;">{{simulazione.nome_simulazione}}</td>
-                <td>
+                <td style="text-align:left;">
                     <!-- Visualizza dettagli -->
-                    <span>
-                        <a type="button" title="Visualizza dettagli" class="btn btn-outline-success" href="#"><i class="fa-solid fa-magnifying-glass"></i></a>
+                    <span class="ms-4">
+                        <!-- Button trigger modal -->
+                        <button type="button" title="Visualizza dettagli" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#visualizzaDettagliModal{{ forloop.counter }}"><i class="fa-solid fa-magnifying-glass"></i></button>
                     </span>
+                    <!-- Modal -->
+                    <div class="modal fade" id="visualizzaDettagliModal{{ forloop.counter }}" tabindex="-1" aria-labelledby="visualizzaDettagliModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title w-100 fs-3" align="center" id="visualizzaDettagliModalLabel">Dettaglio simulazione</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-start">
+                                    <div class="container">
+                                        <br>
+                                        <div class="row justify-content-center">
+                                            <div class="col offset-md-2">
+                                                <p><b>Nome simulazione</b>: {{simulazione.nome_simulazione}}</p>
+                                                <p><b>Descrizione</b>: {{simulazione.descrizione}}</p>
+                                                <p><b>Utente</b>: {{simulazione.utente}}
+                                            </div>
+                                            <div class="col">
+                                                <p><b>Timestamp esecuzione</b>: {{simulazione.timestamp_esecuzione}}</p>
+                                                <p><b>Stato</b>: {% if simulazione.stato == 'Lavorata' %}Lavorata 🟢{% elif simulazione.stato == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.stato == 'Schedulata' %}Schedulata 📅{% elif simulazione.stato == 'Non completata' %}Non completata 🔴{% endif %}</p>
+                                                {% if simulazione.stato == 'Lavorata'%}<p><b>Durata</b>: {{simulazione.durata}}</p>{% endif %}
+                                                {% if simulazione.stato == 'Non completata'%}<p><b>Errore</b>: {{simulazione.errore}}</p>{% endif %}
+                                            </div>
+                                        </div>
+                                        <br>
+                                        <div class="row">
+                                            <div class="col text-center">
+                                                <p><b>Downlad capacità di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                                                <p><b>Downlad postalizzazioni di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Nuova simulazione partendo dallo stesso input --> 
                     <span>
