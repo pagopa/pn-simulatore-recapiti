@@ -12,6 +12,7 @@
             <th style="text-align:center;">Stato</th>
             <th style="text-align:center;">Utente</th>
             <th style="text-align:center;">Nome simulazione</th>
+            <th style="text-align:center;">Descrizione</th>
             <th style="text-align:center;">Azioni</th>
         </tr>
     </thead>
@@ -22,6 +23,7 @@
                 <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}Lavorata 🟢{% elif simulazione.stato == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.stato == 'Schedulata' %}Schedulata 📅{% elif simulazione.stato == 'Non completata' %}Non completata 🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.utente}}</td>
                 <td style="text-align:center;">{{simulazione.nome_simulazione}}</td>
+                <td style="text-align:center;">{{simulazione.descrizione}}</td>
                 <td style="text-align:left;">
                     <!-- Visualizza dettagli -->
                     <span class="ms-4">
@@ -132,12 +134,23 @@
         responsive: true,
         columnDefs:[
             {
-                targets: [0,2,3],
+                targets: [0,2,3,4],
                 columnControl: ['order', ['search']],
             },
             {
                 targets: 1,
                 columnControl: ['order', ['searchList']],
+            },
+            {
+                targets: 4,
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        // mostriamo solo i primi 20 caratteri
+                        return data.length > 20 ? data.substr(0, 20) + '…' : data;
+                    }
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 20 caratteri
+                    return data;
+                }
             },
             { // rimuoviamo ordinamento e filtri sull'ultima colonna
                 targets: -1,        
