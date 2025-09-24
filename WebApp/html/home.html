@@ -20,7 +20,7 @@
         {% for simulazione in lista_simulazioni %}
             <tr>
                 <td style="text-align:center;">{{simulazione.timestamp_esecuzione}}</td>
-                <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}Lavorata 🟢{% elif simulazione.stato == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.stato == 'Schedulata' %}Schedulata 📅{% elif simulazione.stato == 'Non completata' %}Non completata 🔴{% endif %}</td>
+                <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}🟢{% elif simulazione.stato == 'In lavorazione' %}🕛{% elif simulazione.stato == 'Schedulata' %}📅{% elif simulazione.stato == 'Non completata' %}🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.utente}}</td>
                 <td style="text-align:center;">{{simulazione.nome_simulazione}}</td>
                 <td style="text-align:center;">{{simulazione.descrizione}}</td>
