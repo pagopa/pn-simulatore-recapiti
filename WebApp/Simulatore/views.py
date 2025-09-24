@@ -30,6 +30,15 @@ def homepage(request):
             'durata': '0:13:50'
         },
         {
+            'timestamp_esecuzione': '2025/07/23 10:00:00',
+            'stato': 'Lavorata',
+            'utente': 'TRIGGER AUTOMATICO',
+            'nome_simulazione': 'TRIGGER AUTOMATICO',
+            'descrizione': 'TRIGGER AUTOMATICO',
+            'errore': None,
+            'durata': '0:13:50'
+        },
+        {
             'timestamp_esecuzione': '2025/07/22 11:30:00',
             'stato': 'Non completata',
             'utente': 'Luca Neri',
