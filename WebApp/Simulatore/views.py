@@ -32,9 +32,9 @@ def homepage(request):
         {
             'timestamp_esecuzione': '2025/07/23 10:00:00',
             'stato': 'Lavorata',
-            'utente': 'TRIGGER AUTOMATICO',
-            'nome_simulazione': 'TRIGGER AUTOMATICO',
-            'descrizione': 'TRIGGER AUTOMATICO',
+            'utente': '',
+            'nome_simulazione': 'Automatizzata',
+            'descrizione': 'Pianificazione settimanale automatizzata',
             'errore': None,
             'durata': '0:13:50'
         },
