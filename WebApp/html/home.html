@@ -134,15 +134,34 @@
         responsive: true,
         columnDefs:[
             {
-                targets: [0,2,3,4],
+                // colonna Timestamp esecuzione
+                targets: 0,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'filter' || type === 'sort') {
+                        // formato solo per filtro e ordinamento
+                        return moment(data).format('YYYY-MM-DD');
+                    }
+                    else{
+                        // formato per display, export, excel, csv, pdf, print
+                        return data; 
+                    }
+                },
+                type:'date'
+            },
+            {
+                targets: [2,3],
                 columnControl: ['order', ['search']],
             },
             {
+                // colonna stato
                 targets: 1,
                 columnControl: ['order', ['searchList']],
             },
             {
+                // colonna descrizione
                 targets: 4,
+                columnControl: ['order', ['search']],
                 render: function (data, type, row) {
                     if (type === 'display') {
                         // mostriamo solo i primi 20 caratteri
