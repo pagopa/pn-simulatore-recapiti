@@ -6,5 +6,130 @@
 
 <br><br>
 
+<!-- Position bar bootstrap -->
+<div class="position-relative mb-5">
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="height: 1px;">
+        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+    </div>
+    <button type="button" id="stepBtn1" class="position-absolute top-0 start-0 translate-middle btn btn-sm btn-primary rounded-pill" style="width: 2rem; height:2rem;">1</button>
+    <button type="button" id="stepBtn2" class="position-absolute top-0 start-50 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem;">2</button>
+    <button type="button" id="stepBtn3" class="position-absolute top-0 start-100 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem;">3</button>
+</div>
+
+
+<!-- Form -->
+<form id="multiStepForm">
+    <!-- STEP 1 -->
+    <div class="card p-4 step" id="step1">
+        <h5>Parametri di scheduling</h5>
+        <div class="mb-3">
+            <label class="form-label">Nome simulazione</label>
+            <input type="text" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Descrizione</label>
+            <textarea class="form-control"></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1">
+                <label class="form-check-label" for="inlineRadio1">Schedule</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
+                <label class="form-check-label" for="inlineRadio2">Now</label>
+            </div>
+        </div>
+        <div class="row text-center">
+            <div class="col">
+            </div>
+            <div class="col">
+                <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="card p-4 step d-none" id="step2">
+        <h5>Postalizzazioni di mock aggiuntive</h5>
+        <div class="row text-center">
+            <div class="col">
+                <button type="button" class="btn btn-secondary" onclick="prevStep()">Indietro</button>
+            </div>
+            <div class="col">
+                <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="card p-4 step d-none" id="step3">
+        <h5>Capacità recapitisti</h5>
+        <div class="row text-center">
+            <div class="col">
+                <button type="button" class="btn btn-secondary" onclick="prevStep()">Indietro</button>
+            </div>
+            <div class="col">
+                <button type="submit" class="btn btn-primary">Avvia scheduling</button>
+            </div>
+        </div>
+    </div>
+</form>
+
 
 {% endblock content %}
+
+
+{% block scripts %}
+<script>
+    let currentStep = 1;
+
+    function showStep(step) {
+        // nasconde tutti
+        document.querySelectorAll(".step").forEach(s => s.classList.add("d-none"));
+        // mostra quello richiesto
+        document.getElementById("step" + step).classList.remove("d-none");
+
+        // aggiorna progress bar
+        const progressBar = document.getElementById("progressBar");
+        progressBar.style.width = ((step - 1) / 2) * 100 + "%";
+
+        // aggiorna pulsanti step
+        for (let i = 1; i <= 3; i++) {
+            const btn = document.getElementById("stepBtn" + i);
+            if (i < step) {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-success rounded-pill";
+            } else if (i === step) {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-primary rounded-pill";
+            } else {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-secondary rounded-pill";
+            }
+            btn.style.width = "2rem";
+            btn.style.height = "2rem";
+        }
+
+        currentStep = step;
+    }
+
+    function nextStep() {
+        if (currentStep < 3) {
+            showStep(currentStep + 1);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) {
+            showStep(currentStep - 1);
+        }
+    }
+
+    // mostra step iniziale
+    showStep(1);
+
+    // gestione invio
+    document.getElementById("multiStepForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+    });
+</script>
+{% endblock %}
