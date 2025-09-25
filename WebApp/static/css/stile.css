@@ -23,3 +23,8 @@
 .btn-outline-dark { border-color: #e97509 !important; color: #e97509 !important;}
 
 .btn-outline-dark:hover { border-color: #e97509 !important; background-color: #e97509 !important; color: #ffffff !important;}
+
+button:disabled {
+  cursor: not-allowed;
+  pointer-events: all !important;
+}

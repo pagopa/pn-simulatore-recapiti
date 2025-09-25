@@ -2,8 +2,6 @@
 {% block content %}
 {% load static %}
 
-<h1 class="text-center font-color-blue-pagopa">NUOVA SIMULAZIONE</h1>
-
 <br><br>
 
 <!-- Position bar bootstrap -->
@@ -11,67 +9,121 @@
     <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="height: 1px;">
         <div id="progressBar" class="progress-bar" style="width: 0%"></div>
     </div>
-    <button type="button" id="stepBtn1" class="position-absolute top-0 start-0 translate-middle btn btn-sm btn-primary rounded-pill" style="width: 2rem; height:2rem;">1</button>
-    <button type="button" id="stepBtn2" class="position-absolute top-0 start-50 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem;">2</button>
-    <button type="button" id="stepBtn3" class="position-absolute top-0 start-100 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem;">3</button>
+    <button type="button" id="stepBtn1" class="position-absolute top-0 start-0 translate-middle btn btn-sm btn-primary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">1</button>
+    <button type="button" id="stepBtn2" class="position-absolute top-0 start-50 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">2</button>
+    <button type="button" id="stepBtn3" class="position-absolute top-0 start-100 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">3</button>
 </div>
 
 
 <!-- Form -->
 <form id="multiStepForm">
-    <!-- STEP 1 -->
-    <div class="card p-4 step" id="step1">
-        <h5>Parametri di scheduling</h5>
-        <div class="mb-3">
-            <label class="form-label">Nome simulazione</label>
-            <input type="text" class="form-control">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Descrizione</label>
-            <textarea class="form-control"></textarea>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1">
-                <label class="form-check-label" for="inlineRadio1">Schedule</label>
+    <!-- STEP 1 - Parametri di scheduling -->
+    <div class="step" id="step1">
+        <h5 class="text-start">Parametri di scheduling</h5>
+        <br>
+        <div class="card p-4">
+            <div class="mb-3">
+                <label class="form-label">Nome simulazione</label>
+                <input type="text" class="form-control" required>
             </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
-                <label class="form-check-label" for="inlineRadio2">Now</label>
+            <div class="mb-3">
+                <label class="form-label">Descrizione</label>
+                <textarea class="form-control"></textarea>
             </div>
-        </div>
-        <div class="row text-center">
-            <div class="col">
+            <div class="mb-3">
+                <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
+
+                <!-- Radio Schedule -->
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required>
+                    <label class="form-check-label" for="inlineRadio1">Schedule</label>
+                </div>
+
+                <!-- Radio Now -->
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now">
+                    <label class="form-check-label" for="inlineRadio2">Now</label>
+                </div>
             </div>
-            <div class="col">
-                <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti</button>
+
+            <!-- Campo datetime (inizialmente nascosto) -->
+            <div class="mb-3 d-none" id="datetimeField">
+                <label class="form-label">Seleziona data e ora</label>
+                <input type="datetime-local" class="form-control" style="width:auto;" id="datetimeInput">
+            </div>
+
+<script>
+  const radioSchedule = document.getElementById("inlineRadio1");
+  const radioNow = document.getElementById("inlineRadio2");
+  const datetimeField = document.getElementById("datetimeField");
+  const datetimeInput = document.getElementById("datetimeInput");
+
+  // evento cambio
+  document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+      if (radioSchedule.checked) {
+        datetimeField.classList.remove("d-none"); // mostra
+        datetimeInput.setAttribute('required','required');
+      } else {
+        datetimeField.classList.add("d-none"); // nasconde
+        datetimeInput.removeAttribute('required');
+      }
+    });
+  });
+</script>
+
+            <div class="row">
+                <div class="col d-grid gap-2 mx-auto">
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-info" id="salva_bozza" class="disabled" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- STEP 2 -->
-    <div class="card p-4 step d-none" id="step2">
-        <h5>Postalizzazioni di mock aggiuntive</h5>
-        <div class="row text-center">
-            <div class="col">
-                <button type="button" class="btn btn-secondary" onclick="prevStep()">Indietro</button>
+    <!-- STEP 2 - Postalizzazioni di mock aggiuntive -->
+    <div class="step d-none" id="step2">
+        <h5 class="text-center">Postalizzazioni di mock aggiuntive</h5>
+        <br>
+        <div class="card p-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="commesse_default" checked disabled>
+                <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
             </div>
-            <div class="col">
-                <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti</button>
+            <br><br><br>
+            <div class="row text-center">
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-info">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- STEP 3 -->
-    <div class="card p-4 step d-none" id="step3">
-        <h5>Capacità recapitisti</h5>
-        <div class="row text-center">
-            <div class="col">
-                <button type="button" class="btn btn-secondary" onclick="prevStep()">Indietro</button>
-            </div>
-            <div class="col">
-                <button type="submit" class="btn btn-primary">Avvia scheduling</button>
+    <!-- STEP 3 - Capacità recapitisti -->
+    <div class="step d-none" id="step3">
+        <h5 class="text-end">Capacità recapitisti</h5>
+        <br>
+        <div class="card p-4">
+            <div class="row text-center">
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-info">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="submit" class="btn btn-success">Avvia scheduling</button>
+                </div>
             </div>
         </div>
     </div>
@@ -84,6 +136,7 @@
 {% block scripts %}
 <script>
     let currentStep = 1;
+    const button_salva_bozza = document.getElementById("salva_bozza");
 
     function showStep(step) {
         // nasconde tutti
@@ -113,6 +166,22 @@
     }
 
     function nextStep() {
+        // controlla validità dei campi required mostrando il messaggio di default del browser
+        const currentStepEl = document.getElementById("step" + currentStep);
+        const requiredFields = currentStepEl.querySelectorAll("[required]");
+        let isValid = true;
+        let firstInvalid = null;
+        requiredFields.forEach(field => {
+            if (!field.checkValidity()) {
+            isValid = false;
+            if (!firstInvalid) firstInvalid = field;
+            }
+        });
+        if (!isValid) {
+            firstInvalid.reportValidity();
+            return;
+        }
+        // altrimenti vai avanti
         if (currentStep < 3) {
             showStep(currentStep + 1);
         }
@@ -131,5 +200,37 @@
     document.getElementById("multiStepForm").addEventListener("submit", function(e) {
         e.preventDefault();
     });
+
+
+function checkRequiredFields() {
+    const nomeField = document.querySelector('input[type="text"][required]');
+    const radioSelected = document.querySelector('input[name="inlineRadioOptions"]:checked');
+    
+    // Controllo base
+    let isValid = nomeField.value.trim() !== '' && radioSelected !== null;
+    
+    // Controllo aggiuntivo: se è selezionato "Schedule", verifica anche il campo data
+    if (isValid && radioSelected.value === 'schedule') {
+        const datetimeInput = document.getElementById('datetimeInput');
+        isValid = datetimeInput.value.trim() !== '';
+    }
+    
+    return isValid;
+}
+
+function updateSaveButton() {
+    button_salva_bozza.disabled = !checkRequiredFields();
+}
+
+// Aggiungi gli event listener ai campi required
+document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
+document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
+    radio.addEventListener('change', updateSaveButton);
+});
+document.getElementById('datetimeInput').addEventListener('change', updateSaveButton);
+document.getElementById('datetimeInput').addEventListener('input', updateSaveButton);
+
+// Controllo iniziale
+updateSaveButton();
 </script>
 {% endblock %}
