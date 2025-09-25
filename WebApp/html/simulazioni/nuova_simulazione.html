@@ -19,37 +19,55 @@
 <form id="multiStepForm">
     <!-- STEP 1 - Parametri di scheduling -->
     <div class="step" id="step1">
-        <h5 class="text-start">Parametri di scheduling</h5>
+        <h4 class="text-start">Parametri di scheduling</h4>
         <br>
         <div class="card p-4">
-            <div class="mb-3">
-                <label class="form-label">Nome simulazione</label>
-                <input type="text" class="form-control" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Descrizione</label>
-                <textarea class="form-control"></textarea>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
-
-                <!-- Radio Schedule -->
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required>
-                    <label class="form-check-label" for="inlineRadio1">Schedule</label>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label">Nome simulazione</label>
                 </div>
-
-                <!-- Radio Now -->
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now">
-                    <label class="form-check-label" for="inlineRadio2">Now</label>
+                <div class="col-auto w-50">
+                    <input type="text" class="form-control" required>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label">Descrizione</label>
+                </div>
+                <div class="col-auto w-50">
+                    <textarea class="form-control"></textarea>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Schedule -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required>
+                        <label class="form-check-label" for="inlineRadio1">Schedule</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Now -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now">
+                        <label class="form-check-label" for="inlineRadio2">Now</label>
+                    </div>
                 </div>
             </div>
 
             <!-- Campo datetime (inizialmente nascosto) -->
-            <div class="mb-3 d-none" id="datetimeField">
-                <label class="form-label">Seleziona data e ora</label>
-                <input type="datetime-local" class="form-control" style="width:auto;" id="datetimeInput">
+            <div class="row mb-3 align-items-center d-none" id="datetimeField">
+                <div class="col-auto">
+                    <label class="form-label">Seleziona data e ora</label>
+                </div>
+                <div class="col-auto">
+                    <input type="datetime-local" class="form-control" style="width:auto;" id="datetimeInput">
+                </div>
             </div>
 
 <script>
