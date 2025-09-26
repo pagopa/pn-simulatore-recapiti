@@ -1,8 +1,13 @@
 from django.shortcuts import render
 
+import plotly.graph_objects as go
+import json
+import plotly.utils as putils
+
 def homepage(request):
     lista_simulazioni = [
         {
+            'id': '0001',
             'timestamp_esecuzione': '2025/08/10 17:00:00',
             'stato': 'Schedulata',
             'utente': 'Paolo Bianchi',
@@ -12,6 +17,7 @@ def homepage(request):
             'durata': None,
         },
         {
+            'id': '0002',
             'timestamp_esecuzione': '2025/07/23 15:00:00',
             'stato': 'In lavorazione',
             'utente': 'Mario Rossi',
@@ -21,6 +27,7 @@ def homepage(request):
             'durata': None,
         },
         {
+            'id': '0003',
             'timestamp_esecuzione': '2025/07/23 10:00:00',
             'stato': 'Lavorata',
             'utente': 'Mario Rossi',
@@ -30,6 +37,7 @@ def homepage(request):
             'durata': '0:13:50'
         },
         {
+            'id': '0004',
             'timestamp_esecuzione': '2025/07/23 10:00:00',
             'stato': 'Lavorata',
             'utente': '',
@@ -39,6 +47,7 @@ def homepage(request):
             'durata': '0:13:50'
         },
         {
+            'id': '0005',
             'timestamp_esecuzione': '2025/07/22 11:30:00',
             'stato': 'Non completata',
             'utente': 'Luca Neri',
@@ -53,6 +62,27 @@ def homepage(request):
         'lista_simulazioni': lista_simulazioni
     }
     return render(request, "home.html", context)
+
+
+def risultati(request, id_simulazione):
+
+    x = [1, 2, 3, 4]
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=x, y=[1, 4, 9, 16]))
+    fig.add_trace(go.Bar(x=x, y=[6, -8, -4.5, 8]))
+    fig.add_trace(go.Bar(x=x, y=[-15, -3, 4.5, -8]))
+    fig.add_trace(go.Bar(x=x, y=[-1, 3, -3, -4]))
+
+    fig.update_layout(barmode='relative', title_text='Relative Barmode')
+
+    fig_for_visualizzation = json.dumps(fig, cls=putils.PlotlyJSONEncoder)
+
+    context = {
+        'fig_for_visualizzation': fig_for_visualizzation
+    }
+    return render(request, "simulazioni/risultati.html", context)
+
+
 
 def calendario(request):
     return render(request, "calendario/calendario.html")

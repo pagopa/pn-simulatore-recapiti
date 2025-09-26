@@ -24,6 +24,7 @@ urlpatterns = [
     path('calendario', calendario, name='calendario'),
     path('bozze', bozze, name='bozze'),
     path('nuova_simulazione', nuova_simulazione, name='nuova_simulazione'),
+    path('risultati/<id_simulazione>', risultati, name='risultati'),
     path('login', login, name='login')
 ]
 

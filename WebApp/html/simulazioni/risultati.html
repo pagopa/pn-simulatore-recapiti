@@ -1,0 +1,24 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+<h1 class="text-center font-color-blue-pagopa">RISULTATI</h1>
+
+<br><br>
+
+<div id="fig_for_visualizzation_final"></div>
+
+
+{% endblock content %}
+
+
+<!-- CODICE JAVASCRIPT -->
+{% block scripts %}
+
+<script>
+    const rawData_fig_for_visualizzation = '{{ fig_for_visualizzation|safe }}';
+    const plotData_fig_for_visualizzation = JSON.parse(rawData_fig_for_visualizzation);
+    Plotly.newPlot('fig_for_visualizzation_final', plotData_fig_for_visualizzation.data);
+</script>
+
+{% endblock %}
