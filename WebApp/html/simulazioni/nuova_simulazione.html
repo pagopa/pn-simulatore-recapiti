@@ -63,7 +63,7 @@
             <!-- Campo datetime (inizialmente nascosto) -->
             <div class="row mb-3 align-items-center d-none" id="datetimeField">
                 <div class="col-auto">
-                    <label class="form-label">Seleziona data e ora</label>
+                    <label class="form-label">Seleziona data-ora</label>
                 </div>
                 <div class="col-auto">
                     <input type="datetime-local" class="form-control" style="width:auto;" id="datetimeInput">
@@ -375,18 +375,9 @@
 
 
 function checkRequiredFields() {
-    const nomeField = document.querySelector('input[type="text"][required]');
-    const radioSelected = document.querySelector('input[name="inlineRadioOptions"]:checked');
-    
-    // Controllo base
-    let isValid = nomeField.value.trim() !== '' && radioSelected !== null;
-    
-    // Controllo aggiuntivo: se è selezionato "Schedule", verifica anche il campo data
-    if (isValid && radioSelected.value === 'schedule') {
-        const datetimeInput = document.getElementById('datetimeInput');
-        isValid = datetimeInput.value.trim() !== '';
-    }
-    
+    const nomeField = document.querySelector('input[type="text"][required]');    
+    // controlliamo se il campo nome è stato inserito
+    let isValid = nomeField.value.trim() !== '';
     return isValid;
 }
 
@@ -394,13 +385,8 @@ function updateSaveButton() {
     button_salva_bozza.disabled = !checkRequiredFields();
 }
 
-// Aggiungi gli event listener ai campi required
+// event listener per 
 document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
-document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
-    radio.addEventListener('change', updateSaveButton);
-});
-document.getElementById('datetimeInput').addEventListener('change', updateSaveButton);
-document.getElementById('datetimeInput').addEventListener('input', updateSaveButton);
 
 // Controllo iniziale
 updateSaveButton();
