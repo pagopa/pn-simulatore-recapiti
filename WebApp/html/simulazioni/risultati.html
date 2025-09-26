@@ -18,7 +18,7 @@
 <script>
     const rawData_fig_for_visualizzation = '{{ fig_for_visualizzation|safe }}';
     const plotData_fig_for_visualizzation = JSON.parse(rawData_fig_for_visualizzation);
-    Plotly.newPlot('fig_for_visualizzation_final', plotData_fig_for_visualizzation.data);
+    Plotly.newPlot('fig_for_visualizzation_final', plotData_fig_for_visualizzation.data, plotData_fig_for_visualizzation.layout);
 </script>
 
 {% endblock %}
