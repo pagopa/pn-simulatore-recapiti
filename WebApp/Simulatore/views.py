@@ -72,9 +72,8 @@ def risultati(request, id_simulazione):
     fig.add_trace(go.Bar(x=x, y=[6, -8, -4.5, 8]))
     fig.add_trace(go.Bar(x=x, y=[-15, -3, 4.5, -8]))
     fig.add_trace(go.Bar(x=x, y=[-1, 3, -3, -4]))
-
     fig.update_layout(barmode='relative', title_text='Relative Barmode')
-
+    # istruzione per passare il grafico alla pagina html
     fig_for_visualizzation = json.dumps(fig, cls=putils.PlotlyJSONEncoder)
 
     context = {
