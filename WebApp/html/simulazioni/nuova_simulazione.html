@@ -69,32 +69,12 @@
                     <input type="datetime-local" class="form-control" style="width:auto;" id="datetimeInput">
                 </div>
             </div>
-
-<script>
-  const radioSchedule = document.getElementById("inlineRadio1");
-  const radioNow = document.getElementById("inlineRadio2");
-  const datetimeField = document.getElementById("datetimeField");
-  const datetimeInput = document.getElementById("datetimeInput");
-
-  // evento cambio
-  document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
-    radio.addEventListener("change", () => {
-      if (radioSchedule.checked) {
-        datetimeField.classList.remove("d-none"); // mostra
-        datetimeInput.setAttribute('required','required');
-      } else {
-        datetimeField.classList.add("d-none"); // nasconde
-        datetimeInput.removeAttribute('required');
-      }
-    });
-  });
-</script>
-
+            <!-- bottoni salva-avanti -->
             <div class="row">
                 <div class="col d-grid gap-2 mx-auto">
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-info" id="salva_bozza" class="disabled" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary" id="salva_bozza" class="disabled" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
@@ -112,13 +92,29 @@
                 <input class="form-check-input" type="checkbox" value="" id="commesse_default" checked disabled>
                 <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
             </div>
+            <div class="row text-center opacity-50">
+                <div class="col-8 mx-auto"></div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-2x" title="Download csv"></i></p>
+                    <label>Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv" disabled>
+                    </div>
+                </div>
+            </div>
+
             <br><br><br>
+
+            <!-- bottoni indietro-salva-avanti -->
             <div class="row text-center">
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-info">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
@@ -132,15 +128,173 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
+
+            <br>
+
+            <div class="row text-center">
+                <div class="col-4 mx-auto">
+                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare">
+                        <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
+                        <option value="1">Produzione</option>
+                        <option value="2">Solo BAU</option>
+                        <option value="3">Solo picco</option>
+                        <option value="3">BAU e picco combinate</option>
+                    </select>
+                </div>
+                <div class="col-4 mx-auto">
+                    <label for="tipo_capacita_da_modificare"><b>Mese da simulare</b></label>
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare">
+                        <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
+                        <option value="1">Gennaio</option>
+                        <option value="2">Febbraio</option>
+                        <option value="3">Marzo</option>
+                        <option value="3">Aprile</option>
+                        <option value="3">Maggio</option>
+                        <option value="3">Giugno</option>
+                        <option value="3">Luglio</option>
+                        <option value="3">Agosto</option>
+                        <option value="3">Settembre</option>
+                        <option value="3">Ottobre</option>
+                        <option value="3">Novembre</option>
+                        <option value="3">Dicembre</option>
+                    </select>
+                </div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                    <label>Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
+                    </div>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="accordion" id="accordionExample">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <b>RECAPITISTA: POSTE ITALIANE</b>
+                    </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse">
+                        <div class="accordion-body table-responsive">
+                            <table class="table table-hover">
+                                <thead class="text-center">
+                                    <tr>
+                                    <th scope="col">Regione</th>
+                                    <th scope="col">Provincia</th>
+                                    <th scope="col">Numero di post. mensili</th>
+                                    <th scope="col">Inizio periodo di validità</th>
+                                    <th scope="col">Fine periodo di validità</th>
+                                    <th scope="col">Capacità settimanale</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table-group-divider text-center">
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Frosinone</td>
+                                        <td>30000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-07"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="6000"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Latina</td>
+                                        <td>87000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-07"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>25000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-07"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>25000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-12"></td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-18"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="10000"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>25000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-15"></td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-20"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="7500"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                        <span><b>RECAPITISTA: RTI FULMINE</b></span>
+                    </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        <table class="table table-hover">
+                                <thead class="text-center">
+                                    <tr>
+                                    <th scope="col">Regione</th>
+                                    <th scope="col">Provincia</th>
+                                    <th scope="col">Numero di post. mensili</th>
+                                    <th scope="col">Inizio periodo di validità</th>
+                                    <th scope="col">Fine periodo di validità</th>
+                                    <th scope="col">Capacità settimanale</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table-group-divider text-center">
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>10000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-08"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>50000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-018"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="4000"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <br><br>
+
+            <!-- bottoni indietro-salva-avvia -->
             <div class="row text-center">
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-secondary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-info">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="submit" class="btn btn-success">Avvia scheduling</button>
+                    <button type="submit" class="btn btn-primary">Avvia scheduling 📅</button>
                 </div>
             </div>
         </div>
@@ -250,5 +404,26 @@ document.getElementById('datetimeInput').addEventListener('input', updateSaveBut
 
 // Controllo iniziale
 updateSaveButton();
+</script>
+
+
+<!-- mostra/nascondi datetime picker quando viene selezionato/deselezionato il radiobutton "Schedule" -->
+<script>
+    const radioSchedule = document.getElementById("inlineRadio1");
+    const radioNow = document.getElementById("inlineRadio2");
+    const datetimeField = document.getElementById("datetimeField");
+    const datetimeInput = document.getElementById("datetimeInput");
+
+    document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
+        radio.addEventListener("change", () => {
+            if (radioSchedule.checked) {
+                datetimeField.classList.remove("d-none"); // mostra
+                datetimeInput.setAttribute('required','required');
+            } else {
+                datetimeField.classList.add("d-none"); // nasconde
+                datetimeInput.removeAttribute('required');
+            }
+        });
+    });
 </script>
 {% endblock %}

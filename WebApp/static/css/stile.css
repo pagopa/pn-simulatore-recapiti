@@ -1,10 +1,14 @@
+:root {
+  --blue_pagopa: #0066cc;
+}
+
 .navbar-light {
-    background-color: #0066cc !important;
+    background-color: var(--blue_pagopa) !important;
     color: white !important;
 }
 
 .font-color-blue-pagopa{
-    color: #0066cc !important;
+    color: var(--blue_pagopa) !important;
 }
 
 .nav-link{
@@ -20,6 +24,17 @@
 .white {color:#ffffff;}
 
 
+/* cambiamo il blue di btn-primary settando il blu di pagopa */
+.btn-primary, .btn-primary:hover, .btn-primary:active, .btn-primary:visited {
+    background-color: var(--blue_pagopa) !important;
+}
+
+.btn-primary:hover{
+    transform: scale(1.01); /* evidenzia maggiormente il tasto quando ci passiamo soptra con il mouse */
+}
+
+
+
 .btn-outline-dark { border-color: #e97509 !important; color: #e97509 !important;}
 
 .btn-outline-dark:hover { border-color: #e97509 !important; background-color: #e97509 !important; color: #ffffff !important;}
@@ -27,4 +42,12 @@
 button:disabled {
   cursor: not-allowed;
   pointer-events: all !important;
+  transform:unset !important; /* serve per bloccare l'ingrandimento del tasto e sottolineare ulteriormente che il tasto non è attivo  */
+}
+
+.accordion{
+    --bs-accordion-btn-bg: white !important;
+    --bs-accordion-btn-color: var(--blue_pagopa) !important;
+    --bs-accordion-active-bg: white !important;
+    --bs-accordion-active-color: var(--blue_pagopa) !important;
 }
