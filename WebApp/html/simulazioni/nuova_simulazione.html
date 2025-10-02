@@ -134,12 +134,12 @@
             <div class="row text-center">
                 <div class="col-4 mx-auto">
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare">
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" onchange="select_tipo_capacita_da_modificare()">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
-                        <option value="1">Produzione</option>
-                        <option value="2">Solo BAU</option>
-                        <option value="3">Solo picco</option>
-                        <option value="3">BAU e picco combinate</option>
+                        <option value="Produzione">Produzione</option>
+                        <option value="Solo BAU">Solo BAU</option>
+                        <option value="Solo picco">Solo picco</option>
+                        <option value="BAU e picco combinate">BAU e picco combinate</option>
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
@@ -191,7 +191,7 @@
                                     <th scope="col">Numero di post. mensili</th>
                                     <th scope="col">Inizio periodo di validità</th>
                                     <th scope="col">Fine periodo di validità</th>
-                                    <th scope="col">Capacità settimanale</th>
+                                    <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
                                     </tr>
                                 </thead>
                                 <tbody class="table-group-divider text-center">
@@ -256,7 +256,7 @@
                                     <th scope="col">Numero di post. mensili</th>
                                     <th scope="col">Inizio periodo di validità</th>
                                     <th scope="col">Fine periodo di validità</th>
-                                    <th scope="col">Capacità settimanale</th>
+                                    <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
                                     </tr>
                                 </thead>
                                 <tbody class="table-group-divider text-center">
@@ -272,7 +272,7 @@
                                         <td>Lazio</td>
                                         <td>Roma</td>
                                         <td>50000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-018"></td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-18"></td>
                                         <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="4000"></td>
                                     </tr>
@@ -411,5 +411,15 @@ updateSaveButton();
             }
         });
     });
+</script>
+
+<!-- cattura il valore della select select_tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale' -->
+<script>
+    function select_tipo_capacita_da_modificare() {
+        d = document.getElementById("tipo_capacita_da_modificare").value;
+        document.querySelectorAll(".th_capacita_settimanale").forEach(el => {
+            el.innerHTML = '<br>(' + d + ')';
+        });
+    }
 </script>
 {% endblock %}
