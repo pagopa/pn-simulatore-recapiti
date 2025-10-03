@@ -146,18 +146,18 @@
                     <label for="tipo_capacita_da_modificare"><b>Mese da simulare</b></label>
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
-                        <option value="1">Gennaio</option>
-                        <option value="2">Febbraio</option>
-                        <option value="3">Marzo</option>
-                        <option value="3">Aprile</option>
-                        <option value="3">Maggio</option>
-                        <option value="3">Giugno</option>
-                        <option value="3">Luglio</option>
-                        <option value="3">Agosto</option>
-                        <option value="3">Settembre</option>
-                        <option value="3">Ottobre</option>
-                        <option value="3">Novembre</option>
-                        <option value="3">Dicembre</option>
+                        <option value="Gennaio">Gennaio</option>
+                        <option value="Febbraio">Febbraio</option>
+                        <option value="Marzo">Marzo</option>
+                        <option value="Aprile">Aprile</option>
+                        <option value="Maggio">Maggio</option>
+                        <option value="Giugno">Giugno</option>
+                        <option value="Luglio">Luglio</option>
+                        <option value="Agosto">Agosto</option>
+                        <option value="Settembre">Settembre</option>
+                        <option value="Ottobre">Ottobre</option>
+                        <option value="Novembre">Novembre</option>
+                        <option value="Dicembre">Dicembre</option>
                     </select>
                 </div>
                 <div class="col-2 mx-auto">
@@ -192,6 +192,8 @@
                                     <th scope="col">Inizio periodo di validità</th>
                                     <th scope="col">Fine periodo di validità</th>
                                     <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
+                                    <th scope="col"></th> <!-- colonna per il bottone "+" che aggiunge una riga -->
+                                    <th scope="col"></th> <!-- colonna per alert -->
                                     </tr>
                                 </thead>
                                 <tbody class="table-group-divider text-center">
@@ -202,6 +204,8 @@
                                         <td><input type="date" class="form-control text-center" value="2026-01-07"></td>
                                         <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="6000"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
                                     </tr>
                                     <tr>
                                         <td>Lazio</td>
@@ -210,6 +214,8 @@
                                         <td><input type="date" class="form-control text-center" value="2026-01-07"></td>
                                         <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
                                     </tr>
                                     <tr>
                                         <td>Lazio</td>
@@ -218,6 +224,8 @@
                                         <td><input type="date" class="form-control text-center" value="2026-01-07"></td>
                                         <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
                                     </tr>
                                     <tr>
                                         <td>Lazio</td>
@@ -226,6 +234,8 @@
                                         <td><input type="date" class="form-control text-center" value="2026-01-12"></td>
                                         <td><input type="date" class="form-control text-center" value="2026-01-18"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="10000"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
                                     </tr>
                                     <tr>
                                         <td>Lazio</td>
@@ -234,6 +244,8 @@
                                         <td><input type="date" class="form-control text-center" value="2026-01-15"></td>
                                         <td><input type="date" class="form-control text-center" value="2026-01-20"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="7500"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -248,36 +260,7 @@
                     </h2>
                     <div id="collapseTwo" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        <table class="table table-hover">
-                                <thead class="text-center">
-                                    <tr>
-                                    <th scope="col">Regione</th>
-                                    <th scope="col">Provincia</th>
-                                    <th scope="col">Numero di post. mensili</th>
-                                    <th scope="col">Inizio periodo di validità</th>
-                                    <th scope="col">Fine periodo di validità</th>
-                                    <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
-                                    </tr>
-                                </thead>
-                                <tbody class="table-group-divider text-center">
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>10000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-08"></td>
-                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000"></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>50000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-18"></td>
-                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="4000"></td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        
                     </div>
                     </div>
                 </div>
@@ -306,6 +289,7 @@
 
 
 {% block scripts %}
+<!-- GESTIONE 3 STEP -->
 <script>
     let currentStep = 1;
     const button_salva_bozza = document.getElementById("salva_bozza");
@@ -374,22 +358,22 @@
     });
 
 
-function checkRequiredFields() {
-    const nomeField = document.querySelector('input[type="text"][required]');    
-    // controlliamo se il campo nome è stato inserito
-    let isValid = nomeField.value.trim() !== '';
-    return isValid;
-}
+    function checkRequiredFields() {
+        const nomeField = document.querySelector('input[type="text"][required]');    
+        // controlliamo se il campo nome è stato inserito
+        let isValid = nomeField.value.trim() !== '';
+        return isValid;
+    }
 
-function updateSaveButton() {
-    button_salva_bozza.disabled = !checkRequiredFields();
-}
+    function updateSaveButton() {
+        button_salva_bozza.disabled = !checkRequiredFields();
+    }
 
-// event listener per 
-document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
+    // event listener per 
+    document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
 
-// Controllo iniziale
-updateSaveButton();
+    // Controllo iniziale
+    updateSaveButton();
 </script>
 
 
@@ -421,5 +405,59 @@ updateSaveButton();
             el.innerHTML = '<br>(' + d + ')';
         });
     }
+</script>
+
+
+<!-- icona alert -->
+<script>
+   function validateRows() {
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            const cells = row.cells;
+            if (cells.length < 8) return;
+            
+            const thirdField = parseInt(cells[2].textContent) || 0;
+            const sixthFieldInput = cells[5].querySelector('input');
+            const sixthField = sixthFieldInput ? parseInt(sixthFieldInput.value) || 0 : 0;
+            
+            cells[7].innerHTML = '';
+            
+            if (thirdField < sixthField) {
+                cells[7].innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Numero di postalizzazioni maggiore della capacità"></i>';
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // Validazione iniziale
+        validateRows();
+        
+        // Event delegation per il bottone "+"
+        document.querySelector("tbody").addEventListener("click", function (e) {
+            if (e.target && e.target.classList.contains("add-row")) {
+                let currentRow = e.target.closest("tr");
+                let clone = currentRow.cloneNode(true);
+                            
+                // pulizia alert
+                const alertCell = clone.cells[7];
+                if (alertCell) {
+                    alertCell.innerHTML = '';
+                }
+                
+                currentRow.parentNode.insertBefore(clone, currentRow.nextSibling);
+                
+                // Validazione dopo l'aggiunta
+                validateRows();
+            }
+        });
+        
+        // Event delegation per gli input
+        document.querySelector("tbody").addEventListener("input", function (e) {
+            if (e.target && e.target.matches('td:nth-child(6) input')) {
+                validateRows();
+            }
+        });
+    });
 </script>
 {% endblock %}
