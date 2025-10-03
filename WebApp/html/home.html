@@ -22,7 +22,7 @@
                 <td style="text-align:center;">{{simulazione.timestamp_esecuzione}}</td>
                 <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}🟢{% elif simulazione.stato == 'In lavorazione' %}🕛{% elif simulazione.stato == 'Schedulata' %}📅{% elif simulazione.stato == 'Non completata' %}🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.utente}}</td>
-                <td style="text-align:center;">{{simulazione.nome_simulazione}}</td>
+                <td style="text-align:center;">{{simulazione.nome}}</td>
                 <td style="text-align:center;">{{simulazione.descrizione}}</td>
                 <td style="text-align:left;">
                     <!-- Visualizza dettagli -->
@@ -43,7 +43,7 @@
                                         <br>
                                         <div class="row justify-content-center">
                                             <div class="col offset-md-2">
-                                                <p><b>Nome simulazione</b>: {{simulazione.nome_simulazione}}</p>
+                                                <p><b>Nome simulazione</b>: {{simulazione.nome}}</p>
                                                 <p><b>Descrizione</b>: {{simulazione.descrizione}}</p>
                                                 <p><b>Utente</b>: {{simulazione.utente}}
                                             </div>
@@ -90,15 +90,17 @@
 
                     {% elif simulazione.stato == 'Lavorata' %}
 
-                        <!-- Confronto con automatizzata --> 
-                        <span>
-                            <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
-                        </span>
+                        {% if simulazione.nome != 'Automatizzata' %}
+                            <!-- Confronto con automatizzata --> 
+                            <span>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                            </span>
 
-                        <!-- Confronto con altra simulazione --> 
-                        <span>
-                            <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
-                        </span>
+                            <!-- Confronto con altra simulazione --> 
+                            <span>
+                                <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
+                            </span>
+                        {% endif %}
 
                         <!-- Visualizza risultati --> 
                         <span>

@@ -14,7 +14,7 @@ def homepage(request):
             'timestamp_esecuzione': '2025/08/10 17:00:00',
             'stato': 'Schedulata',
             'utente': 'Paolo Bianchi',
-            'nome_simulazione': 'Test 4',
+            'nome': 'Test 4',
             'descrizione': 'Test con leggero aumento delle capacità',
             'errore': None,
             'durata': None,
@@ -24,7 +24,7 @@ def homepage(request):
             'timestamp_esecuzione': '2025/07/23 15:00:00',
             'stato': 'In lavorazione',
             'utente': 'Mario Rossi',
-            'nome_simulazione': 'Test 3',
+            'nome': 'Test 3',
             'descrizione': 'Test con leggera diminuzione delle capacità',
             'errore': None,
             'durata': None,
@@ -34,7 +34,7 @@ def homepage(request):
             'timestamp_esecuzione': '2025/07/23 10:00:00',
             'stato': 'Lavorata',
             'utente': 'Mario Rossi',
-            'nome_simulazione': 'Test 2',
+            'nome': 'Test 2',
             'descrizione': 'Test con drastico aumento delle capacità',
             'errore': None,
             'durata': '0:13:50'
@@ -44,7 +44,7 @@ def homepage(request):
             'timestamp_esecuzione': '2025/07/23 10:00:00',
             'stato': 'Lavorata',
             'utente': '',
-            'nome_simulazione': 'Automatizzata',
+            'nome': 'Automatizzata',
             'descrizione': 'Pianificazione settimanale automatizzata',
             'errore': None,
             'durata': '0:13:50'
@@ -54,7 +54,7 @@ def homepage(request):
             'timestamp_esecuzione': '2025/07/22 11:30:00',
             'stato': 'Non completata',
             'utente': 'Luca Neri',
-            'nome_simulazione': 'Test 1',
+            'nome': 'Test 1',
             'descrizione': 'Test con drastica diminuzione delle capacità',
             'errore': '429 - Algoritmo di pianificazione occupato',
             'durata': None,
@@ -156,19 +156,19 @@ def bozze(request):
     lista_bozze = [
         {
             'timestamp_scheduling': '2025/07/23 15:00:00',
-            'nome_simulazione': 'Test 3',
+            'nome': 'Test 3',
             'utente': 'Mario Rossi',
             'descrizione': 'Test 5'
         },
         {
             'timestamp_scheduling': '2025/07/23 10:00:00',
-            'nome_simulazione': 'Test 2',
+            'nome': 'Test 2',
             'utente': 'Mario Rossi',
             'descrizione': 'Test 2'
         },
         {
             'timestamp_scheduling': '2025/07/22 11:30:00',
-            'nome_simulazione': 'Test 1',
+            'nome': 'Test 1',
             'utente': 'Paolo Bianchi',
             'descrizione': 'Test 1'
         }
