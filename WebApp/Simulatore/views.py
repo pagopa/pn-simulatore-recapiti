@@ -3,6 +3,9 @@ from django.shortcuts import render
 import plotly.graph_objects as go
 import json
 import plotly.utils as putils
+import plotly.express as px
+import requests
+import pandas as pd
 
 def homepage(request):
     lista_simulazioni = [
@@ -66,18 +69,81 @@ def homepage(request):
 
 def risultati(request, id_simulazione):
 
-    x = [1, 2, 3, 4]
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=x, y=[1, 4, 9, 16]))
-    fig.add_trace(go.Bar(x=x, y=[6, -8, -4.5, 8]))
-    fig.add_trace(go.Bar(x=x, y=[-15, -3, 4.5, -8]))
-    fig.add_trace(go.Bar(x=x, y=[-1, 3, -3, -4]))
-    fig.update_layout(barmode='relative', title_text='Relative Barmode')
+    df = px.data.gapminder().query("continent == 'Oceania'")
+    fig_first = px.line(df, x='year', y='lifeExp', color='country', markers=True)
+
     # istruzione per passare il grafico alla pagina html
-    fig_for_visualizzation = json.dumps(fig, cls=putils.PlotlyJSONEncoder)
+    fig_first_for_visualizzation = json.dumps(fig_first, cls=putils.PlotlyJSONEncoder)
+    
+    df2 = px.data.gapminder()
+    fig_second = px.area(df2, x="year", y="pop", color="continent", line_group="country")
+
+    # istruzione per passare il grafico alla pagina html
+    fig_second_for_visualizzation = json.dumps(fig_second, cls=putils.PlotlyJSONEncoder)
+
+    # Scarico un geojson delle regioni italiane
+    url = "https://raw.githubusercontent.com/openpolis/geojson-italy/master/geojson/limits_IT_regions.geojson"
+    geojson = requests.get(url).json()
+
+    # Dataset esempio: popolazione per regione
+    data = {
+        "regione": [
+            "Lombardia", "Lazio", "Campania", "Sicilia", "Veneto", "Emilia-Romagna",
+            "Piemonte", "Puglia", "Toscana", "Calabria", "Sardegna", "Liguria",
+            "Marche", "Abruzzo", "Friuli-Venezia Giulia", "Trentino-Alto Adige/Südtirol",
+            "Umbria", "Basilicata", "Molise", "Valle d'Aosta"
+        ],
+        "popolazione": [
+            10060574, 5879082, 5801692, 4999891, 4905854, 4459477,
+            4356406, 4029053, 3729641, 1830951, 1554505, 1507859,
+            1501075, 1311580, 1211357, 1072276, 888908, 553254,
+            300516, 125666
+        ]
+    }
+    df3 = pd.DataFrame(data)
+
+    # Definisco due soglie (puoi cambiarle come preferisci)
+    soglia1 = 2_000_000
+    soglia2 = 5_000_000
+
+    # Creo una nuova colonna "fascia"
+    def classifica_pop(x):
+        if x < soglia1:
+            return "Bassa"
+        elif x < soglia2:
+            return "Media"
+        else:
+            return "Alta"
+
+    df3["fascia"] = df3["popolazione"].apply(classifica_pop)
+
+    # Assegno 3 colori fissi
+    colori = {
+        "Bassa": "green",
+        "Media": "orange",
+        "Alta": "red"
+    }
+
+    # Mappa coropletica a categorie
+    fig_third = px.choropleth_mapbox(
+        df3,
+        geojson=geojson,
+        locations="regione",
+        featureidkey="properties.reg_name",
+        color="fascia",
+        color_discrete_map=colori,
+        mapbox_style="carto-positron",
+        zoom=4.5, center={"lat": 41.9, "lon": 12.5},
+        opacity=0.6
+    )
+
+    # istruzione per passare il grafico alla pagina html
+    fig_third_for_visualizzation = json.dumps(fig_third, cls=putils.PlotlyJSONEncoder)
 
     context = {
-        'fig_for_visualizzation': fig_for_visualizzation
+        'fig_first_for_visualizzation': fig_first_for_visualizzation,
+        'fig_second_for_visualizzation': fig_second_for_visualizzation,
+        'fig_third_for_visualizzation': fig_third_for_visualizzation
     }
     return render(request, "simulazioni/risultati.html", context)
 
