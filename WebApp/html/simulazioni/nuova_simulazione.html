@@ -526,26 +526,91 @@ document.addEventListener("DOMContentLoaded", function () {
     // Validazione iniziale
     validateRows();
     mergeConsecutiveRowsBootstrap();
+
+    // Funzione per identificare le righe "padre" (prime di ogni gruppo)
+    function identifyParentRows() {
+        const rows = document.querySelectorAll('tbody tr');
+        const groups = {};
+        
+        rows.forEach((row, index) => {
+            const cells = row.cells;
+            const key = `${cells[0].textContent.trim()}|${cells[1].textContent.trim()}|${cells[2].textContent.trim()}`;
+            
+            if (!groups[key]) {
+                // Questa è la prima riga con questi valori (riga padre)
+                groups[key] = true;
+                row.setAttribute('data-parent', 'true');
+            } else {
+                // Questa è una riga figlia (duplicata)
+                row.removeAttribute('data-parent');
+            }
+        });
+        
+        updateRowButtons();
+    }
+
+    // Funzione per aggiornare i bottoni
+    function updateRowButtons() {
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            const buttonCell = row.cells[6];
+            const isParent = row.getAttribute('data-parent') === 'true';
+            
+            if (isParent) {
+                // Righe padre: solo bottone "+"
+                buttonCell.innerHTML = '<button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>';
+            } else {
+                // Righe figlie: sia "+" che "-"
+                buttonCell.innerHTML = `
+                    <button class="btn btn-sm btn-outline-success add-row me-1" title="Aggiungi nuova capacità">+</button>
+                    <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi questa capacità">-</button>
+                `;
+            }
+        });
+    }
     
+    // Event delegation per il bottone "+"
     document.querySelector("tbody").addEventListener("click", function (e) {
         if (e.target && e.target.classList.contains("add-row")) {
             let currentRow = e.target.closest("tr");
             let clone = currentRow.cloneNode(true);
             
-            // Pulisci SOLO l'alert nella nuova riga
+            // Pulisci l'alert nella nuova riga
             const alertCell = clone.cells[7];
-            if (alertCell) {
-                alertCell.innerHTML = '';
-            }
+            if (alertCell) alertCell.innerHTML = '';
+            
+            // La nuova riga sarà una riga figlia
+            clone.removeAttribute('data-parent');
             
             currentRow.parentNode.insertBefore(clone, currentRow.nextSibling);
             
-            // Ri-applica le unificazioni dopo l'aggiunta
-            unmergeRows(); // Prima rimuovi le unificazioni esistenti
-            mergeConsecutiveRowsBootstrap(); // Poi ri-applica
-            validateRows(); // E infine valida
+            // Ri-identifica le righe padre e aggiorna i bottoni
+            identifyParentRows();
+            unmergeRows();
+            mergeConsecutiveRowsBootstrap();
+            validateRows();
+        }
+        
+        // Bottone "-"
+        if (e.target && e.target.classList.contains("remove-row")) {
+            let rowToRemove = e.target.closest("tr");
+            const isParent = rowToRemove.getAttribute('data-parent') === 'true';
+            
+            if (!isParent) {
+                rowToRemove.remove();
+                
+                // Dopo la rimozione, ri-identifica le righe padre
+                identifyParentRows();
+                unmergeRows();
+                mergeConsecutiveRowsBootstrap();
+                validateRows();
+            }
         }
     });
+    
+    // Inizializza identificando le righe padre
+    identifyParentRows();
     
     // Event delegation per gli input
     document.querySelector("tbody").addEventListener("input", function (e) {
