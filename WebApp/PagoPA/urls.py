@@ -25,6 +25,7 @@ urlpatterns = [
     path('bozze', bozze, name='bozze'),
     path('nuova_simulazione', nuova_simulazione, name='nuova_simulazione'),
     path('risultati/<id_simulazione>', risultati, name='risultati'),
+    path('confronto_risultati/<id_simulazione>', confronto_risultati, name='confronto_risultati'),
     path('login', login, name='login')
 ]
 
