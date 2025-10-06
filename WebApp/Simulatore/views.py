@@ -6,6 +6,9 @@ import plotly.utils as putils
 import plotly.express as px
 import requests
 import pandas as pd
+import numpy as np
+import os
+from PagoPA.settings import *
 
 def homepage(request):
     lista_simulazioni = [
@@ -69,21 +72,104 @@ def homepage(request):
 
 def risultati(request, id_simulazione):
 
-    df = px.data.gapminder().query("continent == 'Oceania'")
-    fig_first = px.line(df, x='year', y='lifeExp', color='country', markers=True)
+    enti = [
+    "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
+    "Poste Italiane", "Agenzia Entrate", "Comune di Milano", "Regione Toscana", "Comune di Napoli"
+    ]
+
+    # Simulazione dati per 4 settimane
+    np.random.seed(42)
+    dati = []
+    for ente in enti:
+        base = np.random.randint(2000, 8000)  # Valore base per ente
+        for settimana in range(1, 5):
+            # Fluttuazione con rumore
+            valore = base + np.random.randint(-2000, 3000)
+            valore = max(500, valore)  # Minimo 500
+            dati.append([ente, f"Sett. {settimana}", valore])
+
+    # Creazione DataFrame
+    df = pd.DataFrame(dati, columns=["Ente", "Settimana", "Postalizzazioni"])
+    fig_first = px.line(df, x='Settimana', y='Postalizzazioni', color='Ente', markers=True)
 
     # istruzione per passare il grafico alla pagina html
     fig_first_for_visualizzation = json.dumps(fig_first, cls=putils.PlotlyJSONEncoder)
-    
-    df2 = px.data.gapminder()
-    fig_second = px.area(df2, x="year", y="pop", color="continent", line_group="country")
+
+    # Definizione di regioni e province associate
+    regioni_province = {
+        "Lombardia": ["Milano", "Bergamo", "Brescia"],
+        "Lazio": ["Roma", "Latina", "Viterbo"],
+        "Campania": ["Napoli", "Salerno", "Caserta"],
+        "Sicilia": ["Palermo", "Catania", "Messina"]
+    }
+
+    # Generazione dataset simulato con andamento decrescente
+    dati_regioni = []
+    for regione, province in regioni_province.items():
+        for provincia in province:
+            base = np.random.randint(5000, 12000)
+            decremento = np.random.randint(800, 2000)
+            for settimana in range(1, 5):
+                valore = max(500, base - decremento * (settimana - 1))
+                dati_regioni.append([regione, provincia, f"Sett. {settimana}", valore])
+
+    # Creazione DataFrame
+    df_regioni = pd.DataFrame(dati_regioni, columns=["Regione", "Provincia", "Settimana", "Postalizzazioni"])
+    # Grafico lineare province
+
+    fig_second = px.area(
+        df_regioni,
+        x="Settimana",
+        y="Postalizzazioni",
+        color="Provincia",
+        line_group="Provincia",
+        markers=True,
+        title="Previsione Postalizzazioni per Provincia"
+    )
+
+    # Dropdown per filtrare per regione
+    buttons = []
+    for regione in df_regioni["Regione"].unique():
+        province_regione = df_regioni[df_regioni["Regione"] == regione]["Provincia"].unique()
+        visible = [provincia in province_regione for provincia in df_regioni["Provincia"].unique()]
+        buttons.append(
+            dict(
+                label=regione,
+                method="update",
+                args=[{"visible": visible}, {"title": f"Previsione Postalizzazioni - {regione}"}]
+            )
+        )
+
+    # Aggiungi opzione "Tutte"
+    buttons.insert(
+        0,
+        dict(
+            label="Tutte",
+            method="update",
+            args=[{"visible": [True] * df_regioni["Provincia"].nunique()}, {"title": "Previsione Postalizzazioni - Tutte le Regioni"}]
+        )
+    )
+
+    # Layout con dropdown
+    fig_second.update_layout(
+        updatemenus=[dict(
+            buttons=buttons,
+            direction="down",
+            showactive=True,
+            x=1.15,
+            y=1.2
+        )]
+    )
 
     # istruzione per passare il grafico alla pagina html
     fig_second_for_visualizzation = json.dumps(fig_second, cls=putils.PlotlyJSONEncoder)
 
     # Scarico un geojson delle regioni italiane
-    url = "https://raw.githubusercontent.com/openpolis/geojson-italy/master/geojson/limits_IT_regions.geojson"
-    geojson = requests.get(url).json()
+    # url = "https://raw.githubusercontent.com/openpolis/geojson-italy/master/geojson/limits_IT_regions.geojson"
+    # geojson = requests.get(url).json()
+
+    with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding = "utf-8") as f:
+        geojson = json.load(f)
 
     # Dataset esempio: popolazione per regione
     data = {
@@ -91,9 +177,9 @@ def risultati(request, id_simulazione):
             "Lombardia", "Lazio", "Campania", "Sicilia", "Veneto", "Emilia-Romagna",
             "Piemonte", "Puglia", "Toscana", "Calabria", "Sardegna", "Liguria",
             "Marche", "Abruzzo", "Friuli-Venezia Giulia", "Trentino-Alto Adige/Südtirol",
-            "Umbria", "Basilicata", "Molise", "Valle d'Aosta"
+            "Umbria", "Basilicata", "Molise", "Valle d'Aosta/Vallée d'Aoste"
         ],
-        "popolazione": [
+        "postalizzazioni": [
             10060574, 5879082, 5801692, 4999891, 4905854, 4459477,
             4356406, 4029053, 3729641, 1830951, 1554505, 1507859,
             1501075, 1311580, 1211357, 1072276, 888908, 553254,
@@ -107,7 +193,7 @@ def risultati(request, id_simulazione):
     soglia2 = 5_000_000
 
     # Creo una nuova colonna "fascia"
-    def classifica_pop(x):
+    def classifica_post(x):
         if x < soglia1:
             return "Bassa"
         elif x < soglia2:
@@ -115,7 +201,7 @@ def risultati(request, id_simulazione):
         else:
             return "Alta"
 
-    df3["fascia"] = df3["popolazione"].apply(classifica_pop)
+    df3["fascia"] = df3["postalizzazioni"].apply(classifica_post)
 
     # Assegno 3 colori fissi
     colori = {
@@ -133,7 +219,7 @@ def risultati(request, id_simulazione):
         color="fascia",
         color_discrete_map=colori,
         mapbox_style="carto-positron",
-        zoom=4.5, center={"lat": 41.9, "lon": 12.5},
+        zoom=3.5, center={"lat": 41.9, "lon": 12.5},
         opacity=0.6
     )
 
@@ -149,9 +235,25 @@ def risultati(request, id_simulazione):
 
 
 def confronto_risultati(request, id_simulazione):
+    enti = [
+    "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
+    "Poste Italiane", "Agenzia Entrate", "Comune di Milano", "Regione Toscana", "Comune di Napoli"
+    ]
 
-    df = px.data.gapminder().query("continent == 'Oceania'")
-    fig_first = px.line(df, x='year', y='lifeExp', color='country', markers=True)
+    # Simulazione dati per 4 settimane
+    np.random.seed(42)
+    dati = []
+    for ente in enti:
+        base = np.random.randint(2000, 8000)  # Valore base per ente
+        for settimana in range(1, 5):
+            # Fluttuazione con rumore
+            valore = base + np.random.randint(-2000, 3000)
+            valore = max(500, valore)  # Minimo 500
+            dati.append([ente, f"Sett. {settimana}", valore])
+
+    # Creazione DataFrame
+    df = pd.DataFrame(dati, columns=["Ente", "Settimana", "Postalizzazioni"])
+    fig_first = px.line(df, x='Settimana', y='Postalizzazioni', color='Ente', markers=True)
 
     # istruzione per passare il grafico alla pagina html
     fig_first_for_visualizzation = json.dumps(fig_first, cls=putils.PlotlyJSONEncoder)
