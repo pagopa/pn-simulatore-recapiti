@@ -1,0 +1,264 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Example microservice deploy'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: 'Usually pn can be pnXYZ where XYZ are the feature number, useful to create
+      experimental environments without crash official development environment'
+
+  AlarmSNSTopicArn:
+    Type: String
+    Description: 'ARN of alarm topic'
+
+  ContainerImageUri:
+    Type: String
+    Description: 'Exact container image URI with full repository and image digest'
+
+  MicroserviceNumber:
+    Type: Number
+    Description: 'Disambiguation useful for load balancer rules'
+
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: 'The S3 bucket from which to fetch the templates used by this stack.'
+
+  ECSClusterName:
+    Type: String
+    Description: 'The name of the ECS cluster where the microservice is going to be deployed'
+
+  SubnetsIds:
+    Type: String
+    Description: 'subnets ids comma separated list. Where to deploy the microservice'
+
+  VpcEgressSubnetsIds:
+    Type: String
+    Description: subnets where to install PN-CORE
+
+  VpcId:
+    Type: String
+    Description: 'VpcId where the microservice is going to be deployed'
+
+  EcsDefaultSecurityGroup:
+    Type: String
+    Description: 'Default security group required by infrastructure'
+
+  ApplicationLoadBalancerListenerArn:
+    Type: String
+    Description: 'Load balancer listener where HTTP endpoints is going to be registered'
+
+  ApplicationLoadBalancerDomain:
+    Type: String
+    Description: 'Base URL of the load balancer where the service is going to be reachable'
+
+  NetworkLoadBalancerLink:
+    Type: String
+    Description: 'network load balancer link for API-GW'
+
+  Version:
+    Type: String
+    Description: 'keep track of used projects commitIds'
+
+  # Autoscaling parameters
+  AutoscalingCheckPeriod:
+    Default: 300
+    Type: Number
+    Description: 'minimum autoscaling number of tasks'
+
+  AutoscalingDataPointN:
+    Default: 1
+    Type: Number
+    Description: 'activate when N datapoint on M'
+
+  AutoscalingDataPointM:
+    Default: 1
+    Type: Number
+    Description: 'activate when N datapoint on M'
+
+  AutoscalingThreshold:
+    Default: 1000
+    Type: String
+    Description: 'activate when default is reached'
+
+  MinTasksNumber:
+    Default: 1
+    Type: Number
+    Description: 'minimum autoscaling number of tasks'
+
+  MaxTasksNumber:
+    Default: 6
+    Type: Number
+    Description: 'maximum autoscaling number of tasks'
+
+  # OpenApi Bucket params
+  MicroserviceBucketName:
+    Type: String
+    Default: 'default-microservice-bucket'
+    Description: 'Name of the bucket where the microservice files are copied during deploy'
+
+  MicroserviceBucketBaseKey:
+    Type: String
+    Default: ''
+    Description: 'Base key of the microservice in the s3 bucket'
+
+  # Logging parameters
+  WireTapLogActivation:
+    Type: String
+    Default: false
+    Description: 'Activation of wire logs'
+    AllowedValues:
+      - true
+      - false
+
+  # Log group parameters
+  EcsLogGroup:
+    Type: String
+    Description: 'Ecs log group name'
+
+  LogAlarmStrategy:
+    Type: String
+    Default: 'FATAL'
+
+  # Heath Check parameters
+  HealthCheckInterval:
+    Description: 'Seconds between two health check'
+    Type: Number
+    Default: 60
+
+  HealthCheckTimeout:
+    Description: 'health check timeout seconds'
+    Type: Number
+    Default: 5
+
+  HealthyThresholdCount:
+    Description: 'The number of consecutive health checks successes required before considering 
+      an unhealthy target healthy.'
+    Type: Number
+    Default: 5
+
+  UnhealthyThresholdCount:
+    Description: 'The number of consecutive health check failures required before considering a target unhealthy.'
+    Type: Number
+    Default: 2
+
+  # Instance parameters
+  # 256 (.25 vCPU) - Available memory values: 0.5GB, 1GB, 2GB
+  # 512 (.5 vCPU) - Available memory values: 1GB, 2GB, 3GB, 4GB
+  # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
+  # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
+  # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
+  CpuValue:
+    Type: Number
+    Default: 1024
+    Description: 'Fargate virtual CPU quantity 1024 equals one vCPU'
+
+  # 0.5GB, 1GB, 2GB - Available cpu values: 256 (.25 vCPU)
+  # 1GB, 2GB, 3GB, 4GB - Available cpu values: 512 (.5 vCPU)
+  # 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB - Available cpu values: 1024 (1 vCPU)
+  # Between 4GB and 16GB in 1GB increments - Available cpu values: 2048 (2 vCPU)
+  # Between 8GB and 30GB in 1GB increments - Available cpu values: 4096 (4 vCPU)
+  MemoryAmount:
+    Type: String
+    Default: 2GB
+    Description: 'memory amount reserved to the task pod.'
+    AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
+
+  AlbSecurityGroup:
+    Type: String
+    Description: 'Application load balancer security group'
+
+Resources:
+  SimulatorMicroservice:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
+      Parameters:
+        MicroServiceUniqueName: !Sub "${ProjectName}-simulator"
+        CpuValue: !Ref CpuValue
+        MemoryAmount: !Ref MemoryAmount
+
+        HealthCheckTimeout: !Ref HealthCheckTimeout
+        HealthCheckInterval: !Ref HealthCheckInterval
+        HealthyThresholdCount: !Ref HealthyThresholdCount
+        UnhealthyThresholdCount: !Ref UnhealthyThresholdCount
+
+        MinTasksNumber: !Ref MinTasksNumber
+        MaxTasksNumber: !Ref MaxTasksNumber
+        #AutoscalingStrategy: SQS DA VERIFICARE
+        # AutoscalingThreshold: !Ref AutoscalingThreshold
+        # AutoscalingCheckPeriod: !Ref AutoscalingCheckPeriod
+        # AutoscalingDataPointN: !Ref AutoscalingDataPointN
+        # AutoscalingDataPointM: !Ref AutoscalingDataPointM
+
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        ContainerImageURI: !Ref ContainerImageUri
+
+        MicroServiceSecretPrefix: pn-Simulator-Secrets
+        ECSClusterName: !Ref ECSClusterName
+        Subnets: !Ref VpcEgressSubnetsIds
+        VpcId: !Ref VpcId
+        AlbSecurityGroup: !Ref AlbSecurityGroup
+        EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
+        LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
+        LoadbalancerRulePriority: !Ref MicroserviceNumber
+        EcsLogGroup: !Ref EcsLogGroup
+        LogAlarmStrategyV1: !Ref LogAlarmStrategy
+        WireTapLogActivation: !Ref WireTapLogActivation
+        TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
+
+        ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
+
+
+  SimulatorMicroserviceTaskManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              # - dynamodb:GetItem   DA MODIFICARE E METTERCI AURORA
+              # - dynamodb:PutItem
+              # - dynamodb:UpdateItem
+              # - dynamodb:DeleteItem
+              # - dynamodb:Query
+            # Resource:
+            #   - !Ref PortFatDownloadTableArn
+
+
+  # PortFatCloudWatchDashboard:   DA VERIFICARE A SEGUITO DEL DEPLOY
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
+  #     Parameters:
+  #       DashboardName: !Sub "${ProjectName}-portfat"
+  #       DynamoDBTableNames: !Join
+  #         - ','
+  #         - - !Ref PortFatDownloadTableName
+  #       RestApiStageArns: !Join
+  #         - ','
+  #         - - !GetAtt PnPortFatAPI.Outputs.RestApiStageArn
+  #       RestApiNames: !Join
+  #         - ','
+  #         - - !GetAtt PnPortFatAPI.Outputs.RestApiName
+  #       AlarmArns: !Join
+  #         - ','
+  #         - - !Ref PortFatRequestActionsQueueAlarmARN
+  #           - !Ref PortFatRequestActionsQueueAgeAlarmARN
+  #           - !Ref PortFatRequestActionsQueueDLQAlarmARN
+  #           - !GetAtt PortFatLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+  #       LambdaArns: !Join
+  #         - ','
+  #         - - !GetAtt PortFatLambdaFunction.Arn
+  #       QueueArns: !Join
+  #         - ','
+  #         - - !Ref PortFatRequestActionsQueueARN
+  #           - !Ref PortFatRequestActionsQueueDLQARN
+  #       LogGroupsNames: !Join
+  #         - ','
+  #         - - !Ref EcsLogGroup
+  #           - !Ref LambdaLogGroup
+
+Outputs:
+  Version:
+    Value: !Ref Version

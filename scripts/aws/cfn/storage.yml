@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Some storage with input and output
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Nome dell'ambiente destinazione
+
+  # Unused but required by CD pipeline
+  MicroserviceNumber:
+    Type: Number
+    Description: An unique number that identify the microservice inside the ECS cluster.
+
+  # Unused but required by CD pipeline
+  AlarmSNSTopicName:
+    Type: String
+    Description: 'Topic alarm'
+
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: URL da cui caricare i frammenti di template di infrastruttura
+
+  LogRetention:
+    Type: Number
+    Default: 14
+
+Resources:
+
+  SimulatorLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub '${ProjectName}-simulator'
+        LogGroupRetention: !Ref LogRetention
+        #LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn         # serve kinesis?
+
+
+# AGGIUNGERE RDS
+
+Outputs:
+  # Log group exports
+  EcsLogGroup:
+    Value: !GetAtt SimulatorLogGroup.Outputs.LogGroupName

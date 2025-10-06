@@ -1,0 +1,605 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+<br><br>
+
+<!-- Position bar bootstrap -->
+<div class="position-relative mb-5">
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="height: 1px;">
+        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+    </div>
+    <button type="button" id="stepBtn1" class="position-absolute top-0 start-0 translate-middle btn btn-sm btn-primary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">1</button>
+    <button type="button" id="stepBtn2" class="position-absolute top-0 start-50 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">2</button>
+    <button type="button" id="stepBtn3" class="position-absolute top-0 start-100 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">3</button>
+</div>
+
+
+<!-- Form -->
+<form id="multiStepForm">
+    <!-- STEP 1 - Parametri di scheduling -->
+    <div class="step" id="step1">
+        <h4 class="text-start">Parametri di scheduling</h4>
+        <br>
+        <div class="card p-4">
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label">Nome simulazione</label>
+                </div>
+                <div class="col-auto w-50">
+                    <input type="text" class="form-control" required>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label">Descrizione</label>
+                </div>
+                <div class="col-auto w-50">
+                    <textarea class="form-control"></textarea>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Schedule -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required>
+                        <label class="form-check-label" for="inlineRadio1">Schedule</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Now -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now">
+                        <label class="form-check-label" for="inlineRadio2">Now</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campo datetime (inizialmente nascosto) -->
+            <div class="row mb-3 align-items-center d-none" id="datetimeField">
+                <div class="col-auto">
+                    <label class="form-label">Seleziona data-ora</label>
+                </div>
+                <div class="col-auto">
+                    <input type="datetime-local" class="form-control" style="width:auto;" id="datetimeInput">
+                </div>
+            </div>
+            <!-- bottoni salva-avanti -->
+            <div class="row">
+                <div class="col d-grid gap-2 mx-auto">
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" id="salva_bozza" class="disabled" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 2 - Postalizzazioni di mock aggiuntive -->
+    <div class="step d-none" id="step2">
+        <h5 class="text-center">Postalizzazioni di mock aggiuntive</h5>
+        <br>
+        <div class="card p-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="commesse_default" checked disabled>
+                <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
+            </div>
+            <div class="row text-center opacity-50">
+                <div class="col-8 mx-auto"></div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-2x" title="Download csv"></i></p>
+                    <label>Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <br><br><br>
+
+            <!-- bottoni indietro-salva-avanti -->
+            <div class="row text-center">
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3 - Capacità recapitisti -->
+    <div class="step d-none" id="step3">
+        <h5 class="text-end">Capacità recapitisti</h5>
+        <br>
+        <div class="card p-4">
+
+            <br>
+
+            <div class="row text-center">
+                <div class="col-4 mx-auto">
+                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" onchange="select_tipo_capacita_da_modificare()">
+                        <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
+                        <option value="Produzione">Produzione</option>
+                        <option value="Solo BAU">Solo BAU</option>
+                        <option value="Solo picco">Solo picco</option>
+                        <option value="BAU e picco combinate">BAU e picco combinate</option>
+                    </select>
+                </div>
+                <div class="col-4 mx-auto">
+                    <label for="tipo_capacita_da_modificare"><b>Mese da simulare</b></label>
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare">
+                        <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
+                        <option value="Gennaio">Gennaio</option>
+                        <option value="Febbraio">Febbraio</option>
+                        <option value="Marzo">Marzo</option>
+                        <option value="Aprile">Aprile</option>
+                        <option value="Maggio">Maggio</option>
+                        <option value="Giugno">Giugno</option>
+                        <option value="Luglio">Luglio</option>
+                        <option value="Agosto">Agosto</option>
+                        <option value="Settembre">Settembre</option>
+                        <option value="Ottobre">Ottobre</option>
+                        <option value="Novembre">Novembre</option>
+                        <option value="Dicembre">Dicembre</option>
+                    </select>
+                </div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                    <label>Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
+                    </div>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="accordion" id="accordionExample">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <b>RECAPITISTA: POSTE ITALIANE</b>
+                    </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse">
+                        <div class="accordion-body table-responsive">
+                            <table class="table table-hover" id="recapitista_poste_italiane">
+                                <thead class="text-center">
+                                    <tr>
+                                    <th scope="col">Regione</th>
+                                    <th scope="col">Provincia</th>
+                                    <th scope="col">Numero di post. mensili</th>
+                                    <th scope="col">Inizio periodo di validità</th>
+                                    <th scope="col">Fine periodo di validità</th>
+                                    <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
+                                    <th scope="col"></th> <!-- colonna per il bottone "+" che aggiunge una riga -->
+                                    <th scope="col"></th> <!-- colonna per alert -->
+                                    </tr>
+                                </thead>
+                                <tbody class="table-group-divider text-center">
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Frosinone</td>
+                                        <td>30000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-07" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="6000" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Latina</td>
+                                        <td>87000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-07" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>25000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-07" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>25000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-12" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-18" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="10000" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Lazio</td>
+                                        <td>Roma</td>
+                                        <td>25000</td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-15" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" value="2026-01-20" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="7500" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                        <span><b>RECAPITISTA: RTI FULMINE</b></span>
+                    </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <br><br>
+
+            <!-- bottoni indietro-salva-avvia -->
+            <div class="row text-center">
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="submit" class="btn btn-primary">Avvia scheduling 📅</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+
+{% endblock content %}
+
+
+{% block scripts %}
+<!-- GESTIONE 3 STEP -->
+<script>
+    let currentStep = 1;
+    const button_salva_bozza = document.getElementById("salva_bozza");
+
+    function showStep(step) {
+        // nasconde tutti
+        document.querySelectorAll(".step").forEach(s => s.classList.add("d-none"));
+        // mostra quello richiesto
+        document.getElementById("step" + step).classList.remove("d-none");
+
+        // aggiorna progress bar
+        const progressBar = document.getElementById("progressBar");
+        progressBar.style.width = ((step - 1) / 2) * 100 + "%";
+
+        // aggiorna pulsanti step
+        for (let i = 1; i <= 3; i++) {
+            const btn = document.getElementById("stepBtn" + i);
+            if (i < step) {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-success rounded-pill";
+            } else if (i === step) {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-primary rounded-pill";
+            } else {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-secondary rounded-pill";
+            }
+            btn.style.width = "2rem";
+            btn.style.height = "2rem";
+        }
+
+        currentStep = step;
+    }
+
+    function nextStep() {
+        // controlla validità dei campi required mostrando il messaggio di default del browser
+        const currentStepEl = document.getElementById("step" + currentStep);
+        const requiredFields = currentStepEl.querySelectorAll("[required]");
+        let isValid = true;
+        let firstInvalid = null;
+        requiredFields.forEach(field => {
+            if (!field.checkValidity()) {
+            isValid = false;
+            if (!firstInvalid) firstInvalid = field;
+            }
+        });
+        if (!isValid) {
+            firstInvalid.reportValidity();
+            return;
+        }
+        // altrimenti vai avanti
+        if (currentStep < 3) {
+            showStep(currentStep + 1);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) {
+            showStep(currentStep - 1);
+        }
+    }
+
+    // mostra step iniziale
+    showStep(1);
+
+    // gestione invio
+    document.getElementById("multiStepForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+    });
+
+
+    function checkRequiredFields() {
+        const nomeField = document.querySelector('input[type="text"][required]');    
+        // controlliamo se il campo nome è stato inserito
+        let isValid = nomeField.value.trim() !== '';
+        return isValid;
+    }
+
+    function updateSaveButton() {
+        button_salva_bozza.disabled = !checkRequiredFields();
+    }
+
+    // event listener per 
+    document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
+
+    // Controllo iniziale
+    updateSaveButton();
+</script>
+
+
+<!-- mostra/nascondi datetime picker quando viene selezionato/deselezionato il radiobutton "Schedule" -->
+<script>
+    const radioSchedule = document.getElementById("inlineRadio1");
+    const radioNow = document.getElementById("inlineRadio2");
+    const datetimeField = document.getElementById("datetimeField");
+    const datetimeInput = document.getElementById("datetimeInput");
+
+    document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
+        radio.addEventListener("change", () => {
+            if (radioSchedule.checked) {
+                datetimeField.classList.remove("d-none"); // mostra
+                datetimeInput.setAttribute('required','required');
+            } else {
+                datetimeField.classList.add("d-none"); // nasconde
+                datetimeInput.removeAttribute('required');
+            }
+        });
+    });
+</script>
+
+<!-- cattura il valore della select select_tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale' -->
+<script>
+    function select_tipo_capacita_da_modificare() {
+        d = document.getElementById("tipo_capacita_da_modificare").value;
+        document.querySelectorAll(".th_capacita_settimanale").forEach(el => {
+            el.innerHTML = '<br>(' + d + ')';
+        });
+    }
+</script>
+
+
+<!-- icona alert -->
+<script>
+   function validateRows() {
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            const cells = row.cells;
+            if (cells.length < 8) return;
+            
+            const thirdField = parseInt(cells[2].textContent) || 0;
+            const sixthFieldInput = cells[5].querySelector('input');
+            const sixthField = sixthFieldInput ? parseInt(sixthFieldInput.value) || 0 : 0;
+            
+            cells[7].innerHTML = '';
+            
+            if (thirdField < sixthField) {
+                cells[7].innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Numero di postalizzazioni maggiore della capacità"></i>';
+            }
+        });
+    }
+</script>
+
+<!-- unione righe sulla prima colonna -->
+<script>
+    // raggruppiamo le righe consecutive con stessi valori
+    function mergeConsecutiveRowsBootstrap() {
+        const tbody = document.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        
+        if (rows.length === 0) return;
+        
+        let currentGroup = {
+            values: null,
+            startIndex: 0,
+            count: 0
+        };
+        const groups = [];
+        
+        // raggruppiamo le righe consecutive con stessi valori
+        rows.forEach((row, index) => {
+            const cells = row.cells;
+            const currentValues = {
+                col1: cells[0].textContent.trim(),
+                col2: cells[1].textContent.trim(),
+                col3: cells[2].textContent.trim()
+            };
+            if (currentGroup.values === null) {
+                currentGroup.values = currentValues;
+                currentGroup.startIndex = index;
+                currentGroup.count = 1;
+            } else if (
+                currentValues.col1 === currentGroup.values.col1 &&
+                currentValues.col2 === currentGroup.values.col2 &&
+                currentValues.col3 === currentGroup.values.col3
+            ) {
+                currentGroup.count++;
+            } else {
+                groups.push({...currentGroup});
+                currentGroup.values = currentValues;
+                currentGroup.startIndex = index;
+                currentGroup.count = 1;
+            }
+        });
+        
+        if (currentGroup.values !== null) {
+            groups.push({...currentGroup});
+        }
+        
+        // applichiamo i rowspan
+        groups.forEach(group => {
+            if (group.count > 1) {
+                const startRow = rows[group.startIndex];
+                // allineamento verticale
+                startRow.cells[0].className += ' align-middle';
+                startRow.cells[1].className += ' align-middle';
+                startRow.cells[2].className += ' align-middle';
+                // rowspan
+                startRow.cells[0].rowSpan = group.count;
+                startRow.cells[1].rowSpan = group.count;
+                startRow.cells[2].rowSpan = group.count;
+                // nascondiamo le celle duplicate
+                for (let i = 1; i < group.count; i++) {
+                    const row = rows[group.startIndex + i];
+                    row.cells[0].style.display = 'none';
+                    row.cells[1].style.display = 'none';
+                    row.cells[2].style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // rimuove le unificazioni (se necessario)
+    function unmergeRows() {
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const cells = row.cells;
+            // Rimuovi rowspan e mostra tutte le celle
+            cells[0].removeAttribute('rowspan');
+            cells[1].removeAttribute('rowspan');
+            cells[2].removeAttribute('rowspan');
+            cells[0].style.display = '';
+            cells[1].style.display = '';
+            cells[2].style.display = '';
+        });
+    }
+
+document.addEventListener("DOMContentLoaded", function () {
+    // validazione iniziale
+    validateRows();
+    mergeConsecutiveRowsBootstrap();
+
+    // identifica la riga padre
+    function identifyParentRows() {
+        const rows = document.querySelectorAll('tbody tr');
+        const groups = {};
+        rows.forEach((row, index) => {
+            const cells = row.cells;
+            const key = `${cells[0].textContent.trim()}|${cells[1].textContent.trim()}|${cells[2].textContent.trim()}`;
+            if (!groups[key]) {
+                // riga padre
+                groups[key] = true;
+                row.setAttribute('data-parent', 'true');
+            } else {
+                // riga figlia
+                row.removeAttribute('data-parent');
+            }
+        });
+        
+        updateRowButtons();
+    }
+
+    // Funzione per aggiornare i bottoni
+    function updateRowButtons() {
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const buttonCell = row.cells[6];
+            const isParent = row.getAttribute('data-parent') === 'true';
+            if (isParent) {
+                // righe padre
+                buttonCell.innerHTML = '<button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>';
+            } else {
+                // righe figlie
+                buttonCell.innerHTML = `
+                    <button class="btn btn-sm btn-outline-success add-row me-1" title="Aggiungi nuova capacità">+</button>
+                    <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
+                `;
+            }
+        });
+    }
+    
+    // event delegation per il bottone "+"
+    document.querySelector("tbody").addEventListener("click", function (e) {
+        if (e.target && e.target.classList.contains("add-row")) {
+            let currentRow = e.target.closest("tr");
+            let clone = currentRow.cloneNode(true);
+            // pulizia alert sulla nuova riga
+            const alertCell = clone.cells[7];
+            if (alertCell) alertCell.innerHTML = '';
+            // la nuova riga sarà una riga figlia
+            clone.removeAttribute('data-parent');
+            currentRow.parentNode.insertBefore(clone, currentRow.nextSibling);
+            // ri-identifichiamo le righe padre e aggiorniamo i bottoni
+            identifyParentRows();
+            unmergeRows();
+            mergeConsecutiveRowsBootstrap();
+            validateRows();
+        }
+        
+        // Bottone "-"
+        if (e.target && e.target.classList.contains("remove-row")) {
+            let rowToRemove = e.target.closest("tr");
+            const isParent = rowToRemove.getAttribute('data-parent') === 'true';
+            if (!isParent) {
+                rowToRemove.remove();
+                // dopo la rimozione, ri-identifichiamo le righe padre
+                identifyParentRows();
+                unmergeRows();
+                mergeConsecutiveRowsBootstrap();
+                validateRows();
+            }
+        }
+    });
+    
+    // identifichiamo le righe padre
+    identifyParentRows();
+    
+    // event delegation per gli input
+    document.querySelector("tbody").addEventListener("input", function (e) {
+        if (e.target && e.target.matches('td:nth-child(6) input')) {
+            validateRows();
+        }
+    });
+});
+</script>
+{% endblock %}

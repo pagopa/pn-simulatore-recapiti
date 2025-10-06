@@ -1,0 +1,115 @@
+<!doctype html>
+{% load static %}
+<html lang="it">
+
+<head>
+	<!-- FAVICON -->
+	<link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}?v=1"/>
+
+	<!-- CSS file -->
+	<link rel="stylesheet" type="text/css" href="{% static 'css/stile.css' %}?v=1">
+
+	<!-- Required meta tags -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<!-- Font Awesome -->
+	<link rel="stylesheet" type="text/css" href="{% static 'fontawesome/css/all.css' %}">
+
+	<!-- Titolo della Web App che appare nella scheda del browser -->
+	<title>SEND - Simulatore</title>
+
+
+	<!-- BOOTSTRAP CSS -->
+	<link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap.min.css' %}"/>
+
+	<!-- DATATABLES CSS -->
+	<link href="https://cdn.datatables.net/2.3.4/css/dataTables.bootstrap5.css" rel="stylesheet" integrity="sha384-eigxR6oUrkFyXhcJKq3kslwMKEK25mWYRCyt6eoBlhwmHxr8agoG7/1z0DbyGW+i" crossorigin="anonymous">
+	<link href="https://cdn.datatables.net/buttons/3.2.5/css/buttons.bootstrap5.css" rel="stylesheet" integrity="sha384-58wg1n3xX9drJHOfWO8pBK+acUfQqLp8ioiyuR5jBnmNRVUJy0fqLP0dpsNffkhX" crossorigin="anonymous">
+	<link href="https://cdn.datatables.net/columncontrol/1.1.0/css/columnControl.bootstrap5.css" rel="stylesheet" integrity="sha384-RrHm4rXWtg4m6SETuT6xzBTTFApwB6GSaDvfF2H+NdRyf+ZI5ITlZKyfvIwyxhZK" crossorigin="anonymous">
+	<link href="https://cdn.datatables.net/datetime/1.6.0/css/dataTables.dateTime.css" rel="stylesheet" integrity="sha384-7gVhgCBvVkFm8CjELsmoaaDJyWITKmo5b7imOimmD95IVzEyhS92YJ3jlcHfGc1l" crossorigin="anonymous">
+	<link href="https://cdn.datatables.net/responsive/3.0.6/css/responsive.bootstrap5.css" rel="stylesheet" integrity="sha384-8CzwKBlyc4q7v55PtHaeeqODP+kaouVbxp350gHt/UhVlPlaVFEnDxSFYo2HU1SQ" crossorigin="anonymous">
+	<link href="https://cdn.datatables.net/searchbuilder/1.8.4/css/searchBuilder.bootstrap5.css" rel="stylesheet" integrity="sha384-nvSTVdzurEGuuJaXeZ0TA5D+opMMg1hDl7oGnDd8mOrxcUWJME67iPwYfC8u/bls" crossorigin="anonymous">
+	<link href="https://cdn.datatables.net/searchpanes/2.3.5/css/searchPanes.bootstrap5.css" rel="stylesheet" integrity="sha384-5D5wtJpKc4OUgzjx0tgGN8tUElT24xLq5F7TiPbSkuLsew7BDsigCacWBQkrY6t3" crossorigin="anonymous">
+  
+	<!-- BOOTSTRAP JS -->
+	<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+	<!-- DATATABLES JS -->
+	<script src="https://code.jquery.com/jquery-3.7.0.js" integrity="sha384-ogycHROOTGA//2Q8YUfjz1Sr7xMOJTUmY2ucsPVuXAg4CtpgQJQzGZsX768KqetU" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.js" integrity="sha384-w52cgKJL63XVo8/Wwyl+z8ly0lI51gzCtqADl8pHQTXUXkF08iRa7D+sjSmCyHp+" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.js" integrity="sha384-P2rohseTZr3+/y/u+6xaOAE3CIkcmmC0e7ZjhdkTilUMHfNHCerfVR9KICPeFMOP" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js" integrity="sha384-/RlQG9uf0M2vcTw3CX7fbqgbj/h8wKxw7C3zu9/GxcBPRKOEcESxaxufwRXqzq6n" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/2.3.4/js/dataTables.js" integrity="sha384-WF5+lGOoGjkbZWWZ4BM1wA/VJC6EbJLPKnFSIvO9Vxm7HxkN0qD5IvYmr6FVM4V/" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/2.3.4/js/dataTables.bootstrap5.js" integrity="sha384-2IrcDZstSOMFTMxGhnJHQtNpSfUopdFXCOaDviGVHw/kuF34fSSaVqL20jnkJctu" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/buttons/3.2.5/js/dataTables.buttons.js" integrity="sha384-SyOBgiETMg1CpC29RFM/2e0S+rlVmbftfSjVTeG22H8ihiIwugfxQTWJ0dkEuqc7" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.bootstrap5.js" integrity="sha384-nCtlMnl+ryKF7vlOZjeohyWxsn0YfH1bCIrhX15t9W9ZvErQANIIRCb3YqEymtnN" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.colVis.js" integrity="sha384-t/MXDvQw7etUQsFfET7E2PfnVZerTgIVxF5shlbaT7U2998GEQvYqgKJV8k7RJoa" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.html5.js" integrity="sha384-FWBlOAPJ9FRQJgtP00zQNtd1wuox/BRlVTkHuOojgy2TQl+opJzVx4GhRlbaPLhB" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.print.js" integrity="sha384-LbFUMCazrGiuf4Z4oi2HrQJ8m+YVatlOZ7fl/yPPMlcHX+ya9tg6M4IBwDxcbMjS" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/columncontrol/1.1.0/js/dataTables.columnControl.js" integrity="sha384-FHzYBZvfGFxzoYw/6L4SfT+hdM9NuiIVJ+1ofL8LhCBVkNBCAbv3fMFxekpL0Q81" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/columncontrol/1.1.0/js/columnControl.bootstrap5.js" integrity="sha384-WFxADpc0yudYDdX+4qhJB7xFPck6yMz0Xr0blP89ST0zeA98SgApb68I3kwCNeED" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/datetime/1.6.0/js/dataTables.dateTime.js" integrity="sha384-8XrmhsO9Et4KWktP5dWG06LsHp/y7U9i0XOP7vp1d1AVL4o53/KMBNKpNhntf3Wr" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/responsive/3.0.6/js/dataTables.responsive.js" integrity="sha384-pSfM3qY2/Vcamdp6WFC5CjYzA0oMVRu6RIdoed9WTk75ZaGbow/4MrTNYl4PxRxe" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/responsive/3.0.6/js/responsive.bootstrap5.js" integrity="sha384-hyp/YDWGBMFqg7pJuS+y+2VWJkwnOyX+oMN9fWcxINo2flqjC/SdNaHj8LIV4zKJ" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/searchbuilder/1.8.4/js/dataTables.searchBuilder.js" integrity="sha384-uQOvV9BmCAyJAeGboLgXTBfcKh34+IkCHep3jQw5mpQBLXXvPL4740U3N5PRHiex" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/searchbuilder/1.8.4/js/searchBuilder.bootstrap5.js" integrity="sha384-gN0JqqeksS791yjmwR5Es8rZtR+3rDVUo42jAKAy1V9XBq/K0ZrqFQzODwMrb85m" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/searchpanes/2.3.5/js/dataTables.searchPanes.js" integrity="sha384-QV/xsakwxg24XxzPb6XOZwQ4Kax9VmGBjuiBx+czKmRnevneDTmqTHwdujbn4awh" crossorigin="anonymous"></script>
+	<script src="https://cdn.datatables.net/searchpanes/2.3.5/js/searchPanes.bootstrap5.js" integrity="sha384-wzSP+ZST/MzlFNaZ7z8/c+ZkNVUU1B5zWZeshPiPZiIifoel8zDhYn1iEqXxNofl" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js" integrity="sha384-VCGDSwGwLWkVOK5vAWSaY38KZ4oKJ0whHjpJQhjqrMlWadpf2dUVKLgOLBdEaLvZ" crossorigin="anonymous"></script> <!-- libreria per format date/timestamp su datatables -->
+
+	<!-- PLOTLY -->
+	<script src="{% static 'js/plotly-3.1.0.min.js' %}" charset="utf-8"></script>
+
+
+</head>
+
+<body>
+	<!-- NAVBAR -->
+	<nav class="navbar navbar-expand-lg navbar-light">
+		<div class="container-fluid">
+			<a class="navbar-brand" href={% url 'home' %}>
+				<img src={% static 'images/logo-send-bianco.png' %} class="img-fluid" alt="SEND"
+					width="140 px" style="padding-left: 20px; padding-right: 20px;">
+			</a>
+			<a class="navbar-brand nav-link" href={% url 'home' %}><span class="h2 font-weight-bold">Simulatore</span></a>
+			<button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+				data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+				aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarSupportedContent" align="right">
+				<ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+					<li class="nav-item zoom-in">
+						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'calendario' %}><i class="fa-solid fa-calendar-days"></i> Calendario</a>
+					</li>
+					<li class="nav-item zoom-in">
+						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'bozze' %}><i class="fa-solid fa-file-signature"></i> Bozze</a>
+					</li>
+					<li class="nav-item zoom-in">
+						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'nuova_simulazione' %}><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</a>
+					</li>
+					<li class="nav-item zoom-in">
+						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href="#"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+
+	<div class="container-xxl">
+		<br>
+		{% block content %}
+
+		{% endblock content %}
+	</div>
+
+
+	<br><br><br><br>
+	{% block scripts %}
+
+	{% endblock %}
+</body>
+
+</html>

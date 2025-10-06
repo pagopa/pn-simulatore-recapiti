@@ -1,0 +1,282 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+<br>
+
+<!-- DATATABLES: tabella_simulazioni -->
+<table class="table table-fluid table-hover table-striped table-bordered" id="tabella_simulazioni" style="text-align:center;">
+    <thead>
+        <tr>
+            <th style="text-align:center;">Timestamp esecuzione</th>
+            <th style="text-align:center;">Stato</th>
+            <th style="text-align:center;">Utente</th>
+            <th style="text-align:center;">Nome simulazione</th>
+            <th style="text-align:center;">Descrizione</th>
+            <th style="text-align:center;">Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for simulazione in lista_simulazioni %}
+            <tr>
+                <td style="text-align:center;">{{simulazione.timestamp_esecuzione}}</td>
+                <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}🟢{% elif simulazione.stato == 'In lavorazione' %}🕛{% elif simulazione.stato == 'Schedulata' %}📅{% elif simulazione.stato == 'Non completata' %}🔴{% endif %}</td>
+                <td style="text-align:center;">{{simulazione.utente}}</td>
+                <td style="text-align:center;">{{simulazione.nome}}</td>
+                <td style="text-align:center;">{{simulazione.descrizione}}</td>
+                <td style="text-align:left;">
+                    <!-- Visualizza dettagli -->
+                    <span class="ms-4">
+                        <!-- Button trigger modal -->
+                        <button type="button" title="Visualizza dettagli" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#visualizzaDettagliModal{{ forloop.counter }}"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </span>
+                    <!-- Modal -->
+                    <div class="modal fade" id="visualizzaDettagliModal{{ forloop.counter }}" tabindex="-1" aria-labelledby="visualizzaDettagliModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title w-100 fs-3" align="center" id="visualizzaDettagliModalLabel">Dettaglio simulazione</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-start">
+                                    <div class="container">
+                                        <br>
+                                        <div class="row justify-content-center">
+                                            <div class="col offset-md-2">
+                                                <p><b>Nome simulazione</b>: {{simulazione.nome}}</p>
+                                                <p><b>Descrizione</b>: {{simulazione.descrizione}}</p>
+                                                <p><b>Utente</b>: {{simulazione.utente}}
+                                            </div>
+                                            <div class="col">
+                                                <p><b>Timestamp esecuzione</b>: {{simulazione.timestamp_esecuzione}}</p>
+                                                <p><b>Stato</b>: {% if simulazione.stato == 'Lavorata' %}Lavorata 🟢{% elif simulazione.stato == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.stato == 'Schedulata' %}Schedulata 📅{% elif simulazione.stato == 'Non completata' %}Non completata 🔴{% endif %}</p>
+                                                {% if simulazione.stato == 'Lavorata'%}<p><b>Durata</b>: {{simulazione.durata}}</p>{% endif %}
+                                                {% if simulazione.stato == 'Non completata'%}<p><b>Errore</b>: {{simulazione.errore}}</p>{% endif %}
+                                            </div>
+                                        </div>
+                                        <br>
+                                        <div class="row">
+                                            <div class="col text-center">
+                                                <p><b>Download capacità di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                                                <p><b>Download postalizzazioni di input</b>: <i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nuova simulazione partendo dallo stesso input --> 
+                    <span>
+                        <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href="#"><i class="fa-solid fa-file-circle-plus"></i></a>
+                    </span>
+
+                    {% if simulazione.stato == 'Schedulata' %}
+
+                        <!-- Modifica scheduling --> 
+                        <span>
+                            <a type="button" title="Modifica scheduling" class="btn btn-outline-secondary" href="#"><i class="fa-solid fa-pen-to-square"></i></a>
+                        </span>
+
+                        <!-- Elimina scheduling --> 
+                        <span>
+                            <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#"><i class="fa-solid fa-trash"></i></a></td>
+                        </span>
+
+                    {% elif simulazione.stato == 'Non completata' or simulazione.stato == 'In lavorazione' %}
+
+
+
+                    {% elif simulazione.stato == 'Lavorata' %}
+
+                        {% if simulazione.nome != 'Automatizzata' %}
+                            <!-- Confronto con automatizzata --> 
+                            <span>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                            </span>
+
+                            <!-- Confronto con altra simulazione --> 
+                            <span>
+                                <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="{% url 'confronto_risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
+                            </span>
+                        {% endif %}
+
+                        <!-- Visualizza risultati --> 
+                        <span>
+                            <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="{% url 'risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i></a>
+                        </span>
+
+                    {% endif %}
+
+                    
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+
+<!-- Legenda -->
+<div align="center">
+    <div class="card w-75">
+        <div class="card-body">
+			<b>LEGENDA</b>
+			<div class="container">
+				<div class="row">
+					<div class="col">
+					    🟢 Lavorata
+					</div>
+					<div class="col">
+					    🕛 In lavorazione
+					</div>
+					<div class="col">
+					    📅 Schedulata
+					</div>
+					<div class="col">
+					    🔴 Non completata
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock content %}
+
+
+{% block scripts %}
+<!-- script per la tabella datatables -->
+<script>
+    var fullDate = new Date();
+	var currentDate = fullDate.getFullYear() + "_" + (fullDate.getMonth() + 1).toString().padStart(2, "0") + "_" + fullDate.getDate().toString().padStart(2, "0");
+	new DataTable('#tabella_simulazioni', {
+        // rimuoviamo il vecchio ordinamento per inserire il nuovo con columnControl 
+        ordering: {
+            indicators: false,
+            handler: false
+        },
+        // ordinamento decrescente sulla prima colonna
+        order: [[0, 'desc']],
+        pageLength : 10,
+		lengthMenu: [[10, 20, 50, -1], [10, 20, 50, 'All']],
+        responsive: true,
+        columnDefs:[
+            {
+                // colonna Timestamp esecuzione
+                targets: 0,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'filter' || type === 'sort') {
+                        // formato solo per filtro e ordinamento
+                        return moment(data).format('YYYY-MM-DD');
+                    }
+                    else{
+                        // formato per display, export, excel, csv, pdf, print
+                        return data; 
+                    }
+                },
+                type:'date'
+            },
+            {
+                targets: [2,3],
+                columnControl: ['order', ['search']],
+            },
+            {
+                // colonna stato
+                targets: 1,
+                columnControl: ['order', ['searchList']],
+            },
+            {
+                // colonna descrizione
+                targets: 4,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        // mostriamo solo i primi 20 caratteri
+                        return data.length > 20 ? data.substr(0, 20) + '…' : data;
+                    }
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 20 caratteri
+                    return data;
+                }
+            },
+            { // rimuoviamo ordinamento e filtri sull'ultima colonna
+                targets: -1,        
+                columnControl: []
+            },
+        ],
+        bAutoWidth: false,
+		layout: {
+            // bottone Nuova simulazione
+            topStart: {
+                buttons: [
+                    {
+                        text: '<b><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</b>',
+                        className: 'btn-primary',
+                        action: function () {
+                            window.location.href = "{% url 'nuova_simulazione' %}";
+                        },
+                        init: function(api, node, config) {
+                            $(node).removeClass('btn-secondary')
+                        }
+                    }
+                ]
+            },
+            // entries per page
+            bottomStart: 'pageLength',
+            // mostra quanti elementi vengono mostrati
+            bottom2Start: 'info',
+            // esportazione tabella
+			bottom2End: 
+				{
+				buttons: [
+                    {
+                        extend: 'copy',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    },
+					{
+						extend: 'csv',
+						text: 'CSV',
+						fieldSeparator: ',',
+						className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+					},
+                    {
+                        extend: 'excel',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    }
+				],
+			}
+		},
+	});
+</script>
+{% endblock %}

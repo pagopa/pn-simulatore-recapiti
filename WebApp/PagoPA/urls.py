@@ -1,0 +1,37 @@
+"""
+URL configuration for PagoPA project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/5.2/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+from django.contrib import admin
+from django.urls import path
+from Simulatore.views import *
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', homepage, name='home'),
+    path('calendario', calendario, name='calendario'),
+    path('bozze', bozze, name='bozze'),
+    path('nuova_simulazione', nuova_simulazione, name='nuova_simulazione'),
+    path('risultati/<id_simulazione>', risultati, name='risultati'),
+    path('confronto_risultati/<id_simulazione>', confronto_risultati, name='confronto_risultati'),
+    path('login', login, name='login')
+]
+
+
+# riservato alle pagine d'errore
+handler400 = "Simulatore.views.handle_error_400"
+handler403 = "Simulatore.views.handle_error_403"
+handler404 = "Simulatore.views.handle_error_404"
+handler500 = "Simulatore.views.handle_error_500"

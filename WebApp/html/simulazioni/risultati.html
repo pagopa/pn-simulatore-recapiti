@@ -1,0 +1,39 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+<h1 class="text-center font-color-blue-pagopa">RISULTATI</h1>
+
+<br><br>
+
+<div id="fig_first_for_visualizzation"></div>
+
+<div id="fig_second_for_visualizzation"></div>
+
+<div id="fig_third_for_visualizzation"></div>
+
+{% endblock content %}
+
+
+<!-- CODICE JAVASCRIPT -->
+{% block scripts %}
+
+<script>
+    const rawData_fig_first_for_visualizzation = '{{ fig_first_for_visualizzation|escapejs }}';
+    const plotData_fig_first_for_visualizzation = JSON.parse(rawData_fig_first_for_visualizzation);
+    Plotly.newPlot('fig_first_for_visualizzation', plotData_fig_first_for_visualizzation.data, plotData_fig_first_for_visualizzation.layout); 
+</script>
+
+<script>
+    const rawData_fig_second_for_visualizzation = '{{ fig_second_for_visualizzation|escapejs }}';
+    const plotData_fig_second_for_visualizzation = JSON.parse(rawData_fig_second_for_visualizzation);
+    Plotly.newPlot('fig_second_for_visualizzation', plotData_fig_second_for_visualizzation.data, plotData_fig_second_for_visualizzation.layout);
+</script>
+
+<script>
+    const rawData_fig_third_for_visualizzation = '{{ fig_third_for_visualizzation|escapejs }}';
+    const plotData_fig_third_for_visualizzation = JSON.parse(rawData_fig_third_for_visualizzation);
+    Plotly.newPlot('fig_third_for_visualizzation', plotData_fig_third_for_visualizzation.data, plotData_fig_third_for_visualizzation.layout);
+</script>
+
+{% endblock %}
