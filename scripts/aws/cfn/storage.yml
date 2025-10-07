@@ -151,13 +151,13 @@ Outputs:
     Value: !GetAtt SimulatorAuroraDbCluster.Outputs.DBClusterResourceId
   SvcSimulatorUserSecretArn:
     Description: ARN of the placeholder secret for service user
-    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcSimulatorUserSecretArn
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcUserSecretArn
   SvcSimulatorUsername:
     Description: service user Username
-    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcSimulatorUsername
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcUsername
   RdsSimulatorClusterIdentifierSuffix:
     Description: Suffix used for RDS cluster identifier
-    Value: !Ref RdsSimulatorClusterIdentifierSuffix
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.ClusterIdentifierSuffix
   # Log group exports
   EcsLogGroup:
     Value: !GetAtt SimulatorLogGroup.Outputs.LogGroupName
