@@ -2,7 +2,6 @@
   "Parameters" : {
     "ProjectName": "pn",
     "MicroServiceUniqueName": "simulatore-recapiti",
-    "WireTapLogActivation": "false",
     "AutoscalingThreshold": "1000",
     "MinTasksNumber": "1",
     "MaxTasksNumber": "1"

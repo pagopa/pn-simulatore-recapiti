@@ -7,6 +7,16 @@ Parameters:
     Description: 'Usually pn can be pnXYZ where XYZ are the feature number, useful to create
       experimental environments without crash official development environment'
 
+  EnvironmentType:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - uat
+      - hotfix
+      - prod
+    Default: dev
+
   AlarmSNSTopicArn:
     Type: String
     Description: 'ARN of alarm topic'
@@ -27,7 +37,7 @@ Parameters:
     Type: String
     Description: 'The S3 bucket from which to fetch the templates used by this stack.'
 
-  ECSClusterName:
+  VPNECSClusterName:
     Type: String
     Description: 'The name of the ECS cluster where the microservice is going to be deployed'
 
@@ -39,25 +49,25 @@ Parameters:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
 
-  EcsDefaultSecurityGroup:
+  VPNDefaultSecurityGroupId:
     Type: String
-    Description: 'Default security group required by infrastructure'
+    Description: "GroupID of the default security group of the VPC where the microservice is going to be deployed"
 
   VPNApplicationLoadBalancerListenerArn:
     Type: String
     Description: 'Load balancer listener where HTTP endpoints is going to be registered'
 
-  VPNApplicationLoadBalancerDomain:
+  VPNWebappSecurityGroupId:
     Type: String
-    Description: 'Base URL of the load balancer where the service is going to be reachable'
-
-  NetworkLoadBalancerLink:
-    Type: String
-    Description: 'network load balancer link for API-GW'
+    Description: 'Security group ID for the web application'
 
   Version:
     Type: String
     Description: 'keep track of used projects commitIds'
+
+  RdsSimulatorPort:
+    Type: Number
+    Description: RDS Cluster Port (from storage stack)
 
   # Autoscaling parameters
   AutoscalingCheckPeriod:
@@ -100,15 +110,6 @@ Parameters:
     Type: String
     Default: ''
     Description: 'Base key of the microservice in the s3 bucket'
-
-  # Logging parameters
-  WireTapLogActivation:
-    Type: String
-    Default: false
-    Description: 'Activation of wire logs'
-    AllowedValues:
-      - true
-      - false
 
   # Log group parameters
   EcsLogGroup:
@@ -163,10 +164,6 @@ Parameters:
     Description: 'memory amount reserved to the task pod.'
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
-  AlbSecurityGroup:
-    Type: String
-    Description: 'Application load balancer security group'
-
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -194,19 +191,47 @@ Resources:
         ContainerImageURI: !Ref ContainerImageUri
 
         MicroServiceSecretPrefix: pn-Simulatore-Reacapiti-Secrets
-        ECSClusterName: !Ref ECSClusterName
+        ECSClusterName: !Ref VPNECSClusterName
         Subnets: !Ref VPNSubnetsIds
         VpcId: !Ref VPNVpcId
-        AlbSecurityGroup: !Ref AlbSecurityGroup
-        EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
+        AlbSecurityGroup: !Ref VPNWebappSecurityGroupId
+        EcsDefaultSecurityGroup: !Ref EcsSimulatorDefaultSecurityGroup
         LoadBalancerListenerArn: !Ref VPNApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         EcsLogGroup: !Ref EcsLogGroup
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
-        WireTapLogActivation: !Ref WireTapLogActivation
         #TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
 
+  EcsSimulatorDefaultSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG with specific egress for pn-simulatore-recapiti tasks
+      VpcId: !Ref VPNVpcId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: !Ref RdsSimulatorPort
+          ToPort: !Ref RdsSimulatorPort
+          DestinationSecurityGroupId: !Ref VPNWebappSecurityGroupId
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref VPNDefaultSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: pn-simulatore-recapiti-EcsSimulatorDefault-sg
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  EcsSimulatorIngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EcsSimulatorDefaultSecurityGroup
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref EcsSimulatorDefaultSecurityGroup
 
   # SimulatorMicroserviceTaskManagedPolicy:
   #   Type: AWS::IAM::ManagedPolicy
