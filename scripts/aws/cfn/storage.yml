@@ -157,7 +157,7 @@ Outputs:
     Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcUsername
   RdsSimulatorClusterIdentifierSuffix:
     Description: Suffix used for RDS cluster identifier
-    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.ClusterIdentifierSuffix
+    Value: !Ref RdsSimulatorClusterIdentifierSuffix
   # Log group exports
   EcsLogGroup:
     Value: !GetAtt SimulatorLogGroup.Outputs.LogGroupName
