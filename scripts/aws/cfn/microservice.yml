@@ -193,7 +193,7 @@ Resources:
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
 
-        MicroServiceSecretPrefix: pn-Simulator-Secrets
+        MicroServiceSecretPrefix: pn-Simulatore-Reacapiti-Secrets
         ECSClusterName: !Ref ECSClusterName
         Subnets: !Ref VPNSubnetsIds
         VpcId: !Ref VPNVpcId

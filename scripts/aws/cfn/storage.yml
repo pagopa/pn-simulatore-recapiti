@@ -42,17 +42,17 @@ Parameters:
   RdsSimulatorClusterIdentifierSuffix:
     Type: String
     Description: Suffix to make RDS cluster unique
-    Default: simulator-db
+    Default: simulatore-recapiti-db
   RdsSimulatorDatabaseName:
     Type: String
-    Default: simulator_db
+    Default: simulatore-recapiti_db
   RdsSimulatorMasterUsername:
     Type: String
-    Default: dbadmin
+    Default: dbsimulatorerecapitiadmin
     NoEcho: true
   RdsSimulatorSvcUsername:
     Type: String
-    Default: simulator_svc
+    Default: simulatore-recapiti_svc
     NoEcho: true
   RdsSimulatorEngineVersion:
     Type: String
@@ -97,7 +97,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
-        LogGroupName: !Sub '${ProjectName}-simulator'
+        LogGroupName: !Sub '${ProjectName}-simulatore-recapiti'
         LogGroupRetention: !Ref LogRetention
         #LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn         # serve kinesis?
 
