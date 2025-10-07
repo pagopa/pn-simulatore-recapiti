@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 import plotly.graph_objects as go
 import json
@@ -9,7 +9,12 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
 
+
+@login_required(login_url='login')
 def homepage(request):
     lista_simulazioni = [
         {
@@ -70,6 +75,7 @@ def homepage(request):
     return render(request, "home.html", context)
 
 
+@login_required(login_url='login')
 def risultati(request, id_simulazione):
 
     enti = [
@@ -288,6 +294,7 @@ def risultati(request, id_simulazione):
     return render(request, "simulazioni/risultati.html", context)
 
 
+@login_required(login_url='login')
 def confronto_risultati(request, id_simulazione):
     enti = [
     "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
@@ -507,10 +514,11 @@ def confronto_risultati(request, id_simulazione):
     }
     return render(request, "simulazioni/confronto_risultati.html", context)
 
-
+@login_required(login_url='login')
 def calendario(request):
     return render(request, "calendario/calendario.html")
 
+@login_required(login_url='login')
 def bozze(request):
     lista_bozze = [
         {
@@ -538,11 +546,32 @@ def bozze(request):
     }
     return render(request, "bozze/bozze.html", context)
 
+@login_required(login_url='login')
 def nuova_simulazione(request):
     return render(request, "simulazioni/nuova_simulazione.html")
 
-def login(request):
-    return render(request, "login.html")
+def login_page(request):
+    return render(request, "login_page.html")
+
+
+def login_user(request):
+	if request.method == "POST":
+		username = request.POST['username']
+		password = request.POST['password']
+		user = authenticate(request, username=username, password=password)
+		if user is not None:
+			login(request, user)
+			return redirect('home')
+		else:
+			messages.success(request, ("There Was An Error Logging In, Try Again..."))	
+			return redirect('login_page')
+	else:
+		return render(request, 'login_page.html', {})
+
+def logout_user(request):
+	logout(request)
+	messages.success(request, ("You Were Logged Out!"))
+	return redirect('home')
 
 
 
