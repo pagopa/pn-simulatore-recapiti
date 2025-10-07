@@ -45,7 +45,7 @@ Parameters:
     Default: simulatore-recapiti-db
   RdsSimulatorDatabaseName:
     Type: String
-    Default: simulatore-recapiti_db
+    Default: simulatore_recapiti_db
   RdsSimulatorMasterUsername:
     Type: String
     Default: dbsimulatorerecapitiadmin
