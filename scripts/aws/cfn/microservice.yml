@@ -65,6 +65,10 @@ Parameters:
     Type: Number
     Description: RDS Cluster Port (from storage stack)
 
+  SimulatorAlbPath:
+    Type: String
+    Default: /beyondoc/api/v1/notify-input-pdf-uploaded*
+
   # Autoscaling parameters
   AutoscalingCheckPeriod:
     Default: 300
@@ -169,7 +173,7 @@ Resources:
         MicroServiceUniqueName: !Sub "${ProjectName}-${MicroServiceUniqueName}"
         CpuValue: !Ref CpuValue
         MemoryAmount: !Ref MemoryAmount
-        MappedPaths: /
+        MappedPaths: !Ref SimulatorAlbPath
         HealthCheckTimeout: !Ref HealthCheckTimeout
         HealthCheckInterval: !Ref HealthCheckInterval
         HealthyThresholdCount: !Ref HealthyThresholdCount
