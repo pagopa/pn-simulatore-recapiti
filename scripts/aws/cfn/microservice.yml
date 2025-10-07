@@ -169,7 +169,7 @@ Resources:
         MicroServiceUniqueName: !Sub "${ProjectName}-${MicroServiceUniqueName}"
         CpuValue: !Ref CpuValue
         MemoryAmount: !Ref MemoryAmount
-
+        MappedPaths: /
         HealthCheckTimeout: !Ref HealthCheckTimeout
         HealthCheckInterval: !Ref HealthCheckInterval
         HealthyThresholdCount: !Ref HealthyThresholdCount
