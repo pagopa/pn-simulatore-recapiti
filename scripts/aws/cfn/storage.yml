@@ -52,7 +52,7 @@ Parameters:
     NoEcho: true
   RdsSimulatorSvcUsername:
     Type: String
-    Default: beyondoc_svc
+    Default: simulator_svc
     NoEcho: true
   RdsSimulatorEngineVersion:
     Type: String
