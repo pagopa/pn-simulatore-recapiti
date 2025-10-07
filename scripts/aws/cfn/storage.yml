@@ -6,16 +6,6 @@ Parameters:
     Type: String
     Description: Nome dell'ambiente destinazione
 
-  # Unused but required by CD pipeline
-  MicroserviceNumber:
-    Type: Number
-    Description: An unique number that identify the microservice inside the ECS cluster.
-
-  # Unused but required by CD pipeline
-  AlarmSNSTopicName:
-    Type: String
-    Description: 'Topic alarm'
-
   TemplateBucketBaseUrl:
     Type: String
     Description: URL da cui caricare i frammenti di template di infrastruttura
@@ -23,6 +13,80 @@ Parameters:
   LogRetention:
     Type: Number
     Default: 14
+
+  EnvType:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - uat
+      - hotfix
+      - prod
+  Version:
+    Type: String
+  LogsKinesisSourceStreamArn:
+    Type: String
+    Default: ''
+  VPNVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: PdfRaster VPC id
+  VPNServicesSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: PdfRaster private subnets
+  VPNVpcCidr:
+    Type: String
+    Description: Source VPC CIDR block for RDS ingress rule
+  AlarmSNSTopicArn:
+    Type: String
+    Description: ARN of the shared SNS topic for alarms
+  RdsSimulatorClusterIdentifierSuffix:
+    Type: String
+    Description: Suffix to make RDS cluster unique
+    Default: simulator-db
+  RdsSimulatorDatabaseName:
+    Type: String
+    Default: simulator_db
+  RdsSimulatorMasterUsername:
+    Type: String
+    Default: dbadmin
+    NoEcho: true
+  RdsSimulatorSvcUsername:
+    Type: String
+    Default: beyondoc_svc
+    NoEcho: true
+  RdsSimulatorEngineVersion:
+    Type: String
+    Default: '17.5'
+  RdsSimulatorDbClusterFamily:
+    Type: String
+    Default: aurora-postgresql17
+  RdsSimulatorMinACU:
+    Type: Number
+    Default: 0.5
+  RdsSimulatorMaxACU:
+    Type: Number
+    Default: 8
+  RdsSimulatorBackupRetentionPeriod:
+    Type: Number
+    Default: 7
+  RdsSimulatorDeletionProtection:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+  RdsSimulatorDbCpuAlarmThreshold:
+    Type: Number
+    Default: 80
+  RdsSimulatorDbConnectionsAlarmThreshold:
+    Type: Number
+    Default: 1500
+
+Conditions:
+  HasLogsKinesisStream: !Not
+    - !Equals
+      - !Ref LogsKinesisSourceStreamArn
+      - ''
 
 Resources:
 
@@ -38,9 +102,62 @@ Resources:
         #LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn         # serve kinesis?
 
 
-# AGGIUNGERE RDS
+  SimulatorAuroraDbCluster:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub ${TemplateBucketBaseUrl}/fragments/aurora-serverless-v2-pg.yaml
+      Parameters:
+        EnvType: !Ref EnvType
+        VpcId: !Ref VPNVpcId
+        PrivateSubnets: !Join
+          - ','
+          - !Ref VPNServicesSubnets
+        SourceVpcCidr: !Ref VPNVpcCidr
+        ClusterIdentifierSuffix: !Ref RdsSimulatorClusterIdentifierSuffix
+        DatabaseName: !Ref RdsSimulatorDatabaseName
+        MasterUsername: !Ref RdsSimulatorMasterUsername
+        SvcUsername: !Ref RdsSimulatorSvcUsername
+        EngineVersion: !Ref RdsSimulatorEngineVersion
+        DbClusterFamily: !Ref RdsSimulatorDbClusterFamily
+        MinACU: !Ref RdsSimulatorMinACU
+        MaxACU: !Ref RdsSimulatorMaxACU
+        BackupRetentionPeriod: !Ref RdsSimulatorBackupRetentionPeriod
+        DeletionProtectionEnabled: !Ref RdsSimulatorDeletionProtection
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
+        DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
 
 Outputs:
+  RdsSimulatorEndpointAddress:
+    Description: RDS Cluster Writer Endpoint Address
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsEndpointAddress
+  RdsSimulatorReadEndpointAddress:
+    Description: RDS Cluster Reader Endpoint Address
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsReadEndpointAddress
+  RdsSimulatorPort:
+    Description: RDS Cluster Port
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsPort
+  RdsSimulatorDbName:
+    Description: RDS Database Name
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsDbName
+  RdsSimulatorSecurityGroupId:
+    Description: ID of the Security Group attached to the RDS cluster
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+  DBSimulatorClusterArn:
+    Description: ARN of the DB Cluster
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.DBClusterArn
+  DBSimulatorClusterResourceId:
+    Description: Resource ID of the DB Cluster
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.DBClusterResourceId
+  SvcSimulatorUserSecretArn:
+    Description: ARN of the placeholder secret for service user
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcSimulatorUserSecretArn
+  SvcSimulatorUsername:
+    Description: service user Username
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcSimulatorUsername
+  RdsSimulatorClusterIdentifierSuffix:
+    Description: Suffix used for RDS cluster identifier
+    Value: !Ref RdsSimulatorClusterIdentifierSuffix
   # Log group exports
   EcsLogGroup:
     Value: !GetAtt SimulatorLogGroup.Outputs.LogGroupName

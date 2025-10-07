@@ -11,6 +11,10 @@ Parameters:
     Type: String
     Description: 'ARN of alarm topic'
 
+  MicroServiceUniqueName:
+    Type: String
+    Description: 'Unique name for the microservice'
+
   ContainerImageUri:
     Type: String
     Description: 'Exact container image URI with full repository and image digest'
@@ -27,15 +31,11 @@ Parameters:
     Type: String
     Description: 'The name of the ECS cluster where the microservice is going to be deployed'
 
-  SubnetsIds:
+  VPNSubnetsIds:
     Type: String
     Description: 'subnets ids comma separated list. Where to deploy the microservice'
 
-  VpcEgressSubnetsIds:
-    Type: String
-    Description: subnets where to install PN-CORE
-
-  VpcId:
+  VPNVpcId:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
 
@@ -43,11 +43,11 @@ Parameters:
     Type: String
     Description: 'Default security group required by infrastructure'
 
-  ApplicationLoadBalancerListenerArn:
+  VPNApplicationLoadBalancerListenerArn:
     Type: String
     Description: 'Load balancer listener where HTTP endpoints is going to be registered'
 
-  ApplicationLoadBalancerDomain:
+  VPNApplicationLoadBalancerDomain:
     Type: String
     Description: 'Base URL of the load balancer where the service is going to be reachable'
 
@@ -173,7 +173,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
       Parameters:
-        MicroServiceUniqueName: !Sub "${ProjectName}-simulator"
+        MicroServiceUniqueName: !Sub "${ProjectName}-${MicroServiceUniqueName}"
         CpuValue: !Ref CpuValue
         MemoryAmount: !Ref MemoryAmount
 
@@ -195,35 +195,34 @@ Resources:
 
         MicroServiceSecretPrefix: pn-Simulator-Secrets
         ECSClusterName: !Ref ECSClusterName
-        Subnets: !Ref VpcEgressSubnetsIds
-        VpcId: !Ref VpcId
+        Subnets: !Ref VPNSubnetsIds
+        VpcId: !Ref VPNVpcId
         AlbSecurityGroup: !Ref AlbSecurityGroup
         EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
-        LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
+        LoadBalancerListenerArn: !Ref VPNApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         EcsLogGroup: !Ref EcsLogGroup
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         WireTapLogActivation: !Ref WireTapLogActivation
-        TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
-
+        #TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
         ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
 
 
-  SimulatorMicroserviceTaskManagedPolicy:
-    Type: AWS::IAM::ManagedPolicy
-    Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Action:
-              # - dynamodb:GetItem   DA MODIFICARE E METTERCI AURORA
-              # - dynamodb:PutItem
-              # - dynamodb:UpdateItem
-              # - dynamodb:DeleteItem
-              # - dynamodb:Query
-            # Resource:
-            #   - !Ref PortFatDownloadTableArn
+  # SimulatorMicroserviceTaskManagedPolicy:
+  #   Type: AWS::IAM::ManagedPolicy
+  #   Properties:
+  #     PolicyDocument:
+  #       Version: 2012-10-17
+  #       Statement:
+  #         - Effect: Allow
+  #           Action:
+  #             - dynamodb:GetItem   DA MODIFICARE E METTERCI AURORA
+  #             - dynamodb:PutItem
+  #             - dynamodb:UpdateItem
+  #             - dynamodb:DeleteItem
+  #             - dynamodb:Query
+  #           Resource:
+  #             - !Ref PortFatDownloadTableArn
 
 
   # PortFatCloudWatchDashboard:   DA VERIFICARE A SEGUITO DEL DEPLOY
