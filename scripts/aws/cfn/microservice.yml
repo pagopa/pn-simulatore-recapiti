@@ -49,10 +49,6 @@ Parameters:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
 
-  VPNDefaultSecurityGroupId:
-    Type: String
-    Description: "GroupID of the default security group of the VPC where the microservice is going to be deployed"
-
   VPNApplicationLoadBalancerListenerArn:
     Type: String
     Description: 'Load balancer listener where HTTP endpoints is going to be registered'
@@ -217,9 +213,6 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
-      SecurityGroupIngress:
-        - IpProtocol: '-1'
-          SourceSecurityGroupId: !Ref VPNDefaultSecurityGroupId
       Tags:
         - Key: Name
           Value: pn-simulatore-recapiti-EcsSimulatorDefault-sg
