@@ -221,6 +221,9 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref VPNDefaultSecurityGroupId
       Tags:
         - Key: Name
           Value: pn-simulatore-recapiti-EcsSimulatorDefault-sg
