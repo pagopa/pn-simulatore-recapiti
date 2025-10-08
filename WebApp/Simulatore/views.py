@@ -13,61 +13,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 
+from datetime import datetime, timezone, timedelta
+import pytz
+
+from .models import *
+
 
 @login_required(login_url='login')
 def homepage(request):
-    lista_simulazioni = [
-        {
-            'id': '0001',
-            'timestamp_esecuzione': '2025/08/10 17:00:00',
-            'stato': 'Schedulata',
-            'utente': 'Paolo Bianchi',
-            'nome': 'Test 4',
-            'descrizione': 'Test con leggero aumento delle capacità',
-            'errore': None,
-            'durata': None,
-        },
-        {
-            'id': '0002',
-            'timestamp_esecuzione': '2025/07/23 15:00:00',
-            'stato': 'In lavorazione',
-            'utente': 'Mario Rossi',
-            'nome': 'Test 3',
-            'descrizione': 'Test con leggera diminuzione delle capacità',
-            'errore': None,
-            'durata': None,
-        },
-        {
-            'id': '0003',
-            'timestamp_esecuzione': '2025/07/23 10:00:00',
-            'stato': 'Lavorata',
-            'utente': 'Mario Rossi',
-            'nome': 'Test 2',
-            'descrizione': 'Test con drastico aumento delle capacità',
-            'errore': None,
-            'durata': '0:13:50'
-        },
-        {
-            'id': '0004',
-            'timestamp_esecuzione': '2025/07/23 10:00:00',
-            'stato': 'Lavorata',
-            'utente': '',
-            'nome': 'Automatizzata',
-            'descrizione': 'Pianificazione settimanale automatizzata',
-            'errore': None,
-            'durata': '0:13:50'
-        },
-        {
-            'id': '0005',
-            'timestamp_esecuzione': '2025/07/22 11:30:00',
-            'stato': 'Non completata',
-            'utente': 'Luca Neri',
-            'nome': 'Test 1',
-            'descrizione': 'Test con drastica diminuzione delle capacità',
-            'errore': '429 - Algoritmo di pianificazione occupato',
-            'durata': None,
-        }
-    ]
+    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
 
     context = {
         'lista_simulazioni': lista_simulazioni
@@ -520,35 +474,71 @@ def calendario(request):
 
 @login_required(login_url='login')
 def bozze(request):
-    lista_bozze = [
-        {
-            'timestamp_scheduling': '2025/07/23 15:00:00',
-            'nome': 'Test 3',
-            'utente': 'Mario Rossi',
-            'descrizione': 'Test 5'
-        },
-        {
-            'timestamp_scheduling': '2025/07/23 10:00:00',
-            'nome': 'Test 2',
-            'utente': 'Mario Rossi',
-            'descrizione': 'Test 2'
-        },
-        {
-            'timestamp_scheduling': '2025/07/22 11:30:00',
-            'nome': 'Test 1',
-            'utente': 'Paolo Bianchi',
-            'descrizione': 'Test 1'
-        }
-    ]
+    lista_bozze = table_simulazione.objects.filter(STATO='Bozza')
 
     context = {
         'lista_bozze': lista_bozze
     }
     return render(request, "bozze/bozze.html", context)
 
+@login_required
+def rimuovi_bozza(request, id_bozza):
+	try:
+		bozza_da_rimuovere = table_simulazione.objects.get(ID=id_bozza)
+		bozza_da_rimuovere.delete()
+	except:
+		pass
+	return redirect('bozze')
+
 @login_required(login_url='login')
-def nuova_simulazione(request):
-    return render(request, "simulazioni/nuova_simulazione.html")
+def nuova_simulazione(request, id_simulazione):
+    if id_simulazione != 'new':
+        simulazione = table_simulazione.objects.get(ID = id_simulazione)
+
+        context = {
+            'simulazione': simulazione
+        }
+        return render(request, "simulazioni/nuova_simulazione.html", context)
+    else:
+        return render(request, "simulazioni/nuova_simulazione.html") 
+
+@login_required(login_url='login')
+def salva_simulazione(request):
+    print(request.POST)
+
+    utente_id = CustomUser.objects.get(username=request.user)
+
+    nome_simulazione = request.POST['nome_simulazione']
+    descrizione_simulazione = request.POST['descrizione_simulazione']
+    if request.POST['inlineRadioOptions'] == 'now':
+        timestamp_esecuzione = datetime.now(pytz.utc)
+    elif request.POST['inlineRadioOptions'] == 'schedule':
+        timestamp_esecuzione = request.POST['schedule_datetime']
+        timestamp_esecuzione = datetime.strptime(timestamp_esecuzione, "%d/%m/%Y %H:%M")
+        timestamp_esecuzione = timestamp_esecuzione.replace(tzinfo=timezone(timedelta(hours=2)))
+
+    table_simulazione.objects.create(
+        NOME = nome_simulazione,
+        DESCRIZIONE = descrizione_simulazione,
+        UTENTE_ID = utente_id,
+        STATO = request.POST['stato'],
+        TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+    )
+
+    if request.POST['stato'] == 'Bozza':
+        return redirect("bozze")
+    elif request.POST['stato'] == 'Schedulata':
+        return redirect("home")
+
+@login_required
+def rimuovi_simulazione(request, id_simulazione):
+	try:
+		simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
+		simulazione_da_rimuovere.delete()
+	except:
+		pass
+	return redirect('home')
+
 
 def login_page(request):
     return render(request, "login_page.html")

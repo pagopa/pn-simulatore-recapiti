@@ -18,10 +18,10 @@
     <tbody>
         {% for singola_bozza in lista_bozze %}
             <tr>
-                <td style="text-align:center;">{{singola_bozza.timestamp_scheduling}}</td>
-                <td style="text-align:center;">{{singola_bozza.descrizione}}</td>
-                <td style="text-align:center;">{{singola_bozza.utente}}</td>
-                <td style="text-align:center;">{{singola_bozza.descrizione}}</td>
+                <td style="text-align:center;">{{singola_bozza.TIMESTAMP_ESECUZIONE}}</td>
+                <td style="text-align:center;">{{singola_bozza.NOME}}</td>
+                <td style="text-align:center;">{{singola_bozza.UTENTE_ID.username}}</td>
+                <td style="text-align:center;">{{singola_bozza.DESCRIZIONE}}</td>
                 <td>
                     <!-- Modifica bozza --> 
                     <span>
@@ -30,7 +30,25 @@
 
                     <!-- Elimina bozza --> 
                     <span>
-                        <a type="button" title="Elimina bozza" class="btn btn-outline-danger" href="#"><i class="fa-solid fa-trash"></i></a></td>
+                        <a title="Elimina bozza" class="btn btn-outline-danger" href="#" data-bs-toggle="modal" data-bs-target="#exampleModal{{ forloop.counter }}"><i class="fa-solid fa-trash"></i></a></td>
+                        <!--MODAL PER IL BOTTONE DI RIMOZIONE DELLA BOZZA-->
+                        <div class="modal fade" id="exampleModal{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                    <h5 class="modal-title" id="exampleModalLabel"></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                    <p>Sei sicuro di voler rimuovere questa bozza?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_bozza' singola_bozza.ID %}">Rimuovi</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </span>
                 </td>
             </tr>
