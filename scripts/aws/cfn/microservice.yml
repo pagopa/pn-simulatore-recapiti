@@ -41,7 +41,7 @@ Parameters:
     Type: String
     Description: 'The name of the ECS cluster where the microservice is going to be deployed'
 
-  VPNServicesSubnets:
+  VPNServicesSubnetsIds:
     Type: String
     Description: 'subnets ids comma separated list. Where to deploy the microservice'
 
@@ -192,7 +192,7 @@ Resources:
 
         MicroServiceSecretPrefix: pn-Simulatore-Reacapiti-Secrets
         ECSClusterName: !Ref VPNECSClusterName
-        Subnets: !Ref VPNServicesSubnets
+        Subnets: !Ref VPNServicesSubnetsIds
         VpcId: !Ref VPNVpcId
         AlbSecurityGroup: !Ref VPNWebappSecurityGroupId
         EcsDefaultSecurityGroup: !Ref EcsSimulatorDefaultSecurityGroup
