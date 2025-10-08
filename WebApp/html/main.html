@@ -61,6 +61,10 @@
 	<!-- PLOTLY -->
 	<script src="{% static 'js/plotly-3.1.0.min.js' %}" charset="utf-8"></script>
 
+	<!-- FLATPICKR (datepicker) -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 
 </head>
 
@@ -89,9 +93,11 @@
 					<li class="nav-item zoom-in">
 						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'nuova_simulazione' %}><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</a>
 					</li>
-					<li class="nav-item zoom-in">
-						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href="#"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-					</li>
+					{% if user.is_authenticated %}
+						<li class="nav-item zoom-in">
+							<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'logout' %}><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+						</li>
+					{% endif %}
 				</ul>
 			</div>
 		</div>

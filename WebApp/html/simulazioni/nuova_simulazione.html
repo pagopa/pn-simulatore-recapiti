@@ -66,7 +66,7 @@
                     <label class="form-label">Seleziona data-ora</label>
                 </div>
                 <div class="col-auto">
-                    <input type="datetime-local" class="form-control" style="width:auto;" id="datetimeInput">
+                    <input type="datetime-local" class="form-control" style="width:auto;" id="timeSchedule">
                 </div>
             </div>
             <!-- bottoni salva-avanti -->
@@ -201,8 +201,8 @@
                                         <td>Lazio</td>
                                         <td>Frosinone</td>
                                         <td>30000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-07" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="6000" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
                                         <td></td>
@@ -211,8 +211,8 @@
                                         <td>Lazio</td>
                                         <td>Latina</td>
                                         <td>87000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-07" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
                                         <td></td>
@@ -221,8 +221,8 @@
                                         <td>Lazio</td>
                                         <td>Roma</td>
                                         <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-07" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="text" class="form-control text-center" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
                                         <td></td>
@@ -231,8 +231,8 @@
                                         <td>Lazio</td>
                                         <td>Roma</td>
                                         <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-12" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-18" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-12" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-01-18" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="10000" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
                                         <td></td>
@@ -241,8 +241,8 @@
                                         <td>Lazio</td>
                                         <td>Roma</td>
                                         <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-15" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" value="2026-01-20" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-19" onkeydown="return (event.keyCode!=13);"></td>
+                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-01-25" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="7500" onkeydown="return (event.keyCode!=13);"></td>
                                         <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
                                         <td></td>
@@ -382,16 +382,16 @@
     const radioSchedule = document.getElementById("inlineRadio1");
     const radioNow = document.getElementById("inlineRadio2");
     const datetimeField = document.getElementById("datetimeField");
-    const datetimeInput = document.getElementById("datetimeInput");
+    const timeSchedule = document.getElementById("timeSchedule");
 
     document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
         radio.addEventListener("change", () => {
             if (radioSchedule.checked) {
                 datetimeField.classList.remove("d-none"); // mostra
-                datetimeInput.setAttribute('required','required');
+                timeSchedule.setAttribute('required','required');
             } else {
                 datetimeField.classList.add("d-none"); // nasconde
-                datetimeInput.removeAttribute('required');
+                timeSchedule.removeAttribute('required');
             }
         });
     });
@@ -601,5 +601,53 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
+</script>
+
+<!-- flatpickr datetimepicker STEP 1 -->
+ <script>
+    flatpickr("#timeSchedule", {
+        // lunedì primo giorno della settimana
+        locale: {
+            firstDayOfWeek: 1
+        },
+        enableTime: true,
+        dateFormat: "d/m/Y H:i",
+        time_24hr: true,
+        minuteIncrement: 30,
+        minDate: new Date(),
+        allowInput:true
+    });
+</script>
+
+<!-- flatpickr per vincoli datepicker STEP 3 -->
+ <script>
+    flatpickr("#inizioPeriodoValidita", {
+        // lunedì primo giorno della settimana
+        locale: {
+            firstDayOfWeek: 1
+        },
+        dateFormat: "d/m/Y",
+        disable: [
+            function(date) {
+                // abilitiamo solo i lunedì (1)
+                return !(date.getDay() === 1);
+            }
+        ],
+    });
+</script>
+<script>
+    flatpickr("#finePeriodoValidita", {
+        // lunedì primo giorno della settimana
+        locale: {
+            firstDayOfWeek: 1
+        },
+        dateFormat: "d/m/Y",
+        disable: [
+            function(date) {
+                // abilitiamo solo le domeniche (0)
+                return !(date.getDay() === 0);
+            }
+        ],
+    });
 </script>
 {% endblock %}
