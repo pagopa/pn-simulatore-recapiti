@@ -45,6 +45,10 @@ Parameters:
     Type: String
     Description: 'subnets ids comma separated list. Where to deploy the microservice'
 
+  VPNDefaultSecurityGroupId:
+    Type: String
+    Description: 'Default security group ID for the VPC'
+
   VPNVpcId:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
@@ -217,6 +221,9 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: '-1'
+          SourceSecurityGroupId: !Ref VPNDefaultSecurityGroupId
       Tags:
         - Key: Name
           Value: pn-simulatore-recapiti-EcsSimulatorDefault-sg
