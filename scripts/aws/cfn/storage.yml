@@ -92,8 +92,8 @@ Resources:
 
   SimulatorLogGroup:
     Type: AWS::CloudFormation::Stack
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
