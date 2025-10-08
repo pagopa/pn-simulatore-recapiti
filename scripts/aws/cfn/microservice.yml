@@ -71,7 +71,7 @@ Parameters:
 
   SimulatorAlbPath:
     Type: String
-    Default: /beyondoc/api/v1/notify-input-pdf-uploaded*
+    Default: /
 
   # Autoscaling parameters
   AutoscalingCheckPeriod:
