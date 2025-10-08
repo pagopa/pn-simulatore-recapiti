@@ -9,14 +9,7 @@ class table_simulazione(models.Model):
     NOME = models.CharField(max_length=50, null=True)
     DESCRIZIONE = models.TextField(null=True)
     UTENTE_ID = models.ForeignKey(CustomUser, db_column='UTENTE_ID', on_delete=models.CASCADE, null=True)
-    CHOICES_STATO = [
-        ("Lavorata", "Lavorata"),
-        ("In lavorazione", "In lavorazione"),
-        ("Schedulata", "Schedulata"),
-        ("Non completata", "Non completata"),
-        ("Bozza", "Bozza")
-    ]
-    STATO = models.CharField(max_length=20, choices=CHOICES_STATO, null=True)
+    STATO = models.CharField(max_length=20, null=True)
     TIMESTAMP_ESECUZIONE = models.DateTimeField(null=True)
     class Meta:
         db_table = 'SIMULAZIONE'
