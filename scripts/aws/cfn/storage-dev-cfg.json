@@ -1,6 +1,6 @@
 {
   "Parameters": {
-    "RdsMinACU": "0.5",
+    "RdsMinACU": "0",
     "RdsMaxACU" : "8"
   }
 }
