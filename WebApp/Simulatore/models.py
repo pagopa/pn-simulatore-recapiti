@@ -1,6 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+# necessario per impostare sul db il tipo timestamp without time zone
+class NaiveDateTimeField(models.DateTimeField):
+    def db_type(self, connection):
+        return 'timestamp without time zone'
+
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
 
@@ -10,7 +15,7 @@ class table_simulazione(models.Model):
     DESCRIZIONE = models.TextField(null=True)
     UTENTE_ID = models.ForeignKey(CustomUser, db_column='UTENTE_ID', on_delete=models.CASCADE, null=True)
     STATO = models.CharField(max_length=20, null=True)
-    TIMESTAMP_ESECUZIONE = models.DateTimeField(null=True)
+    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'SIMULAZIONE'
         indexes = [
@@ -26,8 +31,8 @@ class table_capacita_modificate(models.Model):
     PROVINCIA = models.CharField(max_length=50, null=True)
     POSTALIZZAZIONI = models.IntegerField(null=True)
     CAPACITA = models.IntegerField(null=True)
-    ACTIVATION_DATE_FROM = models.DateField(null=True)
-    ACTIVATION_DATE_TO = models.DateField(null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_MODIFICATE'

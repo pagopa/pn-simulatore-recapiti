@@ -511,11 +511,10 @@ def salva_simulazione(request):
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
     if request.POST['inlineRadioOptions'] == 'now':
-        timestamp_esecuzione = datetime.now(pytz.utc)
+        timestamp_esecuzione = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     elif request.POST['inlineRadioOptions'] == 'schedule':
         timestamp_esecuzione = request.POST['schedule_datetime']
         timestamp_esecuzione = datetime.strptime(timestamp_esecuzione, "%d/%m/%Y %H:%M")
-        timestamp_esecuzione = timestamp_esecuzione.replace(tzinfo=timezone(timedelta(hours=2)))
 
     table_simulazione.objects.create(
         NOME = nome_simulazione,
