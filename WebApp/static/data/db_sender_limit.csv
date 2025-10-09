@@ -1,0 +1,11 @@
+pk,deliveryDate,weeklyEstimate,monthlyEstimate,originalEstimate,paId,productType,province
+ente1~RS~RM,2026-01-05,60,257,244,ente1,890,RM
+ente2~890~MI,2026-01-05,101,389,373,ente2,890,MI
+ente3~890~NA,2026-01-05,124,483,528,ente3,890,NA
+ente4~890~TO,2026-01-05,91,343,362,ente4,890,TO
+ente5~AR~FI,2026-01-05,106,460,427,ente5,AR,FI
+ente6~AR~BA,2026-01-05,76,288,297,ente6,AR,BA
+ente7~AR~PA,2026-01-05,109,398,481,ente7,AR,PA
+ente8~AR~VE,2026-01-05,103,461,460,ente8,AR,VE
+ente9~890~GE,2026-01-05,130,476,554,ente9,890,GE
+ente10~AR~CT,2026-01-05,115,500,510,ente10,AR,CT
