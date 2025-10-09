@@ -19,11 +19,11 @@
     <tbody>
         {% for simulazione in lista_simulazioni %}
             <tr>
-                <td style="text-align:center;">{{simulazione.timestamp_esecuzione}}</td>
-                <td style="text-align:center;">{% if simulazione.stato == 'Lavorata' %}🟢{% elif simulazione.stato == 'In lavorazione' %}🕛{% elif simulazione.stato == 'Schedulata' %}📅{% elif simulazione.stato == 'Non completata' %}🔴{% endif %}</td>
-                <td style="text-align:center;">{{simulazione.utente}}</td>
-                <td style="text-align:center;">{{simulazione.nome}}</td>
-                <td style="text-align:center;">{{simulazione.descrizione}}</td>
+                <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE}}</td>
+                <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}🟢{% elif simulazione.STATO == 'In lavorazione' %}🕛{% elif simulazione.STATO == 'Schedulata' %}📅{% elif simulazione.STATO == 'Non completata' %}🔴{% endif %}</td>
+                <td style="text-align:center;">{{simulazione.UTENTE_ID.username}}</td>
+                <td style="text-align:center;">{{simulazione.NOME}}</td>
+                <td style="text-align:center;">{{simulazione.DESCRIZIONE}}</td>
                 <td style="text-align:left;">
                     <!-- Visualizza dettagli -->
                     <span class="ms-4">
@@ -43,15 +43,15 @@
                                         <br>
                                         <div class="row justify-content-center">
                                             <div class="col offset-md-2">
-                                                <p><b>Nome simulazione</b>: {{simulazione.nome}}</p>
-                                                <p><b>Descrizione</b>: {{simulazione.descrizione}}</p>
-                                                <p><b>Utente</b>: {{simulazione.utente}}
+                                                <p><b>Nome simulazione</b>: {{simulazione.NOME}}</p>
+                                                <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE}}</p>
+                                                <p><b>Utente</b>: {{simulazione.UTENTE_ID.username}}
                                             </div>
                                             <div class="col">
-                                                <p><b>Timestamp esecuzione</b>: {{simulazione.timestamp_esecuzione}}</p>
-                                                <p><b>Stato</b>: {% if simulazione.stato == 'Lavorata' %}Lavorata 🟢{% elif simulazione.stato == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.stato == 'Schedulata' %}Schedulata 📅{% elif simulazione.stato == 'Non completata' %}Non completata 🔴{% endif %}</p>
-                                                {% if simulazione.stato == 'Lavorata'%}<p><b>Durata</b>: {{simulazione.durata}}</p>{% endif %}
-                                                {% if simulazione.stato == 'Non completata'%}<p><b>Errore</b>: {{simulazione.errore}}</p>{% endif %}
+                                                <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE}}</p>
+                                                <p><b>Stato</b>: {% if simulazione.STATO == 'Lavorata' %}Lavorata 🟢{% elif simulazione.STATO == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.STATO == 'Schedulata' %}Schedulata 📅{% elif simulazione.STATO == 'Non completata' %}Non completata 🔴{% endif %}</p>
+                                                {% if simulazione.STATO == 'Lavorata'%}<p><b>Durata</b>: {{simulazione.durata}}</p>{% endif %}
+                                                {% if simulazione.STATO == 'Non completata'%}<p><b>Errore</b>: {{simulazione.errore}}</p>{% endif %}
                                             </div>
                                         </div>
                                         <br>
@@ -72,25 +72,43 @@
                         <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href="#"><i class="fa-solid fa-file-circle-plus"></i></a>
                     </span>
 
-                    {% if simulazione.stato == 'Schedulata' %}
+                    {% if simulazione.STATO == 'Schedulata' %}
 
                         <!-- Modifica scheduling --> 
                         <span>
-                            <a type="button" title="Modifica scheduling" class="btn btn-outline-secondary" href="#"><i class="fa-solid fa-pen-to-square"></i></a>
+                            <a type="button" title="Modifica scheduling" class="btn btn-outline-secondary" href={% url 'nuova_simulazione' simulazione.ID %}><i class="fa-solid fa-pen-to-square"></i></a>
                         </span>
 
                         <!-- Elimina scheduling --> 
                         <span>
-                            <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#"><i class="fa-solid fa-trash"></i></a></td>
+                            <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#" data-bs-toggle="modal" data-bs-target="#exampleModal{{ forloop.counter }}"><i class="fa-solid fa-trash"></i></a></td>
                         </span>
+                        <!--MODAL PER IL BOTTONE DI RIMOZIONE DELLA SIMULAZIONE SCHEDULATA-->
+                        <div class="modal fade" id="exampleModal{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                    <h5 class="modal-title" id="exampleModalLabel"></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                    <p>Sei sicuro di voler rimuovere questa simulazione schedulata?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}">Rimuovi</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                    {% elif simulazione.stato == 'Non completata' or simulazione.stato == 'In lavorazione' %}
+                    {% elif simulazione.STATO == 'Non completata' or simulazione.STATO == 'In lavorazione' %}
 
 
 
-                    {% elif simulazione.stato == 'Lavorata' %}
+                    {% elif simulazione.STATO == 'Lavorata' %}
 
-                        {% if simulazione.nome != 'Automatizzata' %}
+                        {% if simulazione.NOME != 'Automatizzata' %}
                             <!-- Confronto con automatizzata --> 
                             <span>
                                 <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
@@ -214,7 +232,7 @@
                         text: '<b><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</b>',
                         className: 'btn-primary',
                         action: function () {
-                            window.location.href = "{% url 'nuova_simulazione' %}";
+                            window.location.href = "{% url 'nuova_simulazione' 'new' %}";
                         },
                         init: function(api, node, config) {
                             $(node).removeClass('btn-secondary')

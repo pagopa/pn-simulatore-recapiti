@@ -16,7 +16,8 @@
 
 
 <!-- Form -->
-<form id="multiStepForm">
+<form id="multiStepForm" action="{% url 'salva_simulazione' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
     <!-- STEP 1 - Parametri di scheduling -->
     <div class="step" id="step1">
         <h4 class="text-start">Parametri di scheduling</h4>
@@ -27,7 +28,7 @@
                     <label class="form-label">Nome simulazione</label>
                 </div>
                 <div class="col-auto w-50">
-                    <input type="text" class="form-control" required>
+                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione.NOME}}" required>
                 </div>
             </div>
             <br>
@@ -36,7 +37,7 @@
                     <label class="form-label">Descrizione</label>
                 </div>
                 <div class="col-auto w-50">
-                    <textarea class="form-control"></textarea>
+                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione"></textarea>
                 </div>
             </div>
             <br>
@@ -66,7 +67,7 @@
                     <label class="form-label">Seleziona data-ora</label>
                 </div>
                 <div class="col-auto">
-                    <input type="datetime-local" class="form-control" style="width:auto;" id="timeSchedule">
+                    <input type="datetime-local" class="form-control" autocomplete="off" style="width:auto;" id="timeSchedule" name="schedule_datetime">
                 </div>
             </div>
             <!-- bottoni salva-avanti -->
@@ -74,7 +75,32 @@
                 <div class="col d-grid gap-2 mx-auto">
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" id="salva_bozza" class="disabled" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary" class="disabled" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
+                    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel"></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                <p>Sei sicuro di voler salvare come bozza?</p>
+                                </div>
+                                <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+                                <input class="btn btn-primary" onclick="form_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
+                                </div>
+                                <script type="text/javascript">
+                                function form_submit_bozza() {
+                                    multiStepForm = document.getElementById("multiStepForm");
+                                    var $input = $('<input>').attr({type:'hidden',id:'input_id',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
+                                    multiStepForm.submit();
+                                }    
+                                </script>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
@@ -277,7 +303,32 @@
                     <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="submit" class="btn btn-primary">Avvia scheduling 📅</button>
+                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2">Avvia scheduling 📅</button>
+                    <!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
+                    <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel"></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                <p>Sei sicuro di voler avviare lo scheduling in questo slot ()?</p>
+                                </div>
+                                <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+                                <input class="btn btn-primary" onclick="form_submit_scheduling()" type="submit" name="avvia_scheduling" value="Avvia scheduling 📅" />
+                                </div>
+                                <script type="text/javascript">
+                                function form_submit_scheduling() {
+                                    multiStepForm = document.getElementById("multiStepForm");
+                                    var $input = $('<input>').attr({type:'hidden',id:'input_id',name:'stato',value:'Schedulata'}).appendTo('#multiStepForm');
+                                    multiStepForm.submit();
+                                }    
+                                </script>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

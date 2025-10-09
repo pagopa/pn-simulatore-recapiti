@@ -91,7 +91,7 @@
 						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'bozze' %}><i class="fa-solid fa-file-signature"></i> Bozze</a>
 					</li>
 					<li class="nav-item zoom-in">
-						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'nuova_simulazione' %}><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</a>
+						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'nuova_simulazione' 'new' %}><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</a>
 					</li>
 					{% if user.is_authenticated %}
 						<li class="nav-item zoom-in">

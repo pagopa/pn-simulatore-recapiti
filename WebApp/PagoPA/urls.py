@@ -8,12 +8,17 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', homepage, name='home'),
     path('calendario', calendario, name='calendario'),
-    path('bozze', bozze, name='bozze'),
 
     # SIMULAZIONI
-    path('nuova_simulazione', nuova_simulazione, name='nuova_simulazione'),
+    path('nuova_simulazione/<id_simulazione>', nuova_simulazione, name='nuova_simulazione'),
     path('risultati/<id_simulazione>', risultati, name='risultati'),
     path('confronto_risultati/<id_simulazione>', confronto_risultati, name='confronto_risultati'),
+    path('salva_simulazione', salva_simulazione, name='salva_simulazione'),
+    path('rimuovi_simulazione/<id_simulazione>', rimuovi_simulazione, name='rimuovi_simulazione'),
+
+    # BOZZE
+    path('bozze', bozze, name='bozze'),
+    path('rimuovi_bozza/<id_bozza>', rimuovi_bozza, name='rimuovi_bozza'),
 
     # LOGIN
     path('login_page', login_page, name='login_page'),
