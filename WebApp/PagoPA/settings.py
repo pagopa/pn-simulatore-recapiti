@@ -78,11 +78,11 @@ WSGI_APPLICATION = 'PagoPA.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'db_simulatore',
-        'USER': 'postgres',
-        'PASSWORD': 'a',
-        'HOST': 'localhost',
-        'PORT': '5432'
+        'NAME': os.getenv('DB_NAME', 'db_simulatore'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'a'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432')
     }
 }
 
