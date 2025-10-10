@@ -502,8 +502,6 @@ def nuova_simulazione(request, id_simulazione):
 
 @login_required(login_url='login')
 def salva_simulazione(request):
-    print(request.POST)
-
     utente_id = CustomUser.objects.get(username=request.user)
 
     nome_simulazione = request.POST['nome_simulazione']
