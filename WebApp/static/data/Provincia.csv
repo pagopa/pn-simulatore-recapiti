@@ -5,7 +5,7 @@ Provincia;CodSiglaProvincia;DescrProvincia;CodCittaMetropolitana;CodRegione;Desc
 004;CN;Cuneo;000;01;Piemonte;1;Nord - Ovest;IT;Italia;18/03/1861;31/12/9999
 005;AT;Asti;000;01;Piemonte;1;Nord - Ovest;IT;Italia;08/04/1935;31/12/9999
 006;AL;Alessandria;000;01;Piemonte;1;Nord - Ovest;IT;Italia;18/03/1861;31/12/9999
-007;AO;Aosta - Aoste;000;02;Valle D'Aosta;1;Nord - Ovest;IT;Italia;05/10/1945;31/12/9999
+007;AO;Valle d'Aosta;000;02;Valle D'Aosta;1;Nord - Ovest;IT;Italia;05/10/1945;31/12/9999
 008;IM;Imperia;000;07;Liguria;1;Nord - Ovest;IT;Italia;29/11/1923;31/12/9999
 009;SV;Savona;000;07;Liguria;1;Nord - Ovest;IT;Italia;12/01/1927;31/12/9999
 010;GE;Genova;210;07;Liguria;1;Nord - Ovest;IT;Italia;18/03/1861;31/12/9999
@@ -19,7 +19,7 @@ Provincia;CodSiglaProvincia;DescrProvincia;CodCittaMetropolitana;CodRegione;Desc
 018;PV;Pavia;000;03;Lombardia;1;Nord - Ovest;IT;Italia;18/03/1861;31/12/9999
 019;CR;Cremona;000;03;Lombardia;1;Nord - Ovest;IT;Italia;18/03/1861;31/12/9999
 020;MN;Mantova;000;03;Lombardia;1;Nord - Ovest;IT;Italia;19/11/1866;31/12/9999
-021;BZ;Bolzano - Bozen;000;04;Trentino Alto Adige;2;Nord - Est;IT;Italia;12/01/1927;31/12/9999
+021;BZ;Bolzano/Bozen;000;04;Trentino Alto Adige;2;Nord - Est;IT;Italia;12/01/1927;31/12/9999
 022;TN;Trento;000;04;Trentino Alto Adige;2;Nord - Est;IT;Italia;05/02/1923;31/12/9999
 023;VR;Verona;000;05;Veneto;2;Nord - Est;IT;Italia;19/11/1866;31/12/9999
 024;VI;Vicenza;000;05;Veneto;2;Nord - Est;IT;Italia;19/11/1866;31/12/9999
@@ -33,13 +33,13 @@ Provincia;CodSiglaProvincia;DescrProvincia;CodCittaMetropolitana;CodRegione;Desc
 032;TS;Trieste;000;06;Friuli Venezia Giulia;2;Nord - Est;IT;Italia;08/02/1923;31/12/9999
 033;PC;Piacenza;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
 034;PR;Parma;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
-035;RE;Reggio Nell'Emilia;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
+035;RE;Reggio nell'Emilia;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
 036;MO;Modena;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
 037;BO;Bologna;237;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
 038;FE;Ferrara;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
 039;RA;Ravenna;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;18/03/1861;31/12/9999
-040;FC;Forli'-Cesena;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;16/04/1992;31/12/9999
-041;PU;Pesaro E Urbino;000;11;Marche;3;Centro;IT;Italia;18/03/1861;31/12/9999
+040;FC;Forli-Cesena;000;08;Emilia Romagna;2;Nord - Est;IT;Italia;16/04/1992;31/12/9999
+041;PU;Pesaro e Urbino;000;11;Marche;3;Centro;IT;Italia;18/03/1861;31/12/9999
 042;AN;Ancona;000;11;Marche;3;Centro;IT;Italia;18/03/1861;31/12/9999
 043;MC;Macerata;000;11;Marche;3;Centro;IT;Italia;18/03/1861;31/12/9999
 044;AP;Ascoli Piceno;000;11;Marche;3;Centro;IT;Italia;18/03/1861;31/12/9999
@@ -106,7 +106,7 @@ Provincia;CodSiglaProvincia;DescrProvincia;CodCittaMetropolitana;CodRegione;Desc
 105;OG;Ogliastra;000;20;Sardegna;5;Isole;IT;Italia;01/01/2006;31/12/2016
 106;VS;Medio Campidano;000;20;Sardegna;5;Isole;IT;Italia;01/01/2006;31/12/2016
 107;CI;Carbonia Iglesias;000;20;Sardegna;5;Isole;IT;Italia;01/01/2006;31/12/2016
-108;MB;Monza E Della Brianza;000;03;Lombardia;1;Nord - Ovest;IT;Italia;30/06/2009;31/12/9999
+108;MB;Monza e della Brianza;000;03;Lombardia;1;Nord - Ovest;IT;Italia;30/06/2009;31/12/9999
 109;FM;Fermo;000;11;Marche;3;Centro;IT;Italia;12/07/2009;31/12/9999
 110;BT;Barletta-Andria-Trani;000;16;Puglia;4;Sud;IT;Italia;27/07/2009;31/12/9999
 111;SU;Sud Sardegna;000;20;Sardegna;5;Isole;IT;Italia;01/01/2017;31/12/9999

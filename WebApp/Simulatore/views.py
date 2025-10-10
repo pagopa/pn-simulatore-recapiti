@@ -493,13 +493,12 @@ def rimuovi_bozza(request, id_bozza):
 def nuova_simulazione(request, id_simulazione):
     if id_simulazione != 'new':
         simulazione = table_simulazione.objects.get(ID = id_simulazione)
-
         context = {
             'simulazione': simulazione
         }
-        return render(request, "simulazioni/nuova_simulazione.html", context)
     else:
-        return render(request, "simulazioni/nuova_simulazione.html") 
+        context = {}
+    return render(request, "simulazioni/nuova_simulazione.html", context)
 
 @login_required(login_url='login')
 def salva_simulazione(request):
