@@ -1,8 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
 from Simulatore.views import *
+from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
+
+# HEALTH CHECK RESPONSE
+def status_view(request):
+    return JsonResponse({"status": "ok"}, status=200)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,6 +29,9 @@ urlpatterns = [
     path('login_page', login_page, name='login_page'),
     path('login_users/', include('django.contrib.auth.urls')),
     path('login_users/', include('Simulatore.urls')),
+
+    # HEALTH CHECK ALB
+    path('status', status_view, name='status'),
 ]
 
 

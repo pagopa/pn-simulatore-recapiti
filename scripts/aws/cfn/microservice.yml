@@ -73,9 +73,9 @@ Parameters:
     Type: Number
     Description: RDS Cluster Port (from storage stack)
 
-  SimulatorAlbPath:
+  SimulatorHealthCheckPath:
     Type: String
-    Default: /
+    Default: /status
 
   # Autoscaling parameters
   AutoscalingCheckPeriod:
@@ -207,6 +207,7 @@ Resources:
         HealthCheckInterval: !Ref HealthCheckInterval
         HealthyThresholdCount: !Ref HealthyThresholdCount
         UnhealthyThresholdCount: !Ref UnhealthyThresholdCount
+        HealthCheckPath: !Ref SimulatorHealthCheckPath
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
         ContainerEnvEntry1: !Sub DB_NAME=${RdsSimulatorDbName}
