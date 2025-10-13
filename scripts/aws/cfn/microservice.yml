@@ -257,7 +257,7 @@ Resources:
           - Sid: AllowSecretManagerAccess
             Effect: Allow
             Action: secretsmanager:GetSecretValue
-            Resource: !Ref SvcSimulatorUserSecretArn
+            Resource: '*'
 
   # PortFatCloudWatchDashboard:   DA VERIFICARE A SEGUITO DEL DEPLOY
   #   Type: AWS::CloudFormation::Stack
