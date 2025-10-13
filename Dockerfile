@@ -14,7 +14,7 @@ RUN if [ "$DJANGO_ENV" = "prod" ]; then \
       python manage.py collectstatic --noinput ; \
     fi
 
-EXPOSE 8080
+EXPOSE 8081
 
 
 # specificare 'dev' o 'prod' per la variabile d'ambiente DJANGO_ENV al momento del run
