@@ -173,9 +173,9 @@ Parameters:
     Description: ARN of the placeholder secret for service user
     Type: String
 
-  # AllowedHosts:
-  #   Type: String
-  #   Description: 'Allowed hosts for the microservice separated by comma, example .vpn.dev.notifichedigitali.it'
+  AllowedHosts:
+    Type: String
+    Description: 'Allowed hosts for the microservice separated by comma, example .vpn.dev.notifichedigitali.it'
 
   CpuValue:
     Type: Number
@@ -213,7 +213,7 @@ Resources:
         ContainerEnvEntry2: !Sub DB_USER=${SvcSimulatorUsername}
         ContainerEnvEntry3: !Sub DB_HOST=${RdsSimulatorEndpointAddress}
         ContainerEnvEntry4: !Sub DB_PORT=${RdsSimulatorPort}
-        #ContainerEnvEntry5: !Sub ALLOWED_HOSTS=${AllowedHosts}
+        ContainerEnvEntry5: !Sub ALLOWED_HOSTS=${AllowedHosts}
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
