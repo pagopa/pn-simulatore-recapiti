@@ -206,15 +206,8 @@ Resources:
         ContainerEnvEntry4: !Sub DB_HOST=${RdsSimulatorEndpointAddress}
         ContainerEnvEntry5: !Sub DB_PORT=${RdsSimulatorPort}
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
-        #AutoscalingStrategy: SQS DA VERIFICARE
-        # AutoscalingThreshold: !Ref AutoscalingThreshold
-        # AutoscalingCheckPeriod: !Ref AutoscalingCheckPeriod
-        # AutoscalingDataPointN: !Ref AutoscalingDataPointN
-        # AutoscalingDataPointM: !Ref AutoscalingDataPointM
-
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
-
         MicroServiceSecretPrefix: pn-Simulatore-Reacapiti-Secrets
         ECSClusterName: !Ref VPNECSClusterName
         Subnets: !Ref VPNServicesSubnetsIds
@@ -225,7 +218,7 @@ Resources:
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         EcsLogGroup: !Ref EcsLogGroup
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
-        #TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
+        TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
 
 
   EcsSimulatorDefaultSecurityGroup:
