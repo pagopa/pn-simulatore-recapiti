@@ -73,6 +73,10 @@ Parameters:
     Type: Number
     Description: RDS Cluster Port (from storage stack)
 
+  SimulatorAlbPath:
+    Type: String
+    Default: /status
+
   SimulatorHealthCheckPath:
     Type: String
     Default: /status
