@@ -208,7 +208,6 @@ Resources:
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
-        MicroServiceSecretPrefix: pn-Simulatore-Reacapiti-Secrets
         ECSClusterName: !Ref VPNECSClusterName
         Subnets: !Ref VPNServicesSubnetsIds
         VpcId: !Ref VPNVpcId
