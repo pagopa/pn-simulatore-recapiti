@@ -3,6 +3,9 @@
 import os
 import sys
 
+import psycopg2
+import pandas as pd
+
 
 def main():
     """Run administrative tasks."""
@@ -19,4 +22,41 @@ def main():
 
 
 if __name__ == '__main__':
+
+    '''
+    
+    df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str)
+    df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str)
+
+    conn = psycopg2.connect(database = "db_simulatore",
+                            user = "postgres",
+                            password = "a",
+                            host = "127.0.0.1",
+                            port = "5432")
+
+    cur = conn.cursor()
+
+    # cur.execute('CREATE OR REPLACE VIEW OUTPUT_CAPACITY_SETTING AS SELECT ')
+
+    cur.execute('select count(*) from public."DECLARED_CAPACITY"')
+    count_declared_capacity = cur.fetchone()
+    if count_declared_capacity[0] == 0:
+        for i in range(0 ,len(df_declared_capacity)):
+            values_capacity = (df_declared_capacity['unifiedDeliveryDriverGeokey'][i], df_declared_capacity['deliveryDate'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['usedCapacity'][i], df_declared_capacity['capacity'][i])
+            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("UNIFIEDDELIVERYDRIVERGEOKEY","DELIVERYDATE","GEOKEY","UNIFIEDDELIVERYDRIVER","USEDCAPACITY","CAPACITY") VALUES (%s, %s, %s, %s, %s, %s)',
+                        values_capacity)
+    
+    cur.execute('select count(*) from public."SENDER_LIMIT"')
+    count_sender_limit = cur.fetchone()
+    if count_sender_limit[0] == 0:
+        for i in range(0 ,len(df_sender_limit)):
+            values_senderlimit = (df_sender_limit['pk'][i], df_sender_limit['deliveryDate'][i], df_sender_limit['weeklyEstimate'][i], df_sender_limit['monthlyEstimate'][i], df_sender_limit['originalEstimate'][i], df_sender_limit['paId'][i], df_sender_limit['productType'][i], df_sender_limit['province'][i])
+            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERYDATE","WEEKLYESTIMATE","MONTHLYESTIMATE","ORIGINALESTIMATE","PAID","PRODUCTTYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+                        values_senderlimit)
+
+    conn.commit()
+    conn.close()
+
+    '''
+
     main()

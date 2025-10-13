@@ -36,3 +36,37 @@ class table_capacita_modificate(models.Model):
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_MODIFICATE'
+
+
+class table_declared_capacity(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    UNIFIEDDELIVERYDRIVERGEOKEY = models.CharField(max_length=80, null=True)
+    DELIVERYDATE = NaiveDateTimeField(null=True)
+    GEOKEY = models.CharField(max_length=5, null=True)
+    UNIFIEDDELIVERYDRIVER = models.CharField(max_length=80, null=True)
+    USEDCAPACITY = models.IntegerField(null=True)
+    CAPACITY = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'DECLARED_CAPACITY'
+
+
+class table_sender_limit(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    PK = models.CharField(max_length=80, null=True)
+    DELIVERYDATE = models.DateField(null=True)
+    WEEKLYESTIMATE = models.IntegerField(null=True)
+    MONTHLYESTIMATE = models.IntegerField(null=True)
+    ORIGINALESTIMATE = models.IntegerField(null=True)
+    PAID = models.CharField(max_length=80, null=True)
+    PRODUCTTYPE = models.CharField(max_length=3, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    class Meta:
+        db_table = 'SENDER_LIMIT'
+
+
+'''
+class table_output_capacity_setting(models.Model):
+    class Meta:
+        managed = False
+        db_table = 'OUTPUT_CAPACITY_SETTING'
+'''

@@ -13,8 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 
-from datetime import datetime, timezone, timedelta
-import pytz
+from datetime import datetime
 
 from .models import *
 
@@ -494,18 +493,15 @@ def rimuovi_bozza(request, id_bozza):
 def nuova_simulazione(request, id_simulazione):
     if id_simulazione != 'new':
         simulazione = table_simulazione.objects.get(ID = id_simulazione)
-
         context = {
             'simulazione': simulazione
         }
-        return render(request, "simulazioni/nuova_simulazione.html", context)
     else:
-        return render(request, "simulazioni/nuova_simulazione.html") 
+        context = {}
+    return render(request, "simulazioni/nuova_simulazione.html", context)
 
 @login_required(login_url='login')
 def salva_simulazione(request):
-    print(request.POST)
-
     utente_id = CustomUser.objects.get(username=request.user)
 
     nome_simulazione = request.POST['nome_simulazione']
