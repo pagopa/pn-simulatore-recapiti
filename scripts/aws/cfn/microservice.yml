@@ -219,7 +219,7 @@ Resources:
         EcsLogGroup: !Ref EcsLogGroup
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
-
+        MicroServiceSecretPrefix: pn-simulatore-recapiti-db-svc-user-credentials
 
   EcsSimulatorDefaultSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -250,7 +250,6 @@ Resources:
 
   SimulatorMicroserviceTaskManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
-    ManagedPolicyName: !Sub pn-simulatore-recapitiTaskPolicy
     Properties:
       PolicyDocument:
         Version: 2012-10-17
