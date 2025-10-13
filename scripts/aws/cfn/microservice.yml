@@ -250,6 +250,7 @@ Resources:
 
   SimulatorMicroserviceTaskManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
+    ManagedPolicyName: !Sub pn-simulatore-recapitiTaskPolicy
     Properties:
       PolicyDocument:
         Version: 2012-10-17
@@ -257,7 +258,7 @@ Resources:
           - Sid: AllowSecretManagerAccess
             Effect: Allow
             Action: secretsmanager:GetSecretValue
-            Resource: '*'
+            Resource: !Ref SvcSimulatorUserSecretArn
 
   # PortFatCloudWatchDashboard:   DA VERIFICARE A SEGUITO DEL DEPLOY
   #   Type: AWS::CloudFormation::Stack
