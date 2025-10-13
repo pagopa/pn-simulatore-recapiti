@@ -255,22 +255,16 @@ Resources:
       IpProtocol: '-1'
       SourceSecurityGroupId: !Ref EcsSimulatorDefaultSecurityGroup
 
-  # SimulatorMicroserviceTaskManagedPolicy:
-  #   Type: AWS::IAM::ManagedPolicy
-  #   Properties:
-  #     PolicyDocument:
-  #       Version: 2012-10-17
-  #       Statement:
-  #         - Effect: Allow
-  #           Action:
-  #             - dynamodb:GetItem   DA MODIFICARE E METTERCI AURORA
-  #             - dynamodb:PutItem
-  #             - dynamodb:UpdateItem
-  #             - dynamodb:DeleteItem
-  #             - dynamodb:Query
-  #           Resource:
-  #             - !Ref PortFatDownloadTableArn
-
+  SimulatorMicroserviceTaskManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowSecretManagerAccess
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref SvcUserSecretArn
 
   # PortFatCloudWatchDashboard:   DA VERIFICARE A SEGUITO DEL DEPLOY
   #   Type: AWS::CloudFormation::Stack
