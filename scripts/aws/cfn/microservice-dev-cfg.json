@@ -4,6 +4,7 @@
     "MicroServiceUniqueName": "simulatore-recapiti",
     "AutoscalingThreshold": "1000",
     "MinTasksNumber": "1",
-    "MaxTasksNumber": "1"
+    "MaxTasksNumber": "1",
+    "AllowedHosts": ".vpn.dev.notifichedigitali.it"
   }
 }
