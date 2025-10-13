@@ -152,6 +152,23 @@ Parameters:
   # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
   # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
   # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
+
+  SvcSimulatorUsername:
+    Description: service user Username
+    Type: String
+
+  RdsSimulatorEndpointAddress:
+    Description: RDS Cluster Writer Endpoint Address
+    Type: String
+
+  RdsSimulatorDbName:
+    Description: RDS Database Name
+    Type: String
+
+  SvcSimulatorUserSecretArn:
+    Description: ARN of the placeholder secret for service user
+    Type: String
+
   CpuValue:
     Type: Number
     Default: 1024
@@ -182,9 +199,13 @@ Resources:
         HealthCheckInterval: !Ref HealthCheckInterval
         HealthyThresholdCount: !Ref HealthyThresholdCount
         UnhealthyThresholdCount: !Ref UnhealthyThresholdCount
-
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
+        ContainerEnvEntry1: !Sub DB_NAME=${RdsSimulatorDbName}
+        ContainerEnvEntry2: !Sub DB_USER=${SvcSimulatorUsername}
+        ContainerEnvEntry4: !Sub DB_HOST=${RdsSimulatorEndpointAddress}
+        ContainerEnvEntry5: !Sub DB_PORT=${RdsSimulatorPort}
+        ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
         #AutoscalingStrategy: SQS DA VERIFICARE
         # AutoscalingThreshold: !Ref AutoscalingThreshold
         # AutoscalingCheckPeriod: !Ref AutoscalingCheckPeriod
@@ -205,7 +226,7 @@ Resources:
         EcsLogGroup: !Ref EcsLogGroup
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         #TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
-        ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
+
 
   EcsSimulatorDefaultSecurityGroup:
     Type: AWS::EC2::SecurityGroup
