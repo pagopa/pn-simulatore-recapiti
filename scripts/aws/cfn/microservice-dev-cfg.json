@@ -5,6 +5,6 @@
     "AutoscalingThreshold": "1000",
     "MinTasksNumber": "1",
     "MaxTasksNumber": "1",
-    "AllowedHosts": "simulator.vpn.dev.notifichedigitali.it"
+    "AllowedHosts": "simulator.vpn.dev.notifichedigitali.it,.eu-south-1.compute.internal"
   }
 }
