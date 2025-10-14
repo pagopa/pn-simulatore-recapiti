@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 import json
 import plotly.utils as putils
 import plotly.express as px
-import requests
 import pandas as pd
 import numpy as np
 import os
@@ -16,6 +15,14 @@ from django.contrib import messages
 from datetime import datetime
 
 from .models import *
+
+from django.db.models.functions import TruncMonth
+
+import locale
+
+from django.http import JsonResponse
+
+locale.setlocale(locale.LC_ALL, 'it_IT')
 
 
 @login_required(login_url='login')
@@ -497,7 +504,12 @@ def nuova_simulazione(request, id_simulazione):
             'simulazione': simulazione
         }
     else:
-        context = {}
+        # Mese da simulare
+        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('DELIVERYDATE')).values_list('mese', flat=True).distinct().order_by('mese')
+        lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
+        context = {
+             'lista_mesi_univoci': lista_mesi_univoci
+        }
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 @login_required(login_url='login')
@@ -539,6 +551,40 @@ def login_page(request):
     return render(request, "login_page.html")
 
 
+# AJAX
+def ajax_get_capacita_from_mese(request):
+    mese_da_simulare = request.GET['mese_da_simulare_selezionato']
+    if request.accepts:
+        # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
+        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(DELIVERYDATE__year=mese_da_simulare.split('-')[0], DELIVERYDATE__month=mese_da_simulare.split('-')[1]).values())
+        lista_capacita_finali = {}
+        for item in lista_capacita_grezze:
+            recapitista = item['UNIFIEDDELIVERYDRIVER']
+            regione = item['REGIONE']
+            provincia = item['PROVINCE']
+            post_weekly_estimate = item['SUM_WEEKLYESTIMATE']
+            post_monthly_estimate = item['SUM_MONTHLYESTIMATE']
+            post_original_estimate = item['SUM_ORIGINALESTIMATE']
+            capacity = item['CAPACITY']
+            delivery_date = item['DELIVERYDATE']
+            
+            if recapitista not in lista_capacita_finali:
+                lista_capacita_finali[recapitista] = []
+            
+            lista_capacita_finali[recapitista].append({
+                'regione': regione,
+                'provincia': provincia,
+                'post_weekly_estimate': post_weekly_estimate,
+                'post_monthly_estimate': post_monthly_estimate,
+                'post_original_estimate': post_original_estimate,
+                'capacity': capacity,
+                'delivery_date': delivery_date,
+            })        
+    return JsonResponse({'context': lista_capacita_finali})
+
+
+
+# AUTENTICAZIONE
 def login_user(request):
 	if request.method == "POST":
 		username = request.POST['username']
@@ -552,7 +598,6 @@ def login_user(request):
 			return redirect('login_page')
 	else:
 		return render(request, 'login_page.html', {})
-
 def logout_user(request):
 	logout(request)
 	messages.success(request, ("You Were Logged Out!"))

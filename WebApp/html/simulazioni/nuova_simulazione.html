@@ -169,21 +169,12 @@
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
-                    <label for="tipo_capacita_da_modificare"><b>Mese da simulare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare">
+                    <label for="mese_da_simulare"><b>Mese da simulare</b></label>
+                    <select class="form-select" aria-label="Default select example" id="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
-                        <option value="Gennaio">Gennaio</option>
-                        <option value="Febbraio">Febbraio</option>
-                        <option value="Marzo">Marzo</option>
-                        <option value="Aprile">Aprile</option>
-                        <option value="Maggio">Maggio</option>
-                        <option value="Giugno">Giugno</option>
-                        <option value="Luglio">Luglio</option>
-                        <option value="Agosto">Agosto</option>
-                        <option value="Settembre">Settembre</option>
-                        <option value="Ottobre">Ottobre</option>
-                        <option value="Novembre">Novembre</option>
-                        <option value="Dicembre">Dicembre</option>
+                        {% for singolo_mese in lista_mesi_univoci %}
+                            <option value="{{singolo_mese.0}}">{{singolo_mese.1}}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="col-2 mx-auto">
@@ -200,99 +191,11 @@
 
             <br>
 
-            <div class="accordion" id="accordionExample">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                        <b>RECAPITISTA: POSTE ITALIANE</b>
-                    </button>
-                    </h2>
-                    <div id="collapseOne" class="accordion-collapse collapse">
-                        <div class="accordion-body table-responsive">
-                            <table class="table table-hover" id="recapitista_poste_italiane">
-                                <thead class="text-center">
-                                    <tr>
-                                    <th scope="col">Regione</th>
-                                    <th scope="col">Provincia</th>
-                                    <th scope="col">Numero di post. mensili</th>
-                                    <th scope="col">Inizio periodo di validità</th>
-                                    <th scope="col">Fine periodo di validità</th>
-                                    <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
-                                    <th scope="col"></th> <!-- colonna per il bottone "+" che aggiunge una riga -->
-                                    <th scope="col"></th> <!-- colonna per alert -->
-                                    </tr>
-                                </thead>
-                                <tbody class="table-group-divider text-center">
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Frosinone</td>
-                                        <td>30000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="6000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Latina</td>
-                                        <td>87000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-12" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-01-18" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="10000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-19" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-01-25" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="7500" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-                        <span><b>RECAPITISTA: RTI FULMINE</b></span>
-                    </button>
-                    </h2>
-                    <div id="collapseTwo" class="accordion-collapse collapse">
-                    <div class="accordion-body">
-                        
-                    </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Capacità recuperate da db -->
+            <div class="text-center" id="spinner"></div>
+            <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_get_capacita_from_mese' %}></span>
 
-            <br><br>
+            <br><br><br><br>
 
             <!-- bottoni indietro-salva-avvia -->
             <div class="row text-center">
@@ -700,5 +603,88 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         ],
     });
+</script>
+
+
+
+<!-- jQuery/Ajax per accordion Capacità -->
+<script>
+    var select_mese_da_simulare = document.querySelector('#mese_da_simulare');
+    select_mese_da_simulare.addEventListener('change',function(){
+        var mese_da_simulare_selezionato = select_mese_da_simulare.value;
+        var content = document.getElementById('capacita_recuperate_da_db');
+        // puliamo lo spazio dove andremo ad iniettare il codice html
+        content.innerHTML='';
+        var spinner = document.getElementById('spinner');
+        spinner.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+        var content_capacita = '';
+        $.ajax({
+            url: $('.capacita_recuperate_da_db').data('url'),
+            type: 'GET',
+            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato},
+            success: function(resp){
+                var counter = 0;
+                for (var recapitista in resp.context){
+                    console.log(typeof resp.context[recapitista])
+                    content_capacita += `
+                        <div class="accordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ forloop.counter }}stato_barcodescanner'+counter1+'">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#${counter}" aria-expanded="true" aria-controls="${counter}">
+                                        <b>RECAPITISTA: ${recapitista}</b>
+                                    </button>
+                                </h2>
+                                <div id="${counter}" class="accordion-collapse collapse">
+                                    <div class="accordion-body table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="text-center">
+                                                <tr>
+                                                <th scope="col">Regione</th>
+                                                <th scope="col">Provincia</th>
+                                                <th scope="col">Numero di post. mensili</th>
+                                                <th scope="col">Inizio periodo di validità</th>
+                                                <th scope="col">Fine periodo di validità</th>
+                                                <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
+                                                <th scope="col"></th> <!-- colonna per il bottone "+" che aggiunge una riga -->
+                                                <th scope="col"></th> <!-- colonna per alert -->
+                                                </tr>
+                                            </thead>
+                                            <tbody class="table-group-divider text-center">
+                            `;
+                    resp.context[recapitista].forEach(function(singola_capacity) {
+                        content_capacita += `
+                            <tr>
+                                <td>${singola_capacity.regione}</td>
+                                <td>${singola_capacity.provincia}</td>
+                                <td>${singola_capacity.post_original_estimate}(sett: ${singola_capacity.post_weekly_estimate})</td>
+                                <td><input type="date" class="form-control text-center" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input type="date" class="form-control text-center" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                <td></td>
+                            </tr>
+                        `;
+                    });
+                    
+                    content_capacita += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                    
+                    `;
+                    counter++;  
+                }
+                content.innerHTML = content_capacita;
+            },
+            error: function(resp){
+                spinner.innerHTML='';
+            },
+            complete: function(resp){
+                spinner.innerHTML='';
+            }
+        });
+	});
 </script>
 {% endblock %}

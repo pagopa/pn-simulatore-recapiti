@@ -111,18 +111,18 @@
                         {% if simulazione.NOME != 'Automatizzata' %}
                             <!-- Confronto con automatizzata --> 
                             <span>
-                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
                             </span>
 
                             <!-- Confronto con altra simulazione --> 
                             <span>
-                                <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="{% url 'confronto_risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
+                                <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="{% url 'confronto_risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
                             </span>
                         {% endif %}
 
                         <!-- Visualizza risultati --> 
                         <span>
-                            <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="{% url 'risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i></a>
+                            <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="{% url 'risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i></a>
                         </span>
 
                     {% endif %}

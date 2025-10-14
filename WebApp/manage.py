@@ -22,11 +22,10 @@ def main():
 
 
 if __name__ == '__main__':
-
-    '''
     
     df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str)
-    df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str)
+    df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('./static/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
 
     conn = psycopg2.connect(database = "db_simulatore",
                             user = "postgres",
@@ -36,7 +35,7 @@ if __name__ == '__main__':
 
     cur = conn.cursor()
 
-    # cur.execute('CREATE OR REPLACE VIEW OUTPUT_CAPACITY_SETTING AS SELECT ')
+
 
     cur.execute('select count(*) from public."DECLARED_CAPACITY"')
     count_declared_capacity = cur.fetchone()
@@ -54,9 +53,16 @@ if __name__ == '__main__':
             cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERYDATE","WEEKLYESTIMATE","MONTHLYESTIMATE","ORIGINALESTIMATE","PAID","PRODUCTTYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
                         values_senderlimit)
 
+    cur.execute('select count(*) from public."CAP_PROV_REG"')
+    count_cap_prov_reg = cur.fetchone()
+    if count_cap_prov_reg[0] == 0:
+        for i in range(0 ,len(df_cap_prov_reg)):
+            values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['DescrMacroregione'][i])
+            cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","CODSIGLAPROVINCIA","DESCRMACROREGIONE") VALUES (%s, %s, %s, %s, %s)',
+                        values_capprovreg)
+
     conn.commit()
     conn.close()
 
-    '''
 
     main()
