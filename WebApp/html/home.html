@@ -19,7 +19,7 @@
     <tbody>
         {% for simulazione in lista_simulazioni %}
             <tr>
-                <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE}}</td>
+                <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i:s"}}</td>
                 <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}🟢{% elif simulazione.STATO == 'In lavorazione' %}🕛{% elif simulazione.STATO == 'Schedulata' %}📅{% elif simulazione.STATO == 'Non completata' %}🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.UTENTE_ID.username}}</td>
                 <td style="text-align:center;">{{simulazione.NOME}}</td>
@@ -187,11 +187,12 @@
                 render: function (data, type, row) {
                     if (type === 'filter' || type === 'sort') {
                         // formato solo per filtro e ordinamento
-                        return moment(data).format('YYYY-MM-DD');
+                        var date = moment(data, 'DD/MM/YYYY HH:mm:SS', 'it');
+                        return date.format('YYYY-MM-DD');
                     }
                     else{
                         // formato per display, export, excel, csv, pdf, print
-                        return data; 
+                        return data;
                     }
                 },
                 type:'date'
