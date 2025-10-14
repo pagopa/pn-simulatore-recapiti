@@ -75,7 +75,7 @@ Parameters:
 
   SimulatorAlbPath:
     Type: String
-    Default: /status
+    Default: /
 
   SimulatorHealthCheckPath:
     Type: String

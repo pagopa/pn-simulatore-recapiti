@@ -56,10 +56,8 @@ Parameters:
     NoEcho: true
   RdsSimulatorEngineVersion:
     Type: String
-    Default: '17.5'
   RdsSimulatorDbClusterFamily:
     Type: String
-    Default: aurora-postgresql17
   RdsSimulatorMinACU:
     Type: Number
     Default: 0.5

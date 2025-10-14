@@ -1,6 +1,8 @@
 {
   "Parameters": {
     "RdsMinACU": "0",
-    "RdsMaxACU" : "8"
+    "RdsMaxACU" : "8",
+    "RdsSimulatorEngineVersion": "17.5",
+    "RdsSimulatorDbClusterFamily": "aurora-postgresql17"
   }
 }
