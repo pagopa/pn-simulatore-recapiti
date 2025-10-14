@@ -498,17 +498,19 @@ def rimuovi_bozza(request, id_bozza):
 
 @login_required(login_url='login')
 def nuova_simulazione(request, id_simulazione):
-    if id_simulazione != 'new':
-        simulazione = table_simulazione.objects.get(ID = id_simulazione)
-        context = {
-            'simulazione': simulazione
-        }
-    else:
+    # NUOVA SIMULAZIONE
+    if id_simulazione == 'new':
         # Mese da simulare
         lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('DELIVERYDATE')).values_list('mese', flat=True).distinct().order_by('mese')
         lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
         context = {
              'lista_mesi_univoci': lista_mesi_univoci
+        }
+    # MODIFICA SIMULAZIONE
+    else:
+        simulazione = table_simulazione.objects.get(ID = id_simulazione)
+        context = {
+            'simulazione': simulazione
         }
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
@@ -518,19 +520,38 @@ def salva_simulazione(request):
 
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
-    if request.POST['inlineRadioOptions'] == 'now':
-        timestamp_esecuzione = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elif request.POST['inlineRadioOptions'] == 'schedule':
-        timestamp_esecuzione = request.POST['schedule_datetime']
-        timestamp_esecuzione = datetime.strptime(timestamp_esecuzione, "%d/%m/%Y %H:%M")
-
-    table_simulazione.objects.create(
-        NOME = nome_simulazione,
-        DESCRIZIONE = descrizione_simulazione,
-        UTENTE_ID = utente_id,
-        STATO = request.POST['stato'],
-        TIMESTAMP_ESECUZIONE = timestamp_esecuzione
-    )
+    if 'inlineRadioOptions' in request.POST:
+        if request.POST['inlineRadioOptions'] == 'now':
+            timestamp_esecuzione = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            tipo_trigger = 'Now'
+        elif request.POST['inlineRadioOptions'] == 'schedule':
+            timestamp_esecuzione = request.POST['schedule_datetime']
+            timestamp_esecuzione = datetime.strptime(timestamp_esecuzione, "%d/%m/%Y %H:%M")
+            tipo_trigger = 'Schedule'
+    else:
+        timestamp_esecuzione = None
+        tipo_trigger = None
+    
+    # NUOVA SIMULAZIONE
+    if request.POST['id_simulazione'] == '':
+        table_simulazione.objects.create(
+            NOME = nome_simulazione,
+            DESCRIZIONE = descrizione_simulazione,
+            UTENTE_ID = utente_id,
+            STATO = request.POST['stato'],
+            TRIGGER = tipo_trigger,
+            TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+        )
+    # MODIFICA SIMULAZIONE
+    else:
+        simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
+        simulazione_da_modificare.NOME = nome_simulazione
+        simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
+        simulazione_da_modificare.UTENTE_ID = utente_id
+        simulazione_da_modificare.STATO = request.POST['stato']
+        simulazione_da_modificare.TRIGGER = tipo_trigger
+        simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+        simulazione_da_modificare.save()
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")

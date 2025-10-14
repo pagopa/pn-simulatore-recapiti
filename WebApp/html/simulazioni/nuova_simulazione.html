@@ -37,7 +37,7 @@
                     <label class="form-label">Descrizione</label>
                 </div>
                 <div class="col-auto w-50">
-                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione"></textarea>
+                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione.DESCRIZIONE|default_if_none:''}}</textarea>
                 </div>
             </div>
             <br>
@@ -76,31 +76,6 @@
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" class="disabled" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
-                    <!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
-                    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                <h5 class="modal-title" id="exampleModalLabel"></h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                <p>Sei sicuro di voler salvare come bozza?</p>
-                                </div>
-                                <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                <input class="btn btn-primary" onclick="form_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
-                                </div>
-                                <script type="text/javascript">
-                                function form_submit_bozza() {
-                                    multiStepForm = document.getElementById("multiStepForm");
-                                    var $input = $('<input>').attr({type:'hidden',id:'input_id',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
-                                    multiStepForm.submit();
-                                }    
-                                </script>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
@@ -140,7 +115,7 @@
                     <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
@@ -203,7 +178,7 @@
                     <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2">Avvia scheduling 📅</button>
@@ -225,7 +200,8 @@
                                 <script type="text/javascript">
                                 function form_submit_scheduling() {
                                     multiStepForm = document.getElementById("multiStepForm");
-                                    var $input = $('<input>').attr({type:'hidden',id:'input_id',name:'stato',value:'Schedulata'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
                                     multiStepForm.submit();
                                 }    
                                 </script>
@@ -238,7 +214,32 @@
     </div>
 </form>
 
-
+<!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <p>Sei sicuro di voler salvare come bozza?</p>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+            <input class="btn btn-primary" onclick="form_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
+            </div>
+            <script type="text/javascript">
+            function form_submit_bozza() {
+                multiStepForm = document.getElementById("multiStepForm");
+                var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
+                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
+                multiStepForm.submit();
+            }    
+            </script>
+        </div>
+    </div>
+</div>
 {% endblock content %}
 
 

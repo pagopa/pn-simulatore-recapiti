@@ -15,7 +15,8 @@ class table_simulazione(models.Model):
     NOME = models.CharField(max_length=50, null=True)
     DESCRIZIONE = models.TextField(null=True)
     UTENTE_ID = models.ForeignKey(CustomUser, db_column='UTENTE_ID', on_delete=models.CASCADE, null=True)
-    STATO = models.CharField(max_length=20, null=True)
+    STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata]
+    TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
     TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'SIMULAZIONE'
