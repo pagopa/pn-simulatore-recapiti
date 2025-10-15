@@ -48,14 +48,14 @@
                 <div class="col-auto">
                     <!-- Radio Schedule -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required>
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione.TRIGGER == 'Schedule' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio1">Schedule</label>
                     </div>
                 </div>
                 <div class="col-auto">
                     <!-- Radio Now -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione.TRIGGER == 'Now' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio2">Now</label>
                     </div>
                 </div>
@@ -339,6 +339,16 @@
     const datetimeField = document.getElementById("datetimeField");
     const timeSchedule = document.getElementById("timeSchedule");
 
+    document.addEventListener("DOMContentLoaded", function () {
+        if (radioSchedule.checked) {
+            datetimeField.classList.remove("d-none"); // mostra
+            timeSchedule.setAttribute('required','required');
+        } else {
+            datetimeField.classList.add("d-none"); // nasconde
+            timeSchedule.removeAttribute('required');
+        }
+    });
+
     document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
         radio.addEventListener("change", () => {
             if (radioSchedule.checked) {
@@ -570,7 +580,8 @@ document.addEventListener("DOMContentLoaded", function () {
         time_24hr: true,
         minuteIncrement: 30,
         minDate: new Date(),
-        allowInput:true
+        allowInput:true,
+        defaultDate: '{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
 
