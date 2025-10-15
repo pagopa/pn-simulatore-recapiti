@@ -181,8 +181,8 @@
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2">Avvia scheduling 📅</button>
-                    <!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
+                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()">Avvia scheduling 📅</button>
+                    <!--MODAL PER IL BOTTONE AVVIA SCHEDULING-->
                     <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div class="modal-content">
@@ -191,7 +191,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                <p>Sei sicuro di voler avviare lo scheduling in questo slot ()?</p>
+                                <p id="avviso_modal_avvia_scheduling"></p>
                                 </div>
                                 <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
@@ -687,5 +687,20 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 	});
+</script>
+
+<!-- Caricamento testo per modal che appare al click sul bottone "Avvia scheduling" -->
+<script>
+    function load_text_avviso_modal_avvia_scheduling() {
+        tipo_scheduling = document.getElementById('avviso_modal_avvia_scheduling');
+        const radioSchedule = document.getElementById("inlineRadio1");
+        const timeSchedule = document.getElementById("timeSchedule");
+        if (radioSchedule.checked) {
+            tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Schedule" ('+timeSchedule.value+')?';
+        }
+        else{
+            tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Now"?';
+        }
+    }
 </script>
 {% endblock %}
