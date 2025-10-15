@@ -324,7 +324,7 @@
         button_salva_bozza.disabled = !checkRequiredFields();
     }
 
-    // event listener per 
+    // event listener
     document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
 
     // Controllo iniziale
@@ -395,7 +395,7 @@
     }
 </script>
 
-<!-- unione righe sulla prima colonna -->
+<!-- unione righe sulle prime 3 colonne + gestione bottoni '+' e '-' -->
 <script>
     // raggruppiamo le righe consecutive con stessi valori
     function mergeConsecutiveRowsBootstrap() {
@@ -479,93 +479,65 @@
         });
     }
 
-document.addEventListener("DOMContentLoaded", function () {
-    // validazione iniziale
-    validateRows();
-    mergeConsecutiveRowsBootstrap();
+function gestione_tabelle_step3(){
+    // Delegazione eventi a livello di documento
+    document.addEventListener('click', function(e) {
+        // Gestione aggiunta riga
+        if (e.target.classList.contains('add-row')) {
+            addNewRow(e.target);
+        }
+        // Gestione rimozione riga
+        if (e.target.classList.contains('remove-row')) {
+            removeRow(e.target);
+        }
+    });
 
-    // identifica la riga padre
-    function identifyParentRows() {
-        const rows = document.querySelectorAll('tbody tr');
-        const groups = {};
+    function addNewRow(button) {
+        const currentRow = button.closest('tr');
+        const tableBody = currentRow.closest('tbody');
+        const newRow = currentRow.cloneNode(true);
+        
+        // Inserisci la nuova riga
+        tableBody.insertBefore(newRow, currentRow.nextSibling);
+
+        // re-inizializziamo i datetimepicler dpatpickr per la nuova riga
+        inizializzazione_datepicker_flatpickr();
+        
+        // Aggiorna numeri o ID sequenziali (se necessario)
+        updateRowNumbers(tableBody);
+    }
+
+    function removeRow(button) {
+        const row = button.closest('tr');
+        const tableBody = row.closest('tbody');
+        const allRows = tableBody.querySelectorAll('tr');
+        row.remove();
+        updateRowNumbers(tableBody);
+
+    }
+
+    function updateRowNumbers(tableBody) {
+        // Esempio: aggiorna numeri sequenziali nelle prime colonne
+        const rows = tableBody.querySelectorAll('tr');
         rows.forEach((row, index) => {
-            const cells = row.cells;
-            const key = `${cells[0].textContent.trim()}|${cells[1].textContent.trim()}|${cells[2].textContent.trim()}`;
-            if (!groups[key]) {
-                // riga padre
-                groups[key] = true;
-                row.setAttribute('data-parent', 'true');
-            } else {
-                // riga figlia
-                row.removeAttribute('data-parent');
+            const firstCell = row.cells[0];
+            // Se la prima cella contiene solo un numero, aggiornalo
+            if (/^\d+$/.test(firstCell.textContent)) {
+                firstCell.textContent = index + 1;
             }
-        });
-        
-        updateRowButtons();
-    }
-
-    // Funzione per aggiornare i bottoni
-    function updateRowButtons() {
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const buttonCell = row.cells[6];
-            const isParent = row.getAttribute('data-parent') === 'true';
-            if (isParent) {
-                // righe padre
-                buttonCell.innerHTML = '<button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>';
-            } else {
-                // righe figlie
-                buttonCell.innerHTML = `
-                    <button class="btn btn-sm btn-outline-success add-row me-1" title="Aggiungi nuova capacità">+</button>
-                    <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
-                `;
-            }
+            
+            // Aggiorna gli attributi name degli input per array forms
+            const inputs = row.querySelectorAll('input[name], select[name]');
+            inputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && name.includes('[]')) {
+                    const newName = name.replace(/\[\d+\]/, `[${index}]`);
+                    input.setAttribute('name', newName);
+                }
+            });
         });
     }
-    
-    // event delegation per il bottone "+"
-    document.querySelector("tbody").addEventListener("click", function (e) {
-        if (e.target && e.target.classList.contains("add-row")) {
-            let currentRow = e.target.closest("tr");
-            let clone = currentRow.cloneNode(true);
-            // pulizia alert sulla nuova riga
-            const alertCell = clone.cells[7];
-            if (alertCell) alertCell.innerHTML = '';
-            // la nuova riga sarà una riga figlia
-            clone.removeAttribute('data-parent');
-            currentRow.parentNode.insertBefore(clone, currentRow.nextSibling);
-            // ri-identifichiamo le righe padre e aggiorniamo i bottoni
-            identifyParentRows();
-            unmergeRows();
-            mergeConsecutiveRowsBootstrap();
-            validateRows();
-        }
-        
-        // Bottone "-"
-        if (e.target && e.target.classList.contains("remove-row")) {
-            let rowToRemove = e.target.closest("tr");
-            const isParent = rowToRemove.getAttribute('data-parent') === 'true';
-            if (!isParent) {
-                rowToRemove.remove();
-                // dopo la rimozione, ri-identifichiamo le righe padre
-                identifyParentRows();
-                unmergeRows();
-                mergeConsecutiveRowsBootstrap();
-                validateRows();
-            }
-        }
-    });
-    
-    // identifichiamo le righe padre
-    identifyParentRows();
-    
-    // event delegation per gli input
-    document.querySelector("tbody").addEventListener("input", function (e) {
-        if (e.target && e.target.matches('td:nth-child(6) input')) {
-            validateRows();
-        }
-    });
-});
+}
 </script>
 
 <!-- flatpickr datetimepicker STEP 1 -->
@@ -585,7 +557,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 </script>
 
-<!-- flatpickr per vincoli datepicker STEP 3 -->
+<!-- flatpickr per vincoli datepicker STEP 3: l'inizializzazione dei calendari datepicker (flatpickr) dev'essere fatta solo dopo aver caricato l'input con il relativo id -->
  <script>
     function inizializzazione_datepicker_flatpickr(){
         flatpickr("#inizioPeriodoValidita", {
@@ -593,7 +565,6 @@ document.addEventListener("DOMContentLoaded", function () {
             locale: {
                 firstDayOfWeek: 1
             },
-            dateFormat: "d/m/Y",
             disable: [
                 function(date) {
                     // abilitiamo solo i lunedì (1)
@@ -607,7 +578,6 @@ document.addEventListener("DOMContentLoaded", function () {
             locale: {
                 firstDayOfWeek: 1
             },
-            dateFormat: "d/m/Y",
             disable: [
                 function(date) {
                     // abilitiamo solo le domeniche (0)
@@ -617,8 +587,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 </script>
-
-
 
 <!-- jQuery/Ajax per accordion Capacità -->
 <script>
@@ -668,11 +636,14 @@ document.addEventListener("DOMContentLoaded", function () {
                             <tr>
                                 <td>${singola_capacity.regione}</td>
                                 <td>${singola_capacity.provincia}</td>
-                                <td>${singola_capacity.post_original_estimate}(sett: ${singola_capacity.post_weekly_estimate})</td>
+                                <td>${singola_capacity.post_original_estimate} (sett: ${singola_capacity.post_weekly_estimate})</td>
                                 <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>
+                                    <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
+                                </td>
                                 <td></td>
                             </tr>
                         `;
@@ -689,7 +660,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     counter++;  
                 }
                 content.innerHTML = content_capacita;
-                // inizializzazione dei calendari datepicker (flatpickr) -> ricorda: l'inizializzazione dev'essere fatta solo dopo aver caricato l'input con il relativo id
+                // start funzione javascript per gestione tabelle dentro ogni accordion (STEP 3)
+                gestione_tabelle_step3();
                 inizializzazione_datepicker_flatpickr();
             },
             error: function(resp){
