@@ -18,7 +18,7 @@
     <tbody>
         {% for singola_bozza in lista_bozze %}
             <tr>
-                <td style="text-align:center;">{{singola_bozza.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i:s"}}</td>
+                <td style="text-align:center;">{{singola_bozza.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
                 <td style="text-align:center;">{{singola_bozza.NOME}}</td>
                 <td style="text-align:center;">{{singola_bozza.UTENTE_ID.username}}</td>
                 <td style="text-align:center;">{{singola_bozza.DESCRIZIONE}}</td>
@@ -84,7 +84,7 @@
                     if (type === 'filter' || type === 'sort') {
                         if (data != ''){
                             // formato solo per filtro e ordinamento
-                            var date = moment(data, 'DD/MM/YYYY HH:mm:SS', 'it');
+                            var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
                             return date.format('YYYY-MM-DD');
                         }
                         else{
