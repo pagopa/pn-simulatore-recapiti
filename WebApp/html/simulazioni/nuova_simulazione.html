@@ -587,34 +587,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <!-- flatpickr per vincoli datepicker STEP 3 -->
  <script>
-    flatpickr("#inizioPeriodoValidita", {
-        // lunedì primo giorno della settimana
-        locale: {
-            firstDayOfWeek: 1
-        },
-        dateFormat: "d/m/Y",
-        disable: [
-            function(date) {
-                // abilitiamo solo i lunedì (1)
-                return !(date.getDay() === 1);
-            }
-        ],
-    });
-</script>
-<script>
-    flatpickr("#finePeriodoValidita", {
-        // lunedì primo giorno della settimana
-        locale: {
-            firstDayOfWeek: 1
-        },
-        dateFormat: "d/m/Y",
-        disable: [
-            function(date) {
-                // abilitiamo solo le domeniche (0)
-                return !(date.getDay() === 0);
-            }
-        ],
-    });
+    function inizializzazione_datepicker_flatpickr(){
+        flatpickr("#inizioPeriodoValidita", {
+            // lunedì primo giorno della settimana
+            locale: {
+                firstDayOfWeek: 1
+            },
+            dateFormat: "d/m/Y",
+            disable: [
+                function(date) {
+                    // abilitiamo solo i lunedì (1)
+                    return !(date.getDay() === 1);
+                }
+            ],
+        });
+
+        flatpickr("#finePeriodoValidita", {
+            // lunedì primo giorno della settimana
+            locale: {
+                firstDayOfWeek: 1
+            },
+            dateFormat: "d/m/Y",
+            disable: [
+                function(date) {
+                    // abilitiamo solo le domeniche (0)
+                    return !(date.getDay() === 0);
+                }
+            ],
+        });
+    }
 </script>
 
 
@@ -669,8 +670,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 <td>${singola_capacity.regione}</td>
                                 <td>${singola_capacity.provincia}</td>
                                 <td>${singola_capacity.post_original_estimate}(sett: ${singola_capacity.post_weekly_estimate})</td>
-                                <td><input type="date" class="form-control text-center" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td><input type="date" class="form-control text-center" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
                                 <td></td>
@@ -689,6 +690,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     counter++;  
                 }
                 content.innerHTML = content_capacita;
+                // inizializzazione dei calendari datepicker (flatpickr) -> ricorda: l'inizializzazione dev'essere fatta solo dopo aver caricato l'input con il relativo id
+                inizializzazione_datepicker_flatpickr();
             },
             error: function(resp){
                 spinner.innerHTML='';
