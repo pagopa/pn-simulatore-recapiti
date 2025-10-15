@@ -532,13 +532,21 @@ def salva_simulazione(request):
         timestamp_esecuzione = None
         tipo_trigger = None
     
+    if request.POST['stato'] == 'Bozza':
+        stato = 'Bozza'
+    elif request.POST['stato'] == 'Schedulata-Inlavorazione':
+        if tipo_trigger == 'Now':
+            stato = 'In lavorazione'
+        else:
+            stato = 'Schedulata'
+    
     # NUOVA SIMULAZIONE
     if request.POST['id_simulazione'] == '':
         table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
             UTENTE_ID = utente_id,
-            STATO = request.POST['stato'],
+            STATO = stato,
             TRIGGER = tipo_trigger,
             TIMESTAMP_ESECUZIONE = timestamp_esecuzione
         )
@@ -548,14 +556,14 @@ def salva_simulazione(request):
         simulazione_da_modificare.NOME = nome_simulazione
         simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
         simulazione_da_modificare.UTENTE_ID = utente_id
-        simulazione_da_modificare.STATO = request.POST['stato']
+        simulazione_da_modificare.STATO = stato
         simulazione_da_modificare.TRIGGER = tipo_trigger
         simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
         simulazione_da_modificare.save()
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
-    elif request.POST['stato'] == 'Schedulata':
+    elif request.POST['stato'] == 'Schedulata-Inlavorazione':
         return redirect("home")
 
 @login_required
