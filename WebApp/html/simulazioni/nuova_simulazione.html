@@ -632,10 +632,9 @@ function gestione_tabelle_step3(){
                                             <tbody class="table-group-divider text-center">
                             `;
                     resp.context[recapitista].forEach(function(singola_capacity) {
-                        // calcoliamo finePeriodoValidita
-                        // recuperiamo mese e anno da dare in pasto alla getTargetSunday (aggiungendo 1 mese perché il sistema prende sempre 1 mese indietro)
+                        // calcoliamo finePeriodoValidita: recuperiamo mese e anno da dare in pasto alla getTargetSunday
                         delivery_date_formattata = new Date(singola_capacity.delivery_date);
-                        delivery_date_formattata = new Date(delivery_date_formattata.setMonth(delivery_date_formattata.getMonth() + 1));
+                        delivery_date_formattata = new Date(delivery_date_formattata.setMonth(delivery_date_formattata.getMonth() + 1)); // aggiungendo 1 mese perché la getMonth() parte a contare da 0 i mesi
                         mese_corrente = delivery_date_formattata.getMonth();
                         anno_corrente = delivery_date_formattata.getFullYear();
                         finePeriodoValidita = getTargetSunday(anno_corrente, mese_corrente);
