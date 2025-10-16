@@ -37,7 +37,7 @@
                     <label class="form-label">Descrizione</label>
                 </div>
                 <div class="col-auto w-50">
-                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione"></textarea>
+                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione.DESCRIZIONE|default_if_none:''}}</textarea>
                 </div>
             </div>
             <br>
@@ -48,14 +48,14 @@
                 <div class="col-auto">
                     <!-- Radio Schedule -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required>
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione.TRIGGER == 'Schedule' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio1">Schedule</label>
                     </div>
                 </div>
                 <div class="col-auto">
                     <!-- Radio Now -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione.TRIGGER == 'Now' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio2">Now</label>
                     </div>
                 </div>
@@ -76,31 +76,6 @@
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" class="disabled" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
-                    <!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
-                    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                <h5 class="modal-title" id="exampleModalLabel"></h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                <p>Sei sicuro di voler salvare come bozza?</p>
-                                </div>
-                                <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                <input class="btn btn-primary" onclick="form_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
-                                </div>
-                                <script type="text/javascript">
-                                function form_submit_bozza() {
-                                    multiStepForm = document.getElementById("multiStepForm");
-                                    var $input = $('<input>').attr({type:'hidden',id:'input_id',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
-                                    multiStepForm.submit();
-                                }    
-                                </script>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
@@ -140,7 +115,7 @@
                     <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
@@ -169,21 +144,12 @@
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
-                    <label for="tipo_capacita_da_modificare"><b>Mese da simulare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare">
+                    <label for="mese_da_simulare"><b>Mese da simulare</b></label>
+                    <select class="form-select" aria-label="Default select example" id="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
-                        <option value="Gennaio">Gennaio</option>
-                        <option value="Febbraio">Febbraio</option>
-                        <option value="Marzo">Marzo</option>
-                        <option value="Aprile">Aprile</option>
-                        <option value="Maggio">Maggio</option>
-                        <option value="Giugno">Giugno</option>
-                        <option value="Luglio">Luglio</option>
-                        <option value="Agosto">Agosto</option>
-                        <option value="Settembre">Settembre</option>
-                        <option value="Ottobre">Ottobre</option>
-                        <option value="Novembre">Novembre</option>
-                        <option value="Dicembre">Dicembre</option>
+                        {% for singolo_mese in lista_mesi_univoci %}
+                            <option value="{{singolo_mese.0}}">{{singolo_mese.1}}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="col-2 mx-auto">
@@ -200,99 +166,11 @@
 
             <br>
 
-            <div class="accordion" id="accordionExample">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                        <b>RECAPITISTA: POSTE ITALIANE</b>
-                    </button>
-                    </h2>
-                    <div id="collapseOne" class="accordion-collapse collapse">
-                        <div class="accordion-body table-responsive">
-                            <table class="table table-hover" id="recapitista_poste_italiane">
-                                <thead class="text-center">
-                                    <tr>
-                                    <th scope="col">Regione</th>
-                                    <th scope="col">Provincia</th>
-                                    <th scope="col">Numero di post. mensili</th>
-                                    <th scope="col">Inizio periodo di validità</th>
-                                    <th scope="col">Fine periodo di validità</th>
-                                    <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
-                                    <th scope="col"></th> <!-- colonna per il bottone "+" che aggiunge una riga -->
-                                    <th scope="col"></th> <!-- colonna per alert -->
-                                    </tr>
-                                </thead>
-                                <tbody class="table-group-divider text-center">
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Frosinone</td>
-                                        <td>30000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="6000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Latina</td>
-                                        <td>87000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-05" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="5000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-12" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-01-18" placeholder="-" onfocus="(this.type='date')" onblur="if(!this.value) this.type='text'" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="10000" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Lazio</td>
-                                        <td>Roma</td>
-                                        <td>25000</td>
-                                        <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="2026-01-19" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-01-25" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="7500" onkeydown="return (event.keyCode!=13);"></td>
-                                        <td><button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button></td>
-                                        <td></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-                        <span><b>RECAPITISTA: RTI FULMINE</b></span>
-                    </button>
-                    </h2>
-                    <div id="collapseTwo" class="accordion-collapse collapse">
-                    <div class="accordion-body">
-                        
-                    </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Capacità recuperate da db -->
+            <div class="text-center" id="spinner"></div>
+            <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_get_capacita_from_mese' %}></span>
 
-            <br><br>
+            <br><br><br><br>
 
             <!-- bottoni indietro-salva-avvia -->
             <div class="row text-center">
@@ -300,11 +178,11 @@
                     <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                    <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2">Avvia scheduling 📅</button>
-                    <!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
+                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()">Avvia scheduling 📅</button>
+                    <!--MODAL PER IL BOTTONE AVVIA SCHEDULING-->
                     <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div class="modal-content">
@@ -313,7 +191,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
-                                <p>Sei sicuro di voler avviare lo scheduling in questo slot ()?</p>
+                                <p id="avviso_modal_avvia_scheduling"></p>
                                 </div>
                                 <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
@@ -322,7 +200,8 @@
                                 <script type="text/javascript">
                                 function form_submit_scheduling() {
                                     multiStepForm = document.getElementById("multiStepForm");
-                                    var $input = $('<input>').attr({type:'hidden',id:'input_id',name:'stato',value:'Schedulata'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
                                     multiStepForm.submit();
                                 }    
                                 </script>
@@ -335,7 +214,32 @@
     </div>
 </form>
 
-
+<!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <p>Sei sicuro di voler salvare come bozza?</p>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+            <input class="btn btn-primary" onclick="form_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
+            </div>
+            <script type="text/javascript">
+            function form_submit_bozza() {
+                multiStepForm = document.getElementById("multiStepForm");
+                var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
+                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
+                multiStepForm.submit();
+            }    
+            </script>
+        </div>
+    </div>
+</div>
 {% endblock content %}
 
 
@@ -420,7 +324,7 @@
         button_salva_bozza.disabled = !checkRequiredFields();
     }
 
-    // event listener per 
+    // event listener
     document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
 
     // Controllo iniziale
@@ -434,6 +338,16 @@
     const radioNow = document.getElementById("inlineRadio2");
     const datetimeField = document.getElementById("datetimeField");
     const timeSchedule = document.getElementById("timeSchedule");
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (radioSchedule.checked) {
+            datetimeField.classList.remove("d-none"); // mostra
+            timeSchedule.setAttribute('required','required');
+        } else {
+            datetimeField.classList.add("d-none"); // nasconde
+            timeSchedule.removeAttribute('required');
+        }
+    });
 
     document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
         radio.addEventListener("change", () => {
@@ -481,7 +395,7 @@
     }
 </script>
 
-<!-- unione righe sulla prima colonna -->
+<!-- unione righe sulle prime 3 colonne + gestione bottoni '+' e '-' -->
 <script>
     // raggruppiamo le righe consecutive con stessi valori
     function mergeConsecutiveRowsBootstrap() {
@@ -565,93 +479,65 @@
         });
     }
 
-document.addEventListener("DOMContentLoaded", function () {
-    // validazione iniziale
-    validateRows();
-    mergeConsecutiveRowsBootstrap();
+function gestione_tabelle_step3(){
+    // Delegazione eventi a livello di documento
+    document.addEventListener('click', function(e) {
+        // Gestione aggiunta riga
+        if (e.target.classList.contains('add-row')) {
+            addNewRow(e.target);
+        }
+        // Gestione rimozione riga
+        if (e.target.classList.contains('remove-row')) {
+            removeRow(e.target);
+        }
+    });
 
-    // identifica la riga padre
-    function identifyParentRows() {
-        const rows = document.querySelectorAll('tbody tr');
-        const groups = {};
+    function addNewRow(button) {
+        const currentRow = button.closest('tr');
+        const tableBody = currentRow.closest('tbody');
+        const newRow = currentRow.cloneNode(true);
+        
+        // Inserisci la nuova riga
+        tableBody.insertBefore(newRow, currentRow.nextSibling);
+
+        // re-inizializziamo i datetimepicler dpatpickr per la nuova riga
+        inizializzazione_datepicker_flatpickr();
+        
+        // Aggiorna numeri o ID sequenziali (se necessario)
+        updateRowNumbers(tableBody);
+    }
+
+    function removeRow(button) {
+        const row = button.closest('tr');
+        const tableBody = row.closest('tbody');
+        const allRows = tableBody.querySelectorAll('tr');
+        row.remove();
+        updateRowNumbers(tableBody);
+
+    }
+
+    function updateRowNumbers(tableBody) {
+        // Esempio: aggiorna numeri sequenziali nelle prime colonne
+        const rows = tableBody.querySelectorAll('tr');
         rows.forEach((row, index) => {
-            const cells = row.cells;
-            const key = `${cells[0].textContent.trim()}|${cells[1].textContent.trim()}|${cells[2].textContent.trim()}`;
-            if (!groups[key]) {
-                // riga padre
-                groups[key] = true;
-                row.setAttribute('data-parent', 'true');
-            } else {
-                // riga figlia
-                row.removeAttribute('data-parent');
+            const firstCell = row.cells[0];
+            // Se la prima cella contiene solo un numero, aggiornalo
+            if (/^\d+$/.test(firstCell.textContent)) {
+                firstCell.textContent = index + 1;
             }
-        });
-        
-        updateRowButtons();
-    }
-
-    // Funzione per aggiornare i bottoni
-    function updateRowButtons() {
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const buttonCell = row.cells[6];
-            const isParent = row.getAttribute('data-parent') === 'true';
-            if (isParent) {
-                // righe padre
-                buttonCell.innerHTML = '<button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>';
-            } else {
-                // righe figlie
-                buttonCell.innerHTML = `
-                    <button class="btn btn-sm btn-outline-success add-row me-1" title="Aggiungi nuova capacità">+</button>
-                    <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
-                `;
-            }
+            
+            // Aggiorna gli attributi name degli input per array forms
+            const inputs = row.querySelectorAll('input[name], select[name]');
+            inputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && name.includes('[]')) {
+                    const newName = name.replace(/\[\d+\]/, `[${index}]`);
+                    input.setAttribute('name', newName);
+                }
+            });
         });
     }
-    
-    // event delegation per il bottone "+"
-    document.querySelector("tbody").addEventListener("click", function (e) {
-        if (e.target && e.target.classList.contains("add-row")) {
-            let currentRow = e.target.closest("tr");
-            let clone = currentRow.cloneNode(true);
-            // pulizia alert sulla nuova riga
-            const alertCell = clone.cells[7];
-            if (alertCell) alertCell.innerHTML = '';
-            // la nuova riga sarà una riga figlia
-            clone.removeAttribute('data-parent');
-            currentRow.parentNode.insertBefore(clone, currentRow.nextSibling);
-            // ri-identifichiamo le righe padre e aggiorniamo i bottoni
-            identifyParentRows();
-            unmergeRows();
-            mergeConsecutiveRowsBootstrap();
-            validateRows();
-        }
-        
-        // Bottone "-"
-        if (e.target && e.target.classList.contains("remove-row")) {
-            let rowToRemove = e.target.closest("tr");
-            const isParent = rowToRemove.getAttribute('data-parent') === 'true';
-            if (!isParent) {
-                rowToRemove.remove();
-                // dopo la rimozione, ri-identifichiamo le righe padre
-                identifyParentRows();
-                unmergeRows();
-                mergeConsecutiveRowsBootstrap();
-                validateRows();
-            }
-        }
-    });
-    
-    // identifichiamo le righe padre
-    identifyParentRows();
-    
-    // event delegation per gli input
-    document.querySelector("tbody").addEventListener("input", function (e) {
-        if (e.target && e.target.matches('td:nth-child(6) input')) {
-            validateRows();
-        }
-    });
-});
+}
 </script>
 
 <!-- flatpickr datetimepicker STEP 1 -->
@@ -666,39 +552,140 @@ document.addEventListener("DOMContentLoaded", function () {
         time_24hr: true,
         minuteIncrement: 30,
         minDate: new Date(),
-        allowInput:true
+        allowInput:true,
+        defaultDate: '{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
 
-<!-- flatpickr per vincoli datepicker STEP 3 -->
+<!-- flatpickr per vincoli datepicker STEP 3: l'inizializzazione dei calendari datepicker (flatpickr) dev'essere fatta solo dopo aver caricato l'input con il relativo id -->
  <script>
-    flatpickr("#inizioPeriodoValidita", {
-        // lunedì primo giorno della settimana
-        locale: {
-            firstDayOfWeek: 1
-        },
-        dateFormat: "d/m/Y",
-        disable: [
-            function(date) {
-                // abilitiamo solo i lunedì (1)
-                return !(date.getDay() === 1);
-            }
-        ],
-    });
+    function inizializzazione_datepicker_flatpickr(){
+        flatpickr("#inizioPeriodoValidita", {
+            // lunedì primo giorno della settimana
+            locale: {
+                firstDayOfWeek: 1
+            },
+            disable: [
+                function(date) {
+                    // abilitiamo solo i lunedì (1)
+                    return !(date.getDay() === 1);
+                }
+            ],
+        });
+
+        flatpickr("#finePeriodoValidita", {
+            // lunedì primo giorno della settimana
+            locale: {
+                firstDayOfWeek: 1
+            },
+            disable: [
+                function(date) {
+                    // abilitiamo solo le domeniche (0)
+                    return !(date.getDay() === 0);
+                }
+            ],
+        });
+    }
 </script>
+
+<!-- jQuery/Ajax per accordion Capacità -->
 <script>
-    flatpickr("#finePeriodoValidita", {
-        // lunedì primo giorno della settimana
-        locale: {
-            firstDayOfWeek: 1
-        },
-        dateFormat: "d/m/Y",
-        disable: [
-            function(date) {
-                // abilitiamo solo le domeniche (0)
-                return !(date.getDay() === 0);
+    var select_mese_da_simulare = document.querySelector('#mese_da_simulare');
+    select_mese_da_simulare.addEventListener('change',function(){
+        var mese_da_simulare_selezionato = select_mese_da_simulare.value;
+        var content = document.getElementById('capacita_recuperate_da_db');
+        // puliamo lo spazio dove andremo ad iniettare il codice html
+        content.innerHTML='';
+        var spinner = document.getElementById('spinner');
+        spinner.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+        var content_capacita = '';
+        $.ajax({
+            url: $('.capacita_recuperate_da_db').data('url'),
+            type: 'GET',
+            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato},
+            success: function(resp){
+                var counter = 0;
+                for (var recapitista in resp.context){
+                    content_capacita += `
+                        <div class="accordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ forloop.counter }}stato_barcodescanner'+counter1+'">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#${counter}" aria-expanded="true" aria-controls="${counter}">
+                                        <b>RECAPITISTA: ${recapitista}</b>
+                                    </button>
+                                </h2>
+                                <div id="${counter}" class="accordion-collapse collapse">
+                                    <div class="accordion-body table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="text-center">
+                                                <tr>
+                                                <th scope="col">Regione</th>
+                                                <th scope="col">Provincia</th>
+                                                <th scope="col">Numero di post. mensili</th>
+                                                <th scope="col">Inizio periodo di validità</th>
+                                                <th scope="col">Fine periodo di validità</th>
+                                                <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
+                                                <th scope="col"></th> <!-- colonna per il bottone "+" che aggiunge una riga -->
+                                                <th scope="col"></th> <!-- colonna per alert -->
+                                                </tr>
+                                            </thead>
+                                            <tbody class="table-group-divider text-center">
+                            `;
+                    resp.context[recapitista].forEach(function(singola_capacity) {
+                        content_capacita += `
+                            <tr>
+                                <td>${singola_capacity.regione}</td>
+                                <td>${singola_capacity.provincia}</td>
+                                <td>${singola_capacity.post_original_estimate} (sett: ${singola_capacity.post_weekly_estimate})</td>
+                                <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0"  value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>
+                                    <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
+                                </td>
+                                <td></td>
+                            </tr>
+                        `;
+                    });
+                    
+                    content_capacita += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                    
+                    `;
+                    counter++;  
+                }
+                content.innerHTML = content_capacita;
+                // start funzione javascript per gestione tabelle dentro ogni accordion (STEP 3)
+                gestione_tabelle_step3();
+                inizializzazione_datepicker_flatpickr();
+            },
+            error: function(resp){
+                spinner.innerHTML='';
+            },
+            complete: function(resp){
+                spinner.innerHTML='';
             }
-        ],
-    });
+        });
+	});
+</script>
+
+<!-- Caricamento testo per modal che appare al click sul bottone "Avvia scheduling" -->
+<script>
+    function load_text_avviso_modal_avvia_scheduling() {
+        tipo_scheduling = document.getElementById('avviso_modal_avvia_scheduling');
+        const radioSchedule = document.getElementById("inlineRadio1");
+        const timeSchedule = document.getElementById("timeSchedule");
+        if (radioSchedule.checked) {
+            tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Schedule" ('+timeSchedule.value+')?';
+        }
+        else{
+            tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Now"?';
+        }
+    }
 </script>
 {% endblock %}

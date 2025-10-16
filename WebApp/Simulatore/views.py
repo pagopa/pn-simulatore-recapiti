@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 import json
 import plotly.utils as putils
 import plotly.express as px
-import requests
 import pandas as pd
 import numpy as np
 import os
@@ -16,6 +15,14 @@ from django.contrib import messages
 from datetime import datetime
 
 from .models import *
+
+from django.db.models.functions import TruncMonth
+
+import locale
+
+from django.http import JsonResponse
+
+locale.setlocale(locale.LC_ALL, 'it_IT')
 
 
 @login_required(login_url='login')
@@ -491,13 +498,20 @@ def rimuovi_bozza(request, id_bozza):
 
 @login_required(login_url='login')
 def nuova_simulazione(request, id_simulazione):
-    if id_simulazione != 'new':
+    # NUOVA SIMULAZIONE
+    if id_simulazione == 'new':
+        # Mese da simulare
+        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('DELIVERYDATE')).values_list('mese', flat=True).distinct().order_by('mese')
+        lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
+        context = {
+             'lista_mesi_univoci': lista_mesi_univoci
+        }
+    # MODIFICA SIMULAZIONE
+    else:
         simulazione = table_simulazione.objects.get(ID = id_simulazione)
         context = {
             'simulazione': simulazione
         }
-    else:
-        context = {}
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 @login_required(login_url='login')
@@ -506,23 +520,50 @@ def salva_simulazione(request):
 
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
-    if request.POST['inlineRadioOptions'] == 'now':
-        timestamp_esecuzione = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elif request.POST['inlineRadioOptions'] == 'schedule':
-        timestamp_esecuzione = request.POST['schedule_datetime']
-        timestamp_esecuzione = datetime.strptime(timestamp_esecuzione, "%d/%m/%Y %H:%M")
-
-    table_simulazione.objects.create(
-        NOME = nome_simulazione,
-        DESCRIZIONE = descrizione_simulazione,
-        UTENTE_ID = utente_id,
-        STATO = request.POST['stato'],
-        TIMESTAMP_ESECUZIONE = timestamp_esecuzione
-    )
+    if 'inlineRadioOptions' in request.POST:
+        if request.POST['inlineRadioOptions'] == 'now':
+            timestamp_esecuzione = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            tipo_trigger = 'Now'
+        elif request.POST['inlineRadioOptions'] == 'schedule':
+            timestamp_esecuzione = request.POST['schedule_datetime']
+            timestamp_esecuzione = datetime.strptime(timestamp_esecuzione, "%d/%m/%Y %H:%M")
+            tipo_trigger = 'Schedule'
+    else:
+        timestamp_esecuzione = None
+        tipo_trigger = None
+    
+    if request.POST['stato'] == 'Bozza':
+        stato = 'Bozza'
+    elif request.POST['stato'] == 'Schedulata-Inlavorazione':
+        if tipo_trigger == 'Now':
+            stato = 'In lavorazione'
+        else:
+            stato = 'Schedulata'
+    
+    # NUOVA SIMULAZIONE
+    if request.POST['id_simulazione'] == '':
+        table_simulazione.objects.create(
+            NOME = nome_simulazione,
+            DESCRIZIONE = descrizione_simulazione,
+            UTENTE_ID = utente_id,
+            STATO = stato,
+            TRIGGER = tipo_trigger,
+            TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+        )
+    # MODIFICA SIMULAZIONE
+    else:
+        simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
+        simulazione_da_modificare.NOME = nome_simulazione
+        simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
+        simulazione_da_modificare.UTENTE_ID = utente_id
+        simulazione_da_modificare.STATO = stato
+        simulazione_da_modificare.TRIGGER = tipo_trigger
+        simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+        simulazione_da_modificare.save()
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
-    elif request.POST['stato'] == 'Schedulata':
+    elif request.POST['stato'] == 'Schedulata-Inlavorazione':
         return redirect("home")
 
 @login_required
@@ -539,6 +580,40 @@ def login_page(request):
     return render(request, "login_page.html")
 
 
+# AJAX
+def ajax_get_capacita_from_mese(request):
+    mese_da_simulare = request.GET['mese_da_simulare_selezionato']
+    if request.accepts:
+        # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
+        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(DELIVERYDATE__year=mese_da_simulare.split('-')[0], DELIVERYDATE__month=mese_da_simulare.split('-')[1]).values())
+        lista_capacita_finali = {}
+        for item in lista_capacita_grezze:
+            recapitista = item['UNIFIEDDELIVERYDRIVER']
+            regione = item['REGIONE']
+            provincia = item['PROVINCE']
+            post_weekly_estimate = item['SUM_WEEKLYESTIMATE']
+            post_monthly_estimate = item['SUM_MONTHLYESTIMATE']
+            post_original_estimate = item['SUM_ORIGINALESTIMATE']
+            capacity = item['CAPACITY']
+            delivery_date = item['DELIVERYDATE']
+            
+            if recapitista not in lista_capacita_finali:
+                lista_capacita_finali[recapitista] = []
+            
+            lista_capacita_finali[recapitista].append({
+                'regione': regione,
+                'provincia': provincia,
+                'post_weekly_estimate': post_weekly_estimate,
+                'post_monthly_estimate': post_monthly_estimate,
+                'post_original_estimate': post_original_estimate,
+                'capacity': capacity,
+                'delivery_date': delivery_date,
+            })        
+    return JsonResponse({'context': lista_capacita_finali})
+
+
+
+# AUTENTICAZIONE
 def login_user(request):
 	if request.method == "POST":
 		username = request.POST['username']
@@ -552,7 +627,6 @@ def login_user(request):
 			return redirect('login_page')
 	else:
 		return render(request, 'login_page.html', {})
-
 def logout_user(request):
 	logout(request)
 	messages.success(request, ("You Were Logged Out!"))

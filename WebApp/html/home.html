@@ -19,7 +19,7 @@
     <tbody>
         {% for simulazione in lista_simulazioni %}
             <tr>
-                <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE}}</td>
+                <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
                 <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}🟢{% elif simulazione.STATO == 'In lavorazione' %}🕛{% elif simulazione.STATO == 'Schedulata' %}📅{% elif simulazione.STATO == 'Non completata' %}🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.UTENTE_ID.username}}</td>
                 <td style="text-align:center;">{{simulazione.NOME}}</td>
@@ -111,18 +111,18 @@
                         {% if simulazione.NOME != 'Automatizzata' %}
                             <!-- Confronto con automatizzata --> 
                             <span>
-                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
                             </span>
 
                             <!-- Confronto con altra simulazione --> 
                             <span>
-                                <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="{% url 'confronto_risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
+                                <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="{% url 'confronto_risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
                             </span>
                         {% endif %}
 
                         <!-- Visualizza risultati --> 
                         <span>
-                            <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="{% url 'risultati' simulazione.id %}"><i class="fa-solid fa-chart-line"></i></a>
+                            <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="{% url 'risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i></a>
                         </span>
 
                     {% endif %}
@@ -187,11 +187,12 @@
                 render: function (data, type, row) {
                     if (type === 'filter' || type === 'sort') {
                         // formato solo per filtro e ordinamento
-                        return moment(data).format('YYYY-MM-DD');
+                        var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
+                        return date.format('YYYY-MM-DD');
                     }
                     else{
                         // formato per display, export, excel, csv, pdf, print
-                        return data; 
+                        return data;
                     }
                 },
                 type:'date'

@@ -18,14 +18,14 @@
     <tbody>
         {% for singola_bozza in lista_bozze %}
             <tr>
-                <td style="text-align:center;">{{singola_bozza.TIMESTAMP_ESECUZIONE}}</td>
+                <td style="text-align:center;">{{singola_bozza.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
                 <td style="text-align:center;">{{singola_bozza.NOME}}</td>
                 <td style="text-align:center;">{{singola_bozza.UTENTE_ID.username}}</td>
                 <td style="text-align:center;">{{singola_bozza.DESCRIZIONE}}</td>
                 <td>
                     <!-- Modifica bozza --> 
                     <span>
-                        <a type="button" title="Modifica bozza" class="btn btn-outline-secondary" href="#"><i class="fa-solid fa-pen-to-square"></i></a>
+                        <a type="button" title="Modifica bozza" class="btn btn-outline-secondary" href={% url 'nuova_simulazione' singola_bozza.ID %}><i class="fa-solid fa-pen-to-square"></i></a>
                     </span>
 
                     <!-- Elimina bozza --> 
@@ -76,7 +76,29 @@
         responsive: true,
         columnDefs:[
             {
-                targets: [0,1,2,3],
+                // colonna Timestamp esecuzione
+                targets: 0,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'filter' || type === 'sort') {
+                        if (data != ''){
+                            // formato solo per filtro e ordinamento
+                            var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
+                            return date.format('YYYY-MM-DD');
+                        }
+                        else{
+                            return '';
+                        }
+                    }
+                    else{
+                        // formato per display, export, excel, csv, pdf, print
+                        return data;
+                    }
+                },
+                type:'date'
+            },
+            {
+                targets: [1,2,3],
                 columnControl: ['order', ['search']],
             },
             { // rimuoviamo ordinamento e filtri sull'ultima colonna
