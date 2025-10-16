@@ -507,6 +507,8 @@ def nuova_simulazione(request, id_simulazione):
 
 def salva_simulazione(request):
 
+    print(request.POST)
+
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:

@@ -637,9 +637,9 @@ function gestione_tabelle_step3(){
                                 <td>${singola_capacity.regione}</td>
                                 <td>${singola_capacity.provincia}</td>
                                 <td>${singola_capacity.post_original_estimate} (sett: ${singola_capacity.post_weekly_estimate})</td>
-                                <td><input type="date" class="form-control text-center" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td><input type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
-                                <td class="form-floating"><input class="form-control text-center" autocomplete="off" type="number" step="1" min="0" id="floatingInput" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label for="floatingInput">Capacità reale: ${singola_capacity.capacity}</label></td>
+                                <td><input name="inizio_periodo" type="date" class="form-control text-center" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input name="fine_periodo" type="date" class="form-control text-center" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
+                                <td class="form-floating"><input name="capacita_settimanale" class="form-control text-center" autocomplete="off" type="number" step="1" min="0" id="floatingInput" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label for="floatingInput">Capacità reale: ${singola_capacity.capacity}</label></td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>
                                     <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
