@@ -71,6 +71,7 @@ class table_cap_prov_reg(models.Model):
     class Meta:
         db_table = 'CAP_PROV_REG'
 
+
 # VISTA output_capacity_setting
 class table_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)  # Aggiungi questo campo
