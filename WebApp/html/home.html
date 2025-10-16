@@ -195,17 +195,18 @@
                 type:'date'
             },
             {
-                targets: [2,3],
-                columnControl: ['order', ['search']],
-            },
-            {
                 // colonna stato
                 targets: 1,
                 columnControl: ['order', ['searchList']],
             },
             {
+                // colonna nome
+                targets: 2,
+                columnControl: ['order', ['search']],
+            },
+            {
                 // colonna descrizione
-                targets: 4,
+                targets: 3,
                 columnControl: ['order', ['search']],
                 render: function (data, type, row) {
                     if (type === 'display') {

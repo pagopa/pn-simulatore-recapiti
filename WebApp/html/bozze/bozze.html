@@ -96,8 +96,22 @@
                 type:'date'
             },
             {
-                targets: [1,2,3],
+                // colonna nome
+                targets: 1,
                 columnControl: ['order', ['search']],
+            },
+            {
+                // colonna descrizione
+                targets: 2,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        // mostriamo solo i primi 20 caratteri
+                        return data.length > 20 ? data.substr(0, 20) + '…' : data;
+                    }
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 20 caratteri
+                    return data;
+                }
             },
             { // rimuoviamo ordinamento e filtri sull'ultima colonna
                 targets: -1,        
@@ -120,7 +134,7 @@
                         title: 'Simulazioni_'+currentDate,
                         className: 'btn btn-sm btn-primary',
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     },
 					{
@@ -130,7 +144,7 @@
 						className: 'btn btn-sm btn-primary',
 						filename: 'Simulazioni_'+currentDate,
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
 					},
                     {
@@ -139,7 +153,7 @@
                         className: 'btn btn-sm btn-primary',
 						filename: 'Simulazioni_'+currentDate,
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     },
                     {
@@ -148,7 +162,7 @@
                         className: 'btn btn-sm btn-primary',
 						filename: 'Simulazioni_'+currentDate,
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     },
                     {
@@ -156,7 +170,7 @@
                         title: 'Simulazioni_'+currentDate,
                         className: 'btn btn-sm btn-primary',
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     }
 				],
