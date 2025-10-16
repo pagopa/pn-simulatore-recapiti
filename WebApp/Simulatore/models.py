@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 from django_pgviews import view as pg
 
 # necessario per impostare sul db il tipo timestamp without time zone
@@ -7,14 +6,10 @@ class NaiveDateTimeField(models.DateTimeField):
     def db_type(self, connection):
         return 'timestamp without time zone'
 
-class CustomUser(AbstractUser):
-    email = models.EmailField(unique=True)
-
 class table_simulazione(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     NOME = models.CharField(max_length=50, null=True)
     DESCRIZIONE = models.TextField(null=True)
-    UTENTE_ID = models.ForeignKey(CustomUser, db_column='UTENTE_ID', on_delete=models.CASCADE, null=True)
     STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata]
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
     TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)

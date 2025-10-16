@@ -1,8 +1,6 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
 from Simulatore.views import *
-from django.conf import settings
-from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -23,10 +21,6 @@ urlpatterns = [
     # AJAX
     path('get_capacita_from_mese_ajax', ajax_get_capacita_from_mese, name="ajax_get_capacita_from_mese"),
 
-    # LOGIN
-    path('login_page', login_page, name='login_page'),
-    path('login_users/', include('django.contrib.auth.urls')),
-    path('login_users/', include('Simulatore.urls')),
 ]
 
 

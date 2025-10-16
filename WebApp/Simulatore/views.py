@@ -8,8 +8,6 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 
 from datetime import datetime
@@ -25,7 +23,6 @@ from django.http import JsonResponse
 locale.setlocale(locale.LC_ALL, 'it_IT')
 
 
-@login_required(login_url='login')
 def homepage(request):
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
 
@@ -35,7 +32,6 @@ def homepage(request):
     return render(request, "home.html", context)
 
 
-@login_required(login_url='login')
 def risultati(request, id_simulazione):
 
     enti = [
@@ -254,7 +250,6 @@ def risultati(request, id_simulazione):
     return render(request, "simulazioni/risultati.html", context)
 
 
-@login_required(login_url='login')
 def confronto_risultati(request, id_simulazione):
     enti = [
     "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
@@ -474,11 +469,9 @@ def confronto_risultati(request, id_simulazione):
     }
     return render(request, "simulazioni/confronto_risultati.html", context)
 
-@login_required(login_url='login')
 def calendario(request):
     return render(request, "calendario/calendario.html")
 
-@login_required(login_url='login')
 def bozze(request):
     lista_bozze = table_simulazione.objects.filter(STATO='Bozza')
 
@@ -487,7 +480,6 @@ def bozze(request):
     }
     return render(request, "bozze/bozze.html", context)
 
-@login_required
 def rimuovi_bozza(request, id_bozza):
 	try:
 		bozza_da_rimuovere = table_simulazione.objects.get(ID=id_bozza)
@@ -496,7 +488,6 @@ def rimuovi_bozza(request, id_bozza):
 		pass
 	return redirect('bozze')
 
-@login_required(login_url='login')
 def nuova_simulazione(request, id_simulazione):
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new':
@@ -514,9 +505,7 @@ def nuova_simulazione(request, id_simulazione):
         }
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
-@login_required(login_url='login')
 def salva_simulazione(request):
-    utente_id = CustomUser.objects.get(username=request.user)
 
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
@@ -545,7 +534,6 @@ def salva_simulazione(request):
         table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
-            UTENTE_ID = utente_id,
             STATO = stato,
             TRIGGER = tipo_trigger,
             TIMESTAMP_ESECUZIONE = timestamp_esecuzione
@@ -555,7 +543,6 @@ def salva_simulazione(request):
         simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
         simulazione_da_modificare.NOME = nome_simulazione
         simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
-        simulazione_da_modificare.UTENTE_ID = utente_id
         simulazione_da_modificare.STATO = stato
         simulazione_da_modificare.TRIGGER = tipo_trigger
         simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
@@ -566,7 +553,6 @@ def salva_simulazione(request):
     elif request.POST['stato'] == 'Schedulata-Inlavorazione':
         return redirect("home")
 
-@login_required
 def rimuovi_simulazione(request, id_simulazione):
 	try:
 		simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
@@ -610,27 +596,6 @@ def ajax_get_capacita_from_mese(request):
                 'delivery_date': delivery_date,
             })        
     return JsonResponse({'context': lista_capacita_finali})
-
-
-
-# AUTENTICAZIONE
-def login_user(request):
-	if request.method == "POST":
-		username = request.POST['username']
-		password = request.POST['password']
-		user = authenticate(request, username=username, password=password)
-		if user is not None:
-			login(request, user)
-			return redirect('home')
-		else:
-			messages.success(request, ("There Was An Error Logging In, Try Again..."))	
-			return redirect('login_page')
-	else:
-		return render(request, 'login_page.html', {})
-def logout_user(request):
-	logout(request)
-	messages.success(request, ("You Were Logged Out!"))
-	return redirect('home')
 
 
 
