@@ -413,158 +413,13 @@
             const sixthFieldInput = cells[5].querySelector('input');
             const sixthField = sixthFieldInput ? parseInt(sixthFieldInput.value) || 0 : 0;
             
-            cells[7].innerHTML = '';
+            cells[6].innerHTML = '';
             
             if (thirdField < sixthField) {
-                cells[7].innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Numero di postalizzazioni maggiore della capacità"></i>';
+                cells[6].innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Numero di postalizzazioni maggiore della capacità"></i>';
             }
         });
     }
-</script>
-
-<!-- unione righe sulle prime 3 colonne + gestione bottoni '+' e '-' -->
-<script>
-    // raggruppiamo le righe consecutive con stessi valori
-    function mergeConsecutiveRowsBootstrap() {
-        const tbody = document.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        if (rows.length === 0) return;
-        
-        let currentGroup = {
-            values: null,
-            startIndex: 0,
-            count: 0
-        };
-        const groups = [];
-        
-        // raggruppiamo le righe consecutive con stessi valori
-        rows.forEach((row, index) => {
-            const cells = row.cells;
-            const currentValues = {
-                col1: cells[0].textContent.trim(),
-                col2: cells[1].textContent.trim(),
-                col3: cells[2].textContent.trim()
-            };
-            if (currentGroup.values === null) {
-                currentGroup.values = currentValues;
-                currentGroup.startIndex = index;
-                currentGroup.count = 1;
-            } else if (
-                currentValues.col1 === currentGroup.values.col1 &&
-                currentValues.col2 === currentGroup.values.col2 &&
-                currentValues.col3 === currentGroup.values.col3
-            ) {
-                currentGroup.count++;
-            } else {
-                groups.push({...currentGroup});
-                currentGroup.values = currentValues;
-                currentGroup.startIndex = index;
-                currentGroup.count = 1;
-            }
-        });
-        
-        if (currentGroup.values !== null) {
-            groups.push({...currentGroup});
-        }
-        
-        // applichiamo i rowspan
-        groups.forEach(group => {
-            if (group.count > 1) {
-                const startRow = rows[group.startIndex];
-                // allineamento verticale
-                startRow.cells[0].className += ' align-middle';
-                startRow.cells[1].className += ' align-middle';
-                startRow.cells[2].className += ' align-middle';
-                // rowspan
-                startRow.cells[0].rowSpan = group.count;
-                startRow.cells[1].rowSpan = group.count;
-                startRow.cells[2].rowSpan = group.count;
-                // nascondiamo le celle duplicate
-                for (let i = 1; i < group.count; i++) {
-                    const row = rows[group.startIndex + i];
-                    row.cells[0].style.display = 'none';
-                    row.cells[1].style.display = 'none';
-                    row.cells[2].style.display = 'none';
-                }
-            }
-        });
-    }
-
-    // rimuove le unificazioni (se necessario)
-    function unmergeRows() {
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            const cells = row.cells;
-            // Rimuovi rowspan e mostra tutte le celle
-            cells[0].removeAttribute('rowspan');
-            cells[1].removeAttribute('rowspan');
-            cells[2].removeAttribute('rowspan');
-            cells[0].style.display = '';
-            cells[1].style.display = '';
-            cells[2].style.display = '';
-        });
-    }
-
-function gestione_tabelle_step3(){
-    // Delegazione eventi a livello di documento
-    document.addEventListener('click', function(e) {
-        // Gestione aggiunta riga
-        if (e.target.classList.contains('add-row')) {
-            addNewRow(e.target);
-        }
-        // Gestione rimozione riga
-        if (e.target.classList.contains('remove-row')) {
-            removeRow(e.target);
-        }
-    });
-
-    function addNewRow(button) {
-        const currentRow = button.closest('tr');
-        const tableBody = currentRow.closest('tbody');
-        const newRow = currentRow.cloneNode(true);
-        
-        // Inserisci la nuova riga
-        tableBody.insertBefore(newRow, currentRow.nextSibling);
-
-        // re-inizializziamo i datetimepicler dpatpickr per la nuova riga
-        inizializzazione_datepicker_flatpickr();
-        
-        // Aggiorna numeri o ID sequenziali (se necessario)
-        updateRowNumbers(tableBody);
-    }
-
-    function removeRow(button) {
-        const row = button.closest('tr');
-        const tableBody = row.closest('tbody');
-        const allRows = tableBody.querySelectorAll('tr');
-        row.remove();
-        updateRowNumbers(tableBody);
-
-    }
-
-    function updateRowNumbers(tableBody) {
-        // Esempio: aggiorna numeri sequenziali nelle prime colonne
-        const rows = tableBody.querySelectorAll('tr');
-        rows.forEach((row, index) => {
-            const firstCell = row.cells[0];
-            // Se la prima cella contiene solo un numero, aggiornalo
-            if (/^\d+$/.test(firstCell.textContent)) {
-                firstCell.textContent = index + 1;
-            }
-            
-            // Aggiorna gli attributi name degli input per array forms
-            const inputs = row.querySelectorAll('input[name], select[name]');
-            inputs.forEach(input => {
-                const name = input.getAttribute('name');
-                if (name && name.includes('[]')) {
-                    const newName = name.replace(/\[\d+\]/, `[${index}]`);
-                    input.setAttribute('name', newName);
-                }
-            });
-        });
-    }
-}
 </script>
 
 <!-- flatpickr datetimepicker STEP 1 -->
@@ -652,7 +507,6 @@ function gestione_tabelle_step3(){
                                                 <th scope="col">Inizio periodo di validità</th>
                                                 <th scope="col">Fine periodo di validità</th>
                                                 <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
-                                                <th scope="col"></th> <!-- colonna per il bottone "+" che aggiunge una riga -->
                                                 <th scope="col"></th> <!-- colonna per alert -->
                                                 </tr>
                                             </thead>
@@ -673,10 +527,6 @@ function gestione_tabelle_step3(){
                                 <td><input type="date" class="form-control text-center inizioPeriodoValidita" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><input type="date" class="form-control text-center finePeriodoValidita" id="finePeriodoValidita" value="${finePeriodoValidita.toISOString().split("T")[0]}" onkeydown="return (event.keyCode!=13);"></td>
                                 <td class="form-floating"><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" id="input_capacita" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label for="input_capacita">Capacità reale: ${singola_capacity.capacity}</label></td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>
-                                    <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
-                                </td>
                                 <td></td>
                             </tr>
                         `;
