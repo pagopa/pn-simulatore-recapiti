@@ -402,24 +402,23 @@
 
 <!-- icona alert -->
 <script>
-   function validateRows() {
-        const rows = document.querySelectorAll('tbody tr');
+    function validateRow(row) {
+        const td = $(row).find('td');
+        const valpostalizzazione = parseInt(td.eq(2).text().trim()) || 0; // terzo campo -> postalizzazioni
+        const valcapacity = parseInt(td.eq(5).find('input').val()) || 0; // sesto campo -> capacità
+        const alertTd = td.eq(6); // colonna alert
+        alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
+        if (valpostalizzazione >= valcapacity) {
+            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità minori delle postalizzazioni"></i>');
+        }
         
-        rows.forEach(row => {
-            const cells = row.cells;
-            if (cells.length < 8) return;
-            
-            const thirdField = parseInt(cells[2].textContent) || 0;
-            const sixthFieldInput = cells[5].querySelector('input');
-            const sixthField = sixthFieldInput ? parseInt(sixthFieldInput.value) || 0 : 0;
-            
-            cells[6].innerHTML = '';
-            
-            if (thirdField < sixthField) {
-                cells[6].innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Numero di postalizzazioni maggiore della capacità"></i>';
-            }
-        });
     }
+
+    // funzione che si triggera ogni volta che viene modificata la capacità
+    $(document).on('input change', '.table-capacita tbody tr td:nth-child(6) input', function() {
+        const row = $(this).closest('tr');
+        validateRow(row);
+    });
 </script>
 
 <!-- flatpickr datetimepicker STEP 1 -->
@@ -539,6 +538,10 @@
                 content.innerHTML = content_capacita;
                 // start funzione javascript per gestione tabelle dentro ogni accordion (STEP 3)
                 inizializzazione_datepicker_flatpickr();
+                // dopo aver creato la tabella lanciamo la validateRow() su tutte le tabelle
+                $('.table-capacita tbody tr').each(function() {
+                    validateRow(this);
+                });
             },
             error: function(resp){
                 spinner.innerHTML='';
