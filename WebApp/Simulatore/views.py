@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-from django.contrib import messages
 
 from datetime import datetime
 
