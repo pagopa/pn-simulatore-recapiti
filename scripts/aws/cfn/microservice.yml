@@ -7,6 +7,16 @@ Parameters:
     Description: 'Usually pn can be pnXYZ where XYZ are the feature number, useful to create
       experimental environments without crash official development environment'
 
+  EnvironmentType:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - uat
+      - hotfix
+      - prod
+    Default: dev
+
   AlarmSNSTopicArn:
     Type: String
     Description: 'ARN of alarm topic'
@@ -27,37 +37,49 @@ Parameters:
     Type: String
     Description: 'The S3 bucket from which to fetch the templates used by this stack.'
 
-  ECSClusterName:
+  VPNECSClusterName:
     Type: String
     Description: 'The name of the ECS cluster where the microservice is going to be deployed'
 
-  VPNSubnetsIds:
+  VPNServicesSubnetsIds:
     Type: String
     Description: 'subnets ids comma separated list. Where to deploy the microservice'
+
+  VPNDefaultSecurityGroupId:
+    Type: String
+    Description: 'Default security group ID for the VPC'
 
   VPNVpcId:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
 
-  EcsDefaultSecurityGroup:
+  VPNVpcCidr:
     Type: String
-    Description: 'Default security group required by infrastructure'
+    Description: 'Source VPC CIDR block for RDS ingress rule'
 
   VPNApplicationLoadBalancerListenerArn:
     Type: String
     Description: 'Load balancer listener where HTTP endpoints is going to be registered'
 
-  VPNApplicationLoadBalancerDomain:
+  VPNWebappSecurityGroupId:
     Type: String
-    Description: 'Base URL of the load balancer where the service is going to be reachable'
-
-  NetworkLoadBalancerLink:
-    Type: String
-    Description: 'network load balancer link for API-GW'
+    Description: 'Security group ID for the web application'
 
   Version:
     Type: String
     Description: 'keep track of used projects commitIds'
+
+  RdsSimulatorPort:
+    Type: Number
+    Description: RDS Cluster Port (from storage stack)
+
+  SimulatorAlbPath:
+    Type: String
+    Default: /*
+
+  SimulatorHealthCheckPath:
+    Type: String
+    Default: /status
 
   # Autoscaling parameters
   AutoscalingCheckPeriod:
@@ -101,15 +123,6 @@ Parameters:
     Default: ''
     Description: 'Base key of the microservice in the s3 bucket'
 
-  # Logging parameters
-  WireTapLogActivation:
-    Type: String
-    Default: false
-    Description: 'Activation of wire logs'
-    AllowedValues:
-      - true
-      - false
-
   # Log group parameters
   EcsLogGroup:
     Type: String
@@ -147,6 +160,27 @@ Parameters:
   # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
   # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
   # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
+
+  SvcSimulatorUsername:
+    Description: service user Username
+    Type: String
+
+  RdsSimulatorEndpointAddress:
+    Description: RDS Cluster Writer Endpoint Address
+    Type: String
+
+  RdsSimulatorDbName:
+    Description: RDS Database Name
+    Type: String
+
+  SvcSimulatorUserSecretArn:
+    Description: ARN of the placeholder secret for service user
+    Type: String
+
+  AllowedHosts:
+    Type: String
+    Description: 'Allowed hosts for the microservice separated by comma, example .vpn.dev.notifichedigitali.it'
+
   CpuValue:
     Type: Number
     Default: 1024
@@ -163,10 +197,6 @@ Parameters:
     Description: 'memory amount reserved to the task pod.'
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
-  AlbSecurityGroup:
-    Type: String
-    Description: 'Application load balancer security group'
-
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -176,54 +206,71 @@ Resources:
         MicroServiceUniqueName: !Sub "${ProjectName}-${MicroServiceUniqueName}"
         CpuValue: !Ref CpuValue
         MemoryAmount: !Ref MemoryAmount
-
+        MappedPaths: !Ref SimulatorAlbPath
         HealthCheckTimeout: !Ref HealthCheckTimeout
         HealthCheckInterval: !Ref HealthCheckInterval
         HealthyThresholdCount: !Ref HealthyThresholdCount
         UnhealthyThresholdCount: !Ref UnhealthyThresholdCount
-
+        HealthCheckPath: !Ref SimulatorHealthCheckPath
         MinTasksNumber: !Ref MinTasksNumber
         MaxTasksNumber: !Ref MaxTasksNumber
-        #AutoscalingStrategy: SQS DA VERIFICARE
-        # AutoscalingThreshold: !Ref AutoscalingThreshold
-        # AutoscalingCheckPeriod: !Ref AutoscalingCheckPeriod
-        # AutoscalingDataPointN: !Ref AutoscalingDataPointN
-        # AutoscalingDataPointM: !Ref AutoscalingDataPointM
-
+        ContainerEnvEntry1: !Sub DB_NAME=${RdsSimulatorDbName}
+        ContainerEnvEntry2: !Sub DB_USER=${SvcSimulatorUsername}
+        ContainerEnvEntry3: !Sub DB_HOST=${RdsSimulatorEndpointAddress}
+        ContainerEnvEntry4: !Sub DB_PORT=${RdsSimulatorPort}
+        ContainerEnvEntry5: !Sub ALLOWED_HOSTS=${AllowedHosts}
+        ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
-
-        MicroServiceSecretPrefix: pn-Simulator-Secrets
-        ECSClusterName: !Ref ECSClusterName
-        Subnets: !Ref VPNSubnetsIds
+        ECSClusterName: !Ref VPNECSClusterName
+        Subnets: !Ref VPNServicesSubnetsIds
         VpcId: !Ref VPNVpcId
-        AlbSecurityGroup: !Ref AlbSecurityGroup
-        EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
+        AlbSecurityGroup: !Ref VPNWebappSecurityGroupId
+        EcsDefaultSecurityGroup: !Ref EcsSimulatorDefaultSecurityGroup
         LoadBalancerListenerArn: !Ref VPNApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
         EcsLogGroup: !Ref EcsLogGroup
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
-        WireTapLogActivation: !Ref WireTapLogActivation
-        #TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
-        ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
+        TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
+        MicroServiceSecretPrefix: pn-simulatore-recapiti-db-svc-user-credentials
 
+  EcsSimulatorDefaultSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG with specific egress for pn-simulatore-recapiti tasks
+      VpcId: !Ref VPNVpcId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: !Ref RdsSimulatorPort
+          ToPort: !Ref RdsSimulatorPort
+          DestinationSecurityGroupId: !Ref VPNWebappSecurityGroupId
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: pn-simulatore-recapiti-EcsSimulatorDefault-sg
+        - Key: Environment
+          Value: !Ref EnvironmentType
 
-  # SimulatorMicroserviceTaskManagedPolicy:
-  #   Type: AWS::IAM::ManagedPolicy
-  #   Properties:
-  #     PolicyDocument:
-  #       Version: 2012-10-17
-  #       Statement:
-  #         - Effect: Allow
-  #           Action:
-  #             - dynamodb:GetItem   DA MODIFICARE E METTERCI AURORA
-  #             - dynamodb:PutItem
-  #             - dynamodb:UpdateItem
-  #             - dynamodb:DeleteItem
-  #             - dynamodb:Query
-  #           Resource:
-  #             - !Ref PortFatDownloadTableArn
+  EcsSimulatorIngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EcsSimulatorDefaultSecurityGroup
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref EcsSimulatorDefaultSecurityGroup
 
+  SimulatorMicroserviceTaskManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowSecretManagerAccess
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref SvcSimulatorUserSecretArn
 
   # PortFatCloudWatchDashboard:   DA VERIFICARE A SEGUITO DEL DEPLOY
   #   Type: AWS::CloudFormation::Stack

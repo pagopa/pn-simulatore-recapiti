@@ -14,7 +14,7 @@ Parameters:
     Type: Number
     Default: 14
 
-  EnvType:
+  EnvironmentType:
     Type: String
     AllowedValues:
       - dev
@@ -42,24 +42,22 @@ Parameters:
   RdsSimulatorClusterIdentifierSuffix:
     Type: String
     Description: Suffix to make RDS cluster unique
-    Default: simulator-db
+    Default: simulatore-recapiti-db
   RdsSimulatorDatabaseName:
     Type: String
-    Default: simulator_db
+    Default: simulatore_recapiti_db
   RdsSimulatorMasterUsername:
     Type: String
-    Default: dbadmin
+    Default: dbsimulatorerecapitiadmin
     NoEcho: true
   RdsSimulatorSvcUsername:
     Type: String
-    Default: beyondoc_svc
+    Default: simulatore-recapiti_svc
     NoEcho: true
   RdsSimulatorEngineVersion:
     Type: String
-    Default: '17.5'
   RdsSimulatorDbClusterFamily:
     Type: String
-    Default: aurora-postgresql17
   RdsSimulatorMinACU:
     Type: Number
     Default: 0.5
@@ -97,7 +95,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
-        LogGroupName: !Sub '${ProjectName}-simulator'
+        LogGroupName: !Sub '${ProjectName}-simulatore-recapiti'
         LogGroupRetention: !Ref LogRetention
         #LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn         # serve kinesis?
 
@@ -107,7 +105,7 @@ Resources:
     Properties:
       TemplateURL: !Sub ${TemplateBucketBaseUrl}/fragments/aurora-serverless-v2-pg.yaml
       Parameters:
-        EnvType: !Ref EnvType
+        EnvType: !Ref EnvironmentType
         VpcId: !Ref VPNVpcId
         PrivateSubnets: !Join
           - ','
@@ -151,10 +149,10 @@ Outputs:
     Value: !GetAtt SimulatorAuroraDbCluster.Outputs.DBClusterResourceId
   SvcSimulatorUserSecretArn:
     Description: ARN of the placeholder secret for service user
-    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcSimulatorUserSecretArn
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcUserSecretArn
   SvcSimulatorUsername:
     Description: service user Username
-    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcSimulatorUsername
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcUsername
   RdsSimulatorClusterIdentifierSuffix:
     Description: Suffix used for RDS cluster identifier
     Value: !Ref RdsSimulatorClusterIdentifierSuffix

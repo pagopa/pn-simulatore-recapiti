@@ -1,5 +1,12 @@
 from django.urls import path
 from Simulatore.views import *
+from django.http import JsonResponse
+from django.conf import settings
+from django.conf.urls.static import static
+
+# HEALTH CHECK RESPONSE
+def status_view(request):
+    return JsonResponse({"status": "ok"}, status=200)
 
 urlpatterns = [
     path('', homepage, name='home'),
@@ -18,6 +25,8 @@ urlpatterns = [
     # AJAX
     path('get_capacita_from_mese_ajax', ajax_get_capacita_from_mese, name="ajax_get_capacita_from_mese"),
 
+    # HEALTH CHECK ALB
+    path('status', status_view, name='status'),
 ]
 
 
