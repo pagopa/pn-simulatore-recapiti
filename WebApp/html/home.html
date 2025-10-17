@@ -45,7 +45,7 @@
                                                 <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE}}</p>
                                             </div>
                                             <div class="col">
-                                                <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE}}</p>
+                                                <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</p>
                                                 <p><b>Stato</b>: {% if simulazione.STATO == 'Lavorata' %}Lavorata 🟢{% elif simulazione.STATO == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.STATO == 'Schedulata' %}Schedulata 📅{% elif simulazione.STATO == 'Non completata' %}Non completata 🔴{% endif %}</p>
                                                 {% if simulazione.STATO == 'Lavorata'%}<p><b>Durata</b>: {{simulazione.durata}}</p>{% endif %}
                                                 {% if simulazione.STATO == 'Non completata'%}<p><b>Errore</b>: {{simulazione.errore}}</p>{% endif %}
@@ -93,7 +93,7 @@
                                     </div>
                                     <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}">Rimuovi</a>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}?next={% url 'home' %}">Rimuovi</a>
                                     </div>
                                 </div>
                             </div>

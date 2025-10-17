@@ -42,7 +42,7 @@
                                     </div>
                                     <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                    <a class="btn btn-danger" href="{% url 'rimuovi_bozza' singola_bozza.ID %}">Rimuovi</a>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' singola_bozza.ID %}?next={% url 'bozze' %}">Rimuovi</a>
                                     </div>
                                 </div>
                             </div>

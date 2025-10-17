@@ -135,7 +135,7 @@
             <div class="row text-center">
                 <div class="col-4 mx-auto">
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" onchange="select_tipo_capacita_da_modificare()">
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare" onchange="select_tipo_capacita_da_modificare()">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
                         <option value="Produzione">Produzione</option>
                         <option value="Solo BAU">Solo BAU</option>
@@ -145,7 +145,7 @@
                 </div>
                 <div class="col-4 mx-auto">
                     <label for="mese_da_simulare"><b>Mese da simulare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="mese_da_simulare">
+                    <select class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi_univoci %}
                             <option value="{{singolo_mese.0}}">{{singolo_mese.1}}</option>
@@ -204,6 +204,8 @@
                                     multiStepForm = document.getElementById("multiStepForm");
                                     var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
                                     var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
+                                    // riempimento input nascosto con capacità modificate dall'utente
+                                    save_capacita_json();
                                     multiStepForm.submit();
                                 }    
                                 </script>
@@ -236,30 +238,8 @@
                 multiStepForm = document.getElementById("multiStepForm");
                 var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
                 var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
-
-                let data = {};
-
-                $('.accordion').each(function() {
-                    let gruppo = $(this).data('group');
-                    data[gruppo] = [];
-
-                    $(this).find('tbody tr').each(function() {
-                        let row = $(this);
-                        let item = {
-                            regione: row.find('td').eq(0).text().trim(),
-                            provincia: row.find('td').eq(1).text().trim(),
-                            postalizzazioni_mensili: row.find('td').eq(2).text().trim(),
-                            inizioPeriodoValidita: row.find('.inizioPeriodoValidita').val(),
-                            finePeriodoValidita: row.find('.finePeriodoValidita').val(),
-                            capacita: row.find('.input_capacita').val(),
-                        };
-                        data[gruppo].push(item);
-                    });
-                });
-
-                // riempiamo un input nascosto inserendo il json
-                $('#capacita_json').val(JSON.stringify(data));
-
+                // riempimento input nascosto con capacità modificate dall'utente
+                save_capacita_json();
                 // submit form
                 multiStepForm.submit();
             }    
@@ -566,6 +546,32 @@
         else{
             tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Now"?';
         }
+    }
+</script>
+
+<!-- Cattura tabelle output_setting_capacity per inserirla in un input nascosto in formato json  -->
+<script>
+    function save_capacita_json() {
+        let data = {};
+        $('.accordion').each(function() {
+            let gruppo = $(this).data('group');
+            data[gruppo] = [];
+
+            $(this).find('tbody tr').each(function() {
+                let row = $(this);
+                let item = {
+                    regione: row.find('td').eq(0).text().trim(),
+                    provincia: row.find('td').eq(1).text().trim(),
+                    postalizzazioni_mensili: row.find('td').eq(2).text().trim(),
+                    inizioPeriodoValidita: row.find('.inizioPeriodoValidita').val(),
+                    finePeriodoValidita: row.find('.finePeriodoValidita').val(),
+                    capacita: row.find('.input_capacita').val(),
+                };
+                data[gruppo].push(item);
+            });
+        });
+        // riempiamo un input nascosto inserendo il json
+        $('#capacita_json').val(JSON.stringify(data));
     }
 </script>
 

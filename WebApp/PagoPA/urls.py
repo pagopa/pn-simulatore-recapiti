@@ -14,7 +14,6 @@ urlpatterns = [
 
     # BOZZE
     path('bozze', bozze, name='bozze'),
-    path('rimuovi_bozza/<id_bozza>', rimuovi_bozza, name='rimuovi_bozza'),
 
     # AJAX
     path('get_capacita_from_mese_ajax', ajax_get_capacita_from_mese, name="ajax_get_capacita_from_mese"),

@@ -482,15 +482,7 @@ def bozze(request):
     context = {
         'lista_bozze': lista_bozze
     }
-    return render(request, "bozze/bozze.html", context)
-
-def rimuovi_bozza(request, id_bozza):
-	try:
-		bozza_da_rimuovere = table_simulazione.objects.get(ID=id_bozza)
-		bozza_da_rimuovere.delete()
-	except:
-		pass
-	return redirect('bozze')
+    return render(request, "simulazioni/bozze.html", context)
 
 def nuova_simulazione(request, id_simulazione):
     # NUOVA SIMULAZIONE
@@ -510,11 +502,6 @@ def nuova_simulazione(request, id_simulazione):
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
-
-    #print(request.POST)
-
-
-
 
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
@@ -539,14 +526,38 @@ def salva_simulazione(request):
             stato = 'Schedulata'
     
     # NUOVA SIMULAZIONE
-    if request.POST['id_simulazione'] == '':
-        table_simulazione.objects.create(
+    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST['id_simulazione']: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
+        id_simulazione_salvata = table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
             STATO = stato,
             TRIGGER = tipo_trigger,
             TIMESTAMP_ESECUZIONE = timestamp_esecuzione
         )
+        capacita_json = request.POST.get('capacita_json')
+        try:
+            capacita_json = json.loads(capacita_json)
+        except (TypeError, json.JSONDecodeError):
+            capacita_json = {}
+
+        print('551 -> ', capacita_json)
+        for recapitista, righe_tabella in capacita_json.items():
+            print('553 -> ', recapitista, righe_tabella)
+            for singola_riga in righe_tabella:
+                print('555 -> ', singola_riga)
+                table_capacita_modificate.objects.create(
+                    MESE_SIMULAZIONE = request.POST['mese_da_simulare'],
+                    TIPO_CAPACITA = request.POST['tipo_capacita_da_modificare'],
+                    RECAPITISTA = recapitista,
+                    REGIONE = singola_riga['regione'],
+                    PROVINCIA = singola_riga['provincia'],
+                    POSTALIZZAZIONI = singola_riga['postalizzazioni_mensili'].split(' ')[0],
+                    ACTIVATION_DATE_FROM = singola_riga['inizioPeriodoValidita'],
+                    ACTIVATION_DATE_TO = singola_riga['finePeriodoValidita'],
+                    CAPACITA = singola_riga['capacita'],
+                    SIMULAZIONE_ID = id_simulazione_salvata
+                )
+
     # MODIFICA SIMULAZIONE
     else:
         simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
@@ -563,12 +574,21 @@ def salva_simulazione(request):
         return redirect("home")
 
 def rimuovi_simulazione(request, id_simulazione):
-	try:
-		simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
-		simulazione_da_rimuovere.delete()
-	except:
-		pass
-	return redirect('home')
+    # il try-catch serve per 2 motivi: 1)evitare che .get non trovi nulla dando errore 2)evitare che .delete() non trovi nulla dando errore
+    try:
+        simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
+        try:
+            lista_capacita_modificata_da_rimuovere = table_capacita_modificate.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID)
+            for singola_capacita in lista_capacita_modificata_da_rimuovere:
+                singola_capacita.delete()
+        except:
+            pass
+        simulazione_da_rimuovere.delete()
+    except:
+        pass
+
+    next_url = request.GET.get('next', '/')  # fallback alla home
+    return redirect(next_url)
 
 
 def login_page(request):
