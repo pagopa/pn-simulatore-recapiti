@@ -540,11 +540,8 @@ def salva_simulazione(request):
         except (TypeError, json.JSONDecodeError):
             capacita_json = {}
 
-        print('551 -> ', capacita_json)
         for recapitista, righe_tabella in capacita_json.items():
-            print('553 -> ', recapitista, righe_tabella)
             for singola_riga in righe_tabella:
-                print('555 -> ', singola_riga)
                 table_capacita_modificate.objects.create(
                     MESE_SIMULAZIONE = request.POST['mese_da_simulare'],
                     TIPO_CAPACITA = request.POST['tipo_capacita_da_modificare'],
