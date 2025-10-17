@@ -526,7 +526,7 @@
                                 <td>${singola_capacity.post_weekly_estimate} (mensili: ${singola_capacity.post_original_estimate})</td>
                                 <td><input type="date" class="form-control text-center inizioPeriodoValidita" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><input type="date" class="form-control text-center finePeriodoValidita" id="finePeriodoValidita" value="${finePeriodoValidita.toISOString().split("T")[0]}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td class="form-floating"><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" id="input_capacita" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label for="input_capacita">Capacità reale: ${singola_capacity.capacity}</label></td>
+                                <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.capacity}</label></td>
                                 <td></td>
                             </tr>
                         `;
