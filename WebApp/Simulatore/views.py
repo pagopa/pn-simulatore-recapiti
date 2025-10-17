@@ -630,11 +630,11 @@ def aggiungi_dati():
     df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
     df_cap_prov_reg = pd.read_csv('./static/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
 
-    conn = psycopg2.connect(database = "db_simulatore",
-                            user = "postgres",
-                            password = "a",
-                            host = "127.0.0.1",
-                            port = "5432")
+    conn = psycopg2.connect(database = DATABASES['default']['NAME'],
+                            user = DATABASES['default']['USER'],
+                            password = DATABASES['default']['PASSWORD'],
+                            host = DATABASES['default']['HOST'],
+                            port = DATABASES['default']['PORT'])
 
     cur = conn.cursor()
 
