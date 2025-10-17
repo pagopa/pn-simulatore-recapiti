@@ -513,19 +513,13 @@
                                             <tbody class="table-group-divider text-center">
                             `;
                     resp.context[recapitista].forEach(function(singola_capacity) {
-                        // calcoliamo finePeriodoValidita: recuperiamo mese e anno da dare in pasto alla getTargetSunday
-                        delivery_date_formattata = new Date(singola_capacity.delivery_date);
-                        delivery_date_formattata = new Date(delivery_date_formattata.setMonth(delivery_date_formattata.getMonth() + 1)); // aggiungendo 1 mese perché la getMonth() parte a contare da 0 i mesi
-                        mese_corrente = delivery_date_formattata.getMonth();
-                        anno_corrente = delivery_date_formattata.getFullYear();
-                        finePeriodoValidita = getTargetSunday(anno_corrente, mese_corrente);
                         content_capacita += `
                             <tr>
                                 <td>${singola_capacity.regione}</td>
                                 <td>${singola_capacity.provincia}</td>
                                 <td>${singola_capacity.post_weekly_estimate} (mensili: ${singola_capacity.post_original_estimate})</td>
                                 <td><input type="date" class="form-control text-center inizioPeriodoValidita" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td><input type="date" class="form-control text-center finePeriodoValidita" id="finePeriodoValidita" value="${finePeriodoValidita.toISOString().split("T")[0]}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input type="date" class="form-control text-center finePeriodoValidita" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.capacity}</label></td>
                                 <td></td>
                             </tr>
@@ -556,24 +550,6 @@
 	});
 </script>
 
-<!-- funzione per recuperare la seconda domenica del mese tranne se l'ultimo giorno del mese precedente è domenica, allora sarà la prima domenica del mese -->
-<script>
-    function getTargetSunday(anno, mese) {
-        let primoGiorno = new Date(anno, mese, 1); // ricordiamo che il conteggio del mese parte da 0
-        // capiamo in che giorno capita il primo del mese (0 = Domenica, 1 = Lunedì, ...)
-        let giornoPrimo = primoGiorno.getDay()+1;
-        // se il primo giorno è Lunedì (1) prendiamo la prima domenica (che sarà il 7 ovviamente)
-        if (giornoPrimo === 1) {
-            return new Date(anno, mese, 7);
-        } else {
-            // calcoliamo la seconda domenica
-            let giorniAllaPrimaDomenica = (7 - giornoPrimo) % 7; // troviamo quanti giorni mancano alla prima domenica
-            let primaDomenica = 1 + giorniAllaPrimaDomenica;
-            let secondaDomenica = primaDomenica + 7; // aggiungiamo una settimana alla prima domenica
-            return new Date(anno, mese, secondaDomenica);
-        }
-    }
-</script>
 
 <!-- Caricamento testo per modal che appare al click sul bottone "Avvia scheduling" -->
 <script>
