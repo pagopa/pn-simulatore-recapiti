@@ -1,5 +1,4 @@
-from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
 from Simulatore.views import *
 from django.http import JsonResponse
 from django.conf import settings
@@ -10,7 +9,6 @@ def status_view(request):
     return JsonResponse({"status": "ok"}, status=200)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('', homepage, name='home'),
     path('calendario', calendario, name='calendario'),
 
@@ -23,15 +21,9 @@ urlpatterns = [
 
     # BOZZE
     path('bozze', bozze, name='bozze'),
-    path('rimuovi_bozza/<id_bozza>', rimuovi_bozza, name='rimuovi_bozza'),
 
     # AJAX
     path('get_capacita_from_mese_ajax', ajax_get_capacita_from_mese, name="ajax_get_capacita_from_mese"),
-
-    # LOGIN
-    path('login_page', login_page, name='login_page'),
-    path('login_users/', include('django.contrib.auth.urls')),
-    path('login_users/', include('Simulatore.urls')),
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),

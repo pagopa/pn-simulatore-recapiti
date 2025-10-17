@@ -10,7 +10,6 @@
         <tr>
             <th style="text-align:center;">Timestamp di scheduling</th>
             <th style="text-align:center;">Nome simulazione</th>
-            <th style="text-align:center;">Utente</th>
             <th style="text-align:center;">Descrizione</th>
             <th style="text-align:center;">Azioni</th>
         </tr>
@@ -20,7 +19,6 @@
             <tr>
                 <td style="text-align:center;">{{singola_bozza.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
                 <td style="text-align:center;">{{singola_bozza.NOME}}</td>
-                <td style="text-align:center;">{{singola_bozza.UTENTE_ID.username}}</td>
                 <td style="text-align:center;">{{singola_bozza.DESCRIZIONE}}</td>
                 <td>
                     <!-- Modifica bozza --> 
@@ -44,7 +42,7 @@
                                     </div>
                                     <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                    <a class="btn btn-danger" href="{% url 'rimuovi_bozza' singola_bozza.ID %}">Rimuovi</a>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' singola_bozza.ID %}?next={% url 'bozze' %}">Rimuovi</a>
                                     </div>
                                 </div>
                             </div>
@@ -98,8 +96,22 @@
                 type:'date'
             },
             {
-                targets: [1,2,3],
+                // colonna nome
+                targets: 1,
                 columnControl: ['order', ['search']],
+            },
+            {
+                // colonna descrizione
+                targets: 2,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        // mostriamo solo i primi 20 caratteri
+                        return data.length > 20 ? data.substr(0, 20) + '…' : data;
+                    }
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 20 caratteri
+                    return data;
+                }
             },
             { // rimuoviamo ordinamento e filtri sull'ultima colonna
                 targets: -1,        
@@ -122,7 +134,7 @@
                         title: 'Simulazioni_'+currentDate,
                         className: 'btn btn-sm btn-primary',
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     },
 					{
@@ -132,7 +144,7 @@
 						className: 'btn btn-sm btn-primary',
 						filename: 'Simulazioni_'+currentDate,
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
 					},
                     {
@@ -141,7 +153,7 @@
                         className: 'btn btn-sm btn-primary',
 						filename: 'Simulazioni_'+currentDate,
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     },
                     {
@@ -150,7 +162,7 @@
                         className: 'btn btn-sm btn-primary',
 						filename: 'Simulazioni_'+currentDate,
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     },
                     {
@@ -158,7 +170,7 @@
                         title: 'Simulazioni_'+currentDate,
                         className: 'btn btn-sm btn-primary',
                         exportOptions: {
-                            columns: [0,1,2,3]
+                            columns: [0,1,2]
                         }
                     }
 				],

@@ -8,9 +8,6 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import messages
 
 from datetime import datetime
 
@@ -22,11 +19,15 @@ import locale
 
 from django.http import JsonResponse
 
+import psycopg2
+
 locale.setlocale(locale.LC_ALL, 'it_IT')
 
 
-@login_required(login_url='login')
 def homepage(request):
+    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
+    aggiungi_dati()
+    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
 
     context = {
@@ -35,7 +36,6 @@ def homepage(request):
     return render(request, "home.html", context)
 
 
-@login_required(login_url='login')
 def risultati(request, id_simulazione):
 
     enti = [
@@ -254,7 +254,6 @@ def risultati(request, id_simulazione):
     return render(request, "simulazioni/risultati.html", context)
 
 
-@login_required(login_url='login')
 def confronto_risultati(request, id_simulazione):
     enti = [
     "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
@@ -474,29 +473,17 @@ def confronto_risultati(request, id_simulazione):
     }
     return render(request, "simulazioni/confronto_risultati.html", context)
 
-@login_required(login_url='login')
 def calendario(request):
     return render(request, "calendario/calendario.html")
 
-@login_required(login_url='login')
 def bozze(request):
     lista_bozze = table_simulazione.objects.filter(STATO='Bozza')
 
     context = {
         'lista_bozze': lista_bozze
     }
-    return render(request, "bozze/bozze.html", context)
+    return render(request, "simulazioni/bozze.html", context)
 
-@login_required
-def rimuovi_bozza(request, id_bozza):
-	try:
-		bozza_da_rimuovere = table_simulazione.objects.get(ID=id_bozza)
-		bozza_da_rimuovere.delete()
-	except:
-		pass
-	return redirect('bozze')
-
-@login_required(login_url='login')
 def nuova_simulazione(request, id_simulazione):
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new':
@@ -514,9 +501,7 @@ def nuova_simulazione(request, id_simulazione):
         }
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
-@login_required(login_url='login')
 def salva_simulazione(request):
-    utente_id = CustomUser.objects.get(username=request.user)
 
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
@@ -541,21 +526,40 @@ def salva_simulazione(request):
             stato = 'Schedulata'
     
     # NUOVA SIMULAZIONE
-    if request.POST['id_simulazione'] == '':
-        table_simulazione.objects.create(
+    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST['id_simulazione']: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
+        id_simulazione_salvata = table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
-            UTENTE_ID = utente_id,
             STATO = stato,
             TRIGGER = tipo_trigger,
             TIMESTAMP_ESECUZIONE = timestamp_esecuzione
         )
+        capacita_json = request.POST.get('capacita_json')
+        try:
+            capacita_json = json.loads(capacita_json)
+        except (TypeError, json.JSONDecodeError):
+            capacita_json = {}
+
+        for recapitista, righe_tabella in capacita_json.items():
+            for singola_riga in righe_tabella:
+                table_capacita_modificate.objects.create(
+                    MESE_SIMULAZIONE = request.POST['mese_da_simulare'],
+                    TIPO_CAPACITA = request.POST['tipo_capacita_da_modificare'],
+                    RECAPITISTA = recapitista,
+                    REGIONE = singola_riga['regione'],
+                    PROVINCIA = singola_riga['provincia'],
+                    POSTALIZZAZIONI = singola_riga['postalizzazioni_mensili'].split(' ')[0],
+                    ACTIVATION_DATE_FROM = singola_riga['inizioPeriodoValidita'],
+                    ACTIVATION_DATE_TO = singola_riga['finePeriodoValidita'],
+                    CAPACITA = singola_riga['capacita'],
+                    SIMULAZIONE_ID = id_simulazione_salvata
+                )
+
     # MODIFICA SIMULAZIONE
     else:
         simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
         simulazione_da_modificare.NOME = nome_simulazione
         simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
-        simulazione_da_modificare.UTENTE_ID = utente_id
         simulazione_da_modificare.STATO = stato
         simulazione_da_modificare.TRIGGER = tipo_trigger
         simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
@@ -566,14 +570,22 @@ def salva_simulazione(request):
     elif request.POST['stato'] == 'Schedulata-Inlavorazione':
         return redirect("home")
 
-@login_required
 def rimuovi_simulazione(request, id_simulazione):
-	try:
-		simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
-		simulazione_da_rimuovere.delete()
-	except:
-		pass
-	return redirect('home')
+    # il try-catch serve per 2 motivi: 1)evitare che .get non trovi nulla dando errore 2)evitare che .delete() non trovi nulla dando errore
+    try:
+        simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
+        try:
+            lista_capacita_modificata_da_rimuovere = table_capacita_modificate.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID)
+            for singola_capacita in lista_capacita_modificata_da_rimuovere:
+                singola_capacita.delete()
+        except:
+            pass
+        simulazione_da_rimuovere.delete()
+    except:
+        pass
+
+    next_url = request.GET.get('next', '/')  # fallback alla home
+    return redirect(next_url)
 
 
 def login_page(request):
@@ -613,24 +625,47 @@ def ajax_get_capacita_from_mese(request):
 
 
 
-# AUTENTICAZIONE
-def login_user(request):
-	if request.method == "POST":
-		username = request.POST['username']
-		password = request.POST['password']
-		user = authenticate(request, username=username, password=password)
-		if user is not None:
-			login(request, user)
-			return redirect('home')
-		else:
-			messages.success(request, ("There Was An Error Logging In, Try Again..."))	
-			return redirect('login_page')
-	else:
-		return render(request, 'login_page.html', {})
-def logout_user(request):
-	logout(request)
-	messages.success(request, ("You Were Logged Out!"))
-	return redirect('home')
+def aggiungi_dati():
+    df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str)
+    df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('./static/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
+
+    conn = psycopg2.connect(database = "db_simulatore",
+                            user = "postgres",
+                            password = "a",
+                            host = "127.0.0.1",
+                            port = "5432")
+
+    cur = conn.cursor()
+
+
+
+    cur.execute('select count(*) from public."DECLARED_CAPACITY"')
+    count_declared_capacity = cur.fetchone()
+    if count_declared_capacity[0] == 0:
+        for i in range(0 ,len(df_declared_capacity)):
+            values_capacity = (df_declared_capacity['unifiedDeliveryDriverGeokey'][i], df_declared_capacity['deliveryDate'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['usedCapacity'][i], df_declared_capacity['capacity'][i])
+            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("UNIFIEDDELIVERYDRIVERGEOKEY","DELIVERYDATE","GEOKEY","UNIFIEDDELIVERYDRIVER","USEDCAPACITY","CAPACITY") VALUES (%s, %s, %s, %s, %s, %s)',
+                        values_capacity)
+    
+    cur.execute('select count(*) from public."SENDER_LIMIT"')
+    count_sender_limit = cur.fetchone()
+    if count_sender_limit[0] == 0:
+        for i in range(0 ,len(df_sender_limit)):
+            values_senderlimit = (df_sender_limit['pk'][i], df_sender_limit['deliveryDate'][i], df_sender_limit['weeklyEstimate'][i], df_sender_limit['monthlyEstimate'][i], df_sender_limit['originalEstimate'][i], df_sender_limit['paId'][i], df_sender_limit['productType'][i], df_sender_limit['province'][i])
+            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERYDATE","WEEKLYESTIMATE","MONTHLYESTIMATE","ORIGINALESTIMATE","PAID","PRODUCTTYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+                        values_senderlimit)
+
+    cur.execute('select count(*) from public."CAP_PROV_REG"')
+    count_cap_prov_reg = cur.fetchone()
+    if count_cap_prov_reg[0] == 0:
+        for i in range(0 ,len(df_cap_prov_reg)):
+            values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['DescrMacroregione'][i])
+            cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","CODSIGLAPROVINCIA","DESCRMACROREGIONE") VALUES (%s, %s, %s, %s, %s)',
+                        values_capprovreg)
+
+    conn.commit()
+    conn.close()
 
 
 
