@@ -171,6 +171,8 @@
             <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_get_capacita_from_mese' %}></span>
 
             <br><br><br><br>
+            <!-- Campo nascosto per contenere il JSON -->
+            <input type="hidden" name="capacita_json" id="capacita_json">
 
             <!-- bottoni indietro-salva-avvia -->
             <div class="row text-center">
@@ -234,6 +236,31 @@
                 multiStepForm = document.getElementById("multiStepForm");
                 var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
                 var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
+
+                let data = {};
+
+                $('.accordion').each(function() {
+                    let gruppo = $(this).data('group');
+                    data[gruppo] = [];
+
+                    $(this).find('tbody tr').each(function() {
+                        let row = $(this);
+                        let item = {
+                            regione: row.find('td').eq(0).text().trim(),
+                            provincia: row.find('td').eq(1).text().trim(),
+                            postalizzazioni_mensili: row.find('td').eq(2).text().trim(),
+                            inizioPeriodoValidita: row.find('.inizioPeriodoValidita').val(),
+                            finePeriodoValidita: row.find('.finePeriodoValidita').val(),
+                            capacita: row.find('.input_capacita').val(),
+                        };
+                        data[gruppo].push(item);
+                    });
+                });
+
+                // riempiamo un input nascosto inserendo il json
+                $('#capacita_json').val(JSON.stringify(data));
+
+                // submit form
                 multiStepForm.submit();
             }    
             </script>
@@ -607,16 +634,16 @@ function gestione_tabelle_step3(){
                 var counter = 0;
                 for (var recapitista in resp.context){
                     content_capacita += `
-                        <div class="accordion">
+                        <div class="accordion" data-group="${recapitista}">
                             <div class="accordion-item">
-                                <h2 class="accordion-header" id="heading{{ forloop.counter }}stato_barcodescanner'+counter1+'">
+                                <h2 class="accordion-header">
                                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#${counter}" aria-expanded="true" aria-controls="${counter}">
                                         <b>RECAPITISTA: ${recapitista}</b>
                                     </button>
                                 </h2>
                                 <div id="${counter}" class="accordion-collapse collapse">
                                     <div class="accordion-body table-responsive">
-                                        <table class="table table-hover">
+                                        <table class="table table-hover table-capacita">
                                             <thead class="text-center">
                                                 <tr>
                                                 <th scope="col">Regione</th>
@@ -643,9 +670,9 @@ function gestione_tabelle_step3(){
                                 <td>${singola_capacity.regione}</td>
                                 <td>${singola_capacity.provincia}</td>
                                 <td>${singola_capacity.post_original_estimate} (sett: ${singola_capacity.post_weekly_estimate})</td>
-                                <td><input name="inizio_periodo" type="date" class="form-control text-center" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td><input name="fine_periodo" type="date" class="form-control text-center" id="finePeriodoValidita" value="${finePeriodoValidita.toISOString().split("T")[0]}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td class="form-floating"><input name="capacita_settimanale" class="form-control text-center" autocomplete="off" type="number" step="1" min="0" id="floatingInput" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label for="floatingInput">Capacità reale: ${singola_capacity.capacity}</label></td>
+                                <td><input type="date" class="form-control text-center inizioPeriodoValidita" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td><input type="date" class="form-control text-center finePeriodoValidita" id="finePeriodoValidita" value="${finePeriodoValidita.toISOString().split("T")[0]}" onkeydown="return (event.keyCode!=13);"></td>
+                                <td class="form-floating"><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" id="input_capacita" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label for="input_capacita">Capacità reale: ${singola_capacity.capacity}</label></td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-success add-row" title="Aggiungi nuova capacità">+</button>
                                     <button class="btn btn-sm btn-outline-danger remove-row" title="Rimuovi capacità">-</button>
@@ -713,4 +740,5 @@ function gestione_tabelle_step3(){
         }
     }
 </script>
+
 {% endblock %}
