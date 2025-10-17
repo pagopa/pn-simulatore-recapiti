@@ -648,7 +648,7 @@ function gestione_tabelle_step3(){
                                                 <tr>
                                                 <th scope="col">Regione</th>
                                                 <th scope="col">Provincia</th>
-                                                <th scope="col">Numero di post. mensili</th>
+                                                <th scope="col">Numero di post. settimanali</th>
                                                 <th scope="col">Inizio periodo di validità</th>
                                                 <th scope="col">Fine periodo di validità</th>
                                                 <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
@@ -669,7 +669,7 @@ function gestione_tabelle_step3(){
                             <tr>
                                 <td>${singola_capacity.regione}</td>
                                 <td>${singola_capacity.provincia}</td>
-                                <td>${singola_capacity.post_original_estimate} (sett: ${singola_capacity.post_weekly_estimate})</td>
+                                <td>${singola_capacity.post_weekly_estimate} (mensili: ${singola_capacity.post_original_estimate})</td>
                                 <td><input type="date" class="form-control text-center inizioPeriodoValidita" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
                                 <td><input type="date" class="form-control text-center finePeriodoValidita" id="finePeriodoValidita" value="${finePeriodoValidita.toISOString().split("T")[0]}" onkeydown="return (event.keyCode!=13);"></td>
                                 <td class="form-floating"><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" id="input_capacita" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label for="input_capacita">Capacità reale: ${singola_capacity.capacity}</label></td>
