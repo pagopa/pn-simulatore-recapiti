@@ -25,7 +25,7 @@
         <div class="card p-4">
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label">Nome simulazione</label>
+                    <label class="form-label"><b>Nome simulazione *</b></label>
                 </div>
                 <div class="col-auto w-50">
                     <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione.NOME}}" required>
@@ -34,7 +34,7 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label">Descrizione</label>
+                    <label class="form-label"><b>Descrizione</b></label>
                 </div>
                 <div class="col-auto w-50">
                     <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione.DESCRIZIONE|default_if_none:''}}</textarea>
@@ -43,7 +43,7 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
+                    <label class="form-label"><b>Data-ora pianificazione *</b>&nbsp;&nbsp;</label>
                 </div>
                 <div class="col-auto">
                     <!-- Radio Schedule -->
@@ -132,7 +132,7 @@
             <br>
             <div class="row text-center">
                 <div class="col-4 mx-auto">
-                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
+                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare *</b></label>
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
                         <option disabled value="Produzione">Produzione</option>
@@ -142,7 +142,7 @@
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
-                    <label for="mese_da_simulare"><b>Mese da simulare</b></label>
+                    <label for="mese_da_simulare"><b>Mese da simulare *</b></label>
                     <select class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi_univoci %}
@@ -457,8 +457,12 @@
 <!-- jQuery/Ajax per accordion output_capacity_setting -->
 <script>
     function load_tabella_capacita_with_ajax() {
-        var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
         var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
+        var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
+        // è obbligatorio selezionare sia il tipo di capacità che il mese da simulare
+        if (mese_da_simulare_selezionato == '' || tipo_capacita_selezionata == ''){
+            return;
+        }
         var content = document.getElementById('capacita_recuperate_da_db');
         // puliamo lo spazio dove andremo ad iniettare il codice html
         content.innerHTML='';
