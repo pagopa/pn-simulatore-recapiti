@@ -89,12 +89,13 @@ class table_cap_prov_reg(models.Model):
 
 
 # VISTA output_capacity_setting
-class table_output_capacity_setting(pg.View):
+class view_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     CAPACITY = models.IntegerField(null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)

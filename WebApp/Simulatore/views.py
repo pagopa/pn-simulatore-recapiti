@@ -274,7 +274,7 @@ def nuova_simulazione(request, id_simulazione):
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new':
         # Mese da simulare
-        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
+        lista_mesi_univoci = view_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
         lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
         context = {
              'lista_mesi_univoci': lista_mesi_univoci
@@ -380,9 +380,10 @@ def login_page(request):
 # AJAX
 def ajax_get_capacita_from_mese(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
+    tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
     if request.accepts:
         # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
+        lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
             recapitista = item['UNIFIED_DELIVERY_DRIVER']
@@ -390,7 +391,10 @@ def ajax_get_capacita_from_mese(request):
             provincia = item['PROVINCE']
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
-            capacity = item['CAPACITY']
+            if tipo_capacita_selezionata=='Solo BAU':
+                capacity = item['CAPACITY']
+            elif tipo_capacita_selezionata=='Solo picco':
+                capacity = item['PEAK_CAPACITY']
             activation_date_from = item['ACTIVATION_DATE_FROM']
             activation_date_to = item['ACTIVATION_DATE_TO']
             # PRODUCT TYPE: boolean, valori True/False

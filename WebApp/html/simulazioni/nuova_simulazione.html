@@ -129,18 +129,16 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
-
             <br>
-
             <div class="row text-center">
                 <div class="col-4 mx-auto">
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare" onchange="select_tipo_capacita_da_modificare()">
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
-                        <option value="Produzione">Produzione</option>
+                        <option disabled value="Produzione">Produzione</option>
                         <option value="Solo BAU">Solo BAU</option>
                         <option value="Solo picco">Solo picco</option>
-                        <option value="BAU e picco combinate">BAU e picco combinate</option>
+                        <option disabled value="BAU e picco combinate">BAU e picco combinate</option>
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
@@ -163,6 +161,13 @@
                     </div>
                 </div>
             </div>
+            <div class="row text-center">
+                <div class="col-8 mx-auto">
+                    <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax()">Carica tabelle capacità</button>
+                </div>
+                <div class="col-4 mx-auto">
+                </div>
+            </div>
 
             <br>
 
@@ -183,7 +188,7 @@
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()">Avvia scheduling 📅</button>
+                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" id="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()" class="disabled" disabled>Avvia scheduling 📅</button>
                     <!--MODAL PER IL BOTTONE AVVIA SCHEDULING-->
                     <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
                         <div class="modal-dialog" role="document">
@@ -369,7 +374,7 @@
     });
 </script>
 
-<!-- cattura il valore della select select_tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale' -->
+<!-- cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale' -->
 <script>
     function select_tipo_capacita_da_modificare() {
         d = document.getElementById("tipo_capacita_da_modificare").value;
@@ -451,9 +456,9 @@
 
 <!-- jQuery/Ajax per accordion output_capacity_setting -->
 <script>
-    var select_mese_da_simulare = document.querySelector('#mese_da_simulare');
-    select_mese_da_simulare.addEventListener('change',function(){
-        var mese_da_simulare_selezionato = select_mese_da_simulare.value;
+    function load_tabella_capacita_with_ajax() {
+        var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
+        var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         var content = document.getElementById('capacita_recuperate_da_db');
         // puliamo lo spazio dove andremo ad iniettare il codice html
         content.innerHTML='';
@@ -463,7 +468,7 @@
         $.ajax({
             url: $('.capacita_recuperate_da_db').data('url'),
             type: 'GET',
-            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato},
+            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata},
             success: function(resp){
                 var counter = 0;
                 for (var recapitista in resp.context){
@@ -524,6 +529,10 @@
                 $('.table-capacita tbody tr').each(function() {
                     validateRow(this);
                 });
+                // cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale'
+                select_tipo_capacita_da_modificare();
+                // abilitiamo il tasto "Avvia Scheduling"
+                $('#avvia_scheduling').prop('disabled', false);
             },
             error: function(resp){
                 spinner.innerHTML='';
@@ -532,7 +541,7 @@
                 spinner.innerHTML='';
             }
         });
-	});
+	}
 </script>
 
 
