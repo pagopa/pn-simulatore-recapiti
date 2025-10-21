@@ -25,19 +25,16 @@ class table_simulazione(models.Model):
 
 class table_capacita_modificate(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     CAPACITY = models.IntegerField(null=True)
-    GEOKEY = models.CharField(max_length=5, null=True)
-    TENDERIDGEOKEY = models.CharField(max_length=11, null=True)
-    PRODUCT_890 = models.BooleanField(null=True)
-    PRODUCT_AR = models.BooleanField(null=True)
-    PRODUCT_RS = models.BooleanField(null=True)
-    TENDERID = models.CharField(max_length=8, null=True)
-    UNIFIEDDELIVERYDRIVER = models.CharField(max_length=80, null=True)
-    CREATEDAT = NaiveDateTimeField(null=True)
-    PEAKCAPACITY = models.IntegerField(null=True)
-    ACTIVATIONDATEFROM = NaiveDateTimeField(null=True)
-    ACTIVATIONDATETO = NaiveDateTimeField(null=True)
-    PK = models.CharField(max_length=100, null=True)
+    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
+    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_MODIFICATE'
@@ -47,16 +44,16 @@ class table_declared_capacity(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     CAPACITY = models.IntegerField(null=True)
     GEOKEY = models.CharField(max_length=5, null=True)
-    TENDERIDGEOKEY = models.CharField(max_length=11, null=True)
+    TENDER_ID_GEOKEY = models.CharField(max_length=11, null=True)
     PRODUCT_890 = models.BooleanField(null=True)
     PRODUCT_AR = models.BooleanField(null=True)
     PRODUCT_RS = models.BooleanField(null=True)
     TENDERID = models.CharField(max_length=8, null=True)
-    UNIFIEDDELIVERYDRIVER = models.CharField(max_length=80, null=True)
-    CREATEDAT = NaiveDateTimeField(null=True)
-    PEAKCAPACITY = models.IntegerField(null=True)
-    ACTIVATIONDATEFROM = NaiveDateTimeField(null=True)
-    ACTIVATIONDATETO = NaiveDateTimeField(null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    CREATED_AT = NaiveDateTimeField(null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     PK = models.CharField(max_length=100, null=True)
     class Meta:
         db_table = 'DECLARED_CAPACITY'
@@ -65,12 +62,12 @@ class table_declared_capacity(models.Model):
 class table_sender_limit(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     PK = models.CharField(max_length=80, null=True)
-    DELIVERYDATE = models.DateField(null=True)
-    WEEKLYESTIMATE = models.IntegerField(null=True)
-    MONTHLYESTIMATE = models.IntegerField(null=True)
-    ORIGINALESTIMATE = models.IntegerField(null=True)
-    PAID = models.CharField(max_length=80, null=True)
-    PRODUCTTYPE = models.CharField(max_length=3, null=True)
+    DELIVERY_DATE = models.DateField(null=True)
+    WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    ORIGINAL_ESTIMATE = models.IntegerField(null=True)
+    PA_ID = models.CharField(max_length=80, null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
     class Meta:
         db_table = 'SENDER_LIMIT'
@@ -89,14 +86,15 @@ class table_cap_prov_reg(models.Model):
 
 
 # VISTA output_capacity_setting
-class table_output_capacity_setting(pg.View):
+class view_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)
-    UNIFIEDDELIVERYDRIVER = models.CharField(max_length=80, null=True)
-    ACTIVATIONDATEFROM = NaiveDateTimeField(null=True)
-    ACTIVATIONDATETO = NaiveDateTimeField(null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     CAPACITY = models.IntegerField(null=True)
-    SUM_WEEKLYESTIMATE = models.IntegerField(null=True)
-    SUM_MONTHLYESTIMATE = models.IntegerField(null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
+    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
     PRODUCT_890 = models.BooleanField(max_length=5, null=True)
@@ -105,15 +103,15 @@ class table_output_capacity_setting(pg.View):
 
     sql = """
     WITH "SENDERLIMIT_BY_MONTH" AS (
-		SELECT DISTINCT ON ("PAID","PRODUCTTYPE",EXTRACT(MONTH FROM "DELIVERYDATE"),"PROVINCE")
-			EXTRACT(MONTH FROM "DELIVERYDATE") AS "MONTH_DELIVERY", "WEEKLYESTIMATE", "MONTHLYESTIMATE", "PAID", "PRODUCTTYPE", "PROVINCE"
+		SELECT DISTINCT ON ("PA_ID","PRODUCT_TYPE",EXTRACT(MONTH FROM "DELIVERY_DATE"),"PROVINCE")
+			EXTRACT(MONTH FROM "DELIVERY_DATE") AS "MONTH_DELIVERY", "WEEKLY_ESTIMATE", "MONTHLY_ESTIMATE", "PA_ID", "PRODUCT_TYPE", "PROVINCE"
 		FROM public."SENDER_LIMIT" 
-		ORDER BY "PAID", "MONTH_DELIVERY"
+		ORDER BY "PA_ID", "MONTH_DELIVERY"
 	),
 	"SUM_SENDERLIMIT_BY_MONTH" AS (
-		SELECT "MONTH_DELIVERY", "PRODUCTTYPE", "PROVINCE", SUM("WEEKLYESTIMATE") AS "SUM_WEEKLYESTIMATE", SUM("MONTHLYESTIMATE") AS "SUM_MONTHLYESTIMATE" 
+		SELECT "MONTH_DELIVERY", "PRODUCT_TYPE", "PROVINCE", SUM("WEEKLY_ESTIMATE") AS "SUM_WEEKLY_ESTIMATE", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE" 
 		FROM "SENDERLIMIT_BY_MONTH" 
-		GROUP BY "MONTH_DELIVERY", "PRODUCTTYPE", "PROVINCE"
+		GROUP BY "MONTH_DELIVERY", "PRODUCT_TYPE", "PROVINCE"
 	),
 	"PROV_REG" AS (
 		SELECT DISTINCT ON ("COD_SIGLA_PROVINCIA") "PROVINCIA","REGIONE","COD_SIGLA_PROVINCIA"
@@ -122,15 +120,16 @@ class table_output_capacity_setting(pg.View):
 	),
 	"FILTERED_CAPACITY_BY_PRODUCT" AS (
 	    SELECT
-	        public."DECLARED_CAPACITY"."UNIFIEDDELIVERYDRIVER", 
-	        public."DECLARED_CAPACITY"."ACTIVATIONDATEFROM", 
-			public."DECLARED_CAPACITY"."ACTIVATIONDATETO", 
+	        public."DECLARED_CAPACITY"."UNIFIED_DELIVERY_DRIVER", 
+	        public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM", 
+			public."DECLARED_CAPACITY"."ACTIVATION_DATE_TO", 
 	        public."DECLARED_CAPACITY"."CAPACITY", 
-	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_WEEKLYESTIMATE", 
-	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_MONTHLYESTIMATE", 
+            public."DECLARED_CAPACITY"."PEAK_CAPACITY",
+	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_WEEKLY_ESTIMATE", 
+	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_MONTHLY_ESTIMATE", 
 	        "PROV_REG"."REGIONE", 
 	        "SUM_SENDERLIMIT_BY_MONTH"."PROVINCE",
-			"SUM_SENDERLIMIT_BY_MONTH"."PRODUCTTYPE",
+			"SUM_SENDERLIMIT_BY_MONTH"."PRODUCT_TYPE",
 			public."DECLARED_CAPACITY"."PRODUCT_890",
 			public."DECLARED_CAPACITY"."PRODUCT_AR",
 			"SUM_SENDERLIMIT_BY_MONTH"."MONTH_DELIVERY"
@@ -139,25 +138,26 @@ class table_output_capacity_setting(pg.View):
 	        ON "PROV_REG"."COD_SIGLA_PROVINCIA" = public."DECLARED_CAPACITY"."GEOKEY"
 	    INNER JOIN "SUM_SENDERLIMIT_BY_MONTH"
 	        ON "PROV_REG"."COD_SIGLA_PROVINCIA" = "SUM_SENDERLIMIT_BY_MONTH"."PROVINCE"
-	        AND EXTRACT(MONTH FROM public."DECLARED_CAPACITY"."ACTIVATIONDATEFROM") = "SUM_SENDERLIMIT_BY_MONTH"."MONTH_DELIVERY"
-		WHERE ("SUM_SENDERLIMIT_BY_MONTH"."PRODUCTTYPE"='890' AND public."DECLARED_CAPACITY"."PRODUCT_890"=true)
-			OR ("SUM_SENDERLIMIT_BY_MONTH"."PRODUCTTYPE"='AR' AND public."DECLARED_CAPACITY"."PRODUCT_AR"=true)
+	        AND EXTRACT(MONTH FROM public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM") = "SUM_SENDERLIMIT_BY_MONTH"."MONTH_DELIVERY"
+		WHERE ("SUM_SENDERLIMIT_BY_MONTH"."PRODUCT_TYPE"='890' AND public."DECLARED_CAPACITY"."PRODUCT_890"=true)
+			OR ("SUM_SENDERLIMIT_BY_MONTH"."PRODUCT_TYPE"='AR' AND public."DECLARED_CAPACITY"."PRODUCT_AR"=true)
 	)
 	SELECT 
         ROW_NUMBER() OVER () AS id,  
-		"UNIFIEDDELIVERYDRIVER",
-		"ACTIVATIONDATEFROM",
-		"ACTIVATIONDATETO",
+		"UNIFIED_DELIVERY_DRIVER",
+		"ACTIVATION_DATE_FROM",
+		"ACTIVATION_DATE_TO",
 		"CAPACITY",
-		SUM("SUM_WEEKLYESTIMATE") AS "SUM_WEEKLYESTIMATE",
-		SUM("SUM_MONTHLYESTIMATE") AS "SUM_MONTHLYESTIMATE",
+        "PEAK_CAPACITY",
+		SUM("SUM_WEEKLY_ESTIMATE") AS "SUM_WEEKLY_ESTIMATE",
+		SUM("SUM_MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE",
 		"REGIONE",
 		"PROVINCE",
 		"PRODUCT_890",
 		"PRODUCT_AR",
 		"MONTH_DELIVERY"
 	FROM "FILTERED_CAPACITY_BY_PRODUCT"
-	GROUP BY "UNIFIEDDELIVERYDRIVER","PROVINCE","MONTH_DELIVERY","ACTIVATIONDATEFROM","ACTIVATIONDATETO","CAPACITY","REGIONE","PRODUCT_890","PRODUCT_AR"
+	GROUP BY "UNIFIED_DELIVERY_DRIVER","PROVINCE","MONTH_DELIVERY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","PEAK_CAPACITY","REGIONE","PRODUCT_890","PRODUCT_AR"
     """
 
     class Meta:

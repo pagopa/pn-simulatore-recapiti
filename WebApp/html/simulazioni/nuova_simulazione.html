@@ -25,7 +25,7 @@
         <div class="card p-4">
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label">Nome simulazione</label>
+                    <label class="form-label"><b>Nome simulazione *</b></label>
                 </div>
                 <div class="col-auto w-50">
                     <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione.NOME}}" required>
@@ -34,7 +34,7 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label">Descrizione</label>
+                    <label class="form-label"><b>Descrizione</b></label>
                 </div>
                 <div class="col-auto w-50">
                     <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione.DESCRIZIONE|default_if_none:''}}</textarea>
@@ -43,7 +43,7 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label">Data-ora pianificazione: &nbsp;&nbsp;</label>
+                    <label class="form-label"><b>Data-ora pianificazione *</b>&nbsp;&nbsp;</label>
                 </div>
                 <div class="col-auto">
                     <!-- Radio Schedule -->
@@ -129,22 +129,20 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
-
             <br>
-
             <div class="row text-center">
                 <div class="col-4 mx-auto">
-                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare" onchange="select_tipo_capacita_da_modificare()">
+                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare *</b></label>
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
-                        <option value="Produzione">Produzione</option>
+                        <option disabled value="Produzione">Produzione</option>
                         <option value="Solo BAU">Solo BAU</option>
                         <option value="Solo picco">Solo picco</option>
-                        <option value="BAU e picco combinate">BAU e picco combinate</option>
+                        <option disabled value="BAU e picco combinate">BAU e picco combinate</option>
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
-                    <label for="mese_da_simulare"><b>Mese da simulare</b></label>
+                    <label for="mese_da_simulare"><b>Mese da simulare *</b></label>
                     <select class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi_univoci %}
@@ -161,6 +159,13 @@
                         <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
                         <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
                     </div>
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-8 mx-auto">
+                    <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax()">Carica tabelle capacità</button>
+                </div>
+                <div class="col-4 mx-auto">
                 </div>
             </div>
 
@@ -183,7 +188,7 @@
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()">Avvia scheduling 📅</button>
+                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" id="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()" class="disabled" disabled>Avvia scheduling 📅</button>
                     <!--MODAL PER IL BOTTONE AVVIA SCHEDULING-->
                     <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
                         <div class="modal-dialog" role="document">
@@ -369,7 +374,7 @@
     });
 </script>
 
-<!-- cattura il valore della select select_tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale' -->
+<!-- cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale' -->
 <script>
     function select_tipo_capacita_da_modificare() {
         d = document.getElementById("tipo_capacita_da_modificare").value;
@@ -391,7 +396,6 @@
         if (valpostalizzazione >= valcapacity) {
             alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità minori delle postalizzazioni"></i>');
         }
-        
     }
 
     // funzione che si triggera ogni volta che viene modificata la capacità
@@ -418,42 +422,15 @@
     });
 </script>
 
-<!-- flatpickr per vincoli datepicker STEP 3: l'inizializzazione dei calendari datepicker (flatpickr) dev'essere fatta solo dopo aver caricato l'input con il relativo id -->
- <script>
-    function inizializzazione_datepicker_flatpickr(){
-        flatpickr("#inizioPeriodoValidita", {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            disable: [
-                function(date) {
-                    // abilitiamo solo i lunedì (1)
-                    return !(date.getDay() === 1);
-                }
-            ],
-        });
-
-        flatpickr("#finePeriodoValidita", {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            disable: [
-                function(date) {
-                    // abilitiamo solo le domeniche (0)
-                    return !(date.getDay() === 0);
-                }
-            ],
-        });
-    }
-</script>
-
 <!-- jQuery/Ajax per accordion output_capacity_setting -->
 <script>
-    var select_mese_da_simulare = document.querySelector('#mese_da_simulare');
-    select_mese_da_simulare.addEventListener('change',function(){
-        var mese_da_simulare_selezionato = select_mese_da_simulare.value;
+    function load_tabella_capacita_with_ajax() {
+        var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
+        var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
+        // è obbligatorio selezionare sia il tipo di capacità che il mese da simulare
+        if (mese_da_simulare_selezionato == '' || tipo_capacita_selezionata == ''){
+            return;
+        }
         var content = document.getElementById('capacita_recuperate_da_db');
         // puliamo lo spazio dove andremo ad iniettare il codice html
         content.innerHTML='';
@@ -463,7 +440,7 @@
         $.ajax({
             url: $('.capacita_recuperate_da_db').data('url'),
             type: 'GET',
-            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato},
+            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata},
             success: function(resp){
                 var counter = 0;
                 for (var recapitista in resp.context){
@@ -518,12 +495,14 @@
                     counter++;  
                 }
                 content.innerHTML = content_capacita;
-                // start funzione javascript per gestione tabelle dentro ogni accordion (STEP 3)
-                inizializzazione_datepicker_flatpickr();
                 // dopo aver creato la tabella lanciamo la validateRow() su tutte le tabelle
                 $('.table-capacita tbody tr').each(function() {
                     validateRow(this);
                 });
+                // cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale'
+                select_tipo_capacita_da_modificare();
+                // abilitiamo il tasto "Avvia Scheduling"
+                $('#avvia_scheduling').prop('disabled', false);
             },
             error: function(resp){
                 spinner.innerHTML='';
@@ -532,7 +511,7 @@
                 spinner.innerHTML='';
             }
         });
-	});
+	}
 </script>
 
 
@@ -565,6 +544,7 @@
                     regione: row.find('td').eq(0).text().trim(),
                     provincia: row.find('td').eq(1).text().trim(),
                     postalizzazioni_settimanali: row.find('td').eq(2).text().trim(),
+                    product: row.find('td').eq(3).text().trim(),
                     inizioPeriodoValidita: row.find('td').eq(4).text().trim(),
                     finePeriodoValidita: row.find('td').eq(5).text().trim(),
                     capacita: row.find('.input_capacita').val(),

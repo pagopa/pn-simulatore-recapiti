@@ -274,7 +274,7 @@ def nuova_simulazione(request, id_simulazione):
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new':
         # Mese da simulare
-        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATIONDATEFROM')).values_list('mese', flat=True).distinct().order_by('mese')
+        lista_mesi_univoci = view_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
         lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
         context = {
              'lista_mesi_univoci': lista_mesi_univoci
@@ -310,6 +310,9 @@ def salva_simulazione(request):
         else:
             stato = 'Schedulata'
     
+    mese_da_simulare = request.POST['mese_da_simulare']
+    tipo_capacita_da_modificare = request.POST['tipo_capacita_da_modificare']
+
     # NUOVA SIMULAZIONE
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST['id_simulazione']: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
         id_simulazione_salvata = table_simulazione.objects.create(
@@ -317,7 +320,9 @@ def salva_simulazione(request):
             DESCRIZIONE = descrizione_simulazione,
             STATO = stato,
             TRIGGER = tipo_trigger,
-            TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+            TIMESTAMP_ESECUZIONE = timestamp_esecuzione,
+            MESE_SIMULAZIONE = mese_da_simulare,
+            TIPO_CAPACITA = tipo_capacita_da_modificare
         )
         capacita_json = request.POST.get('capacita_json')
         try:
@@ -328,15 +333,16 @@ def salva_simulazione(request):
         for recapitista, righe_tabella in capacita_json.items():
             for singola_riga in righe_tabella:
                 table_capacita_modificate.objects.create(
-                    MESE_SIMULAZIONE = request.POST['mese_da_simulare'],
-                    TIPO_CAPACITA = request.POST['tipo_capacita_da_modificare'],
-                    RECAPITISTA = recapitista,
+                    UNIFIED_DELIVERY_DRIVER = recapitista,
+                    ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
+                    ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
+                    CAPACITY = singola_riga['capacita'],
+                    SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[0], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
+                    SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
                     REGIONE = singola_riga['regione'],
-                    PROVINCIA = singola_riga['provincia'],
-                    POSTALIZZAZIONI = singola_riga['postalizzazioni_settimanali'].split(' ')[0],
-                    ACTIVATION_DATE_FROM = singola_riga['inizioPeriodoValidita'],
-                    ACTIVATION_DATE_TO = singola_riga['finePeriodoValidita'],
-                    CAPACITA = singola_riga['capacita'],
+                    PROVINCE = singola_riga['provincia'],
+                    PRODUCT_890 = True if '890' in singola_riga['product'] else False,
+                    PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
                     SIMULAZIONE_ID = id_simulazione_salvata
                 )
 
@@ -348,6 +354,8 @@ def salva_simulazione(request):
         simulazione_da_modificare.STATO = stato
         simulazione_da_modificare.TRIGGER = tipo_trigger
         simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+        simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
+        simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
         simulazione_da_modificare.save()
 
     if request.POST['stato'] == 'Bozza':
@@ -380,19 +388,23 @@ def login_page(request):
 # AJAX
 def ajax_get_capacita_from_mese(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
+    tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
     if request.accepts:
         # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(ACTIVATIONDATEFROM__year=mese_da_simulare.split('-')[0], ACTIVATIONDATEFROM__month=mese_da_simulare.split('-')[1]).values())
+        lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
-            recapitista = item['UNIFIEDDELIVERYDRIVER']
+            recapitista = item['UNIFIED_DELIVERY_DRIVER']
             regione = item['REGIONE']
             provincia = item['PROVINCE']
-            post_weekly_estimate = item['SUM_WEEKLYESTIMATE']
-            post_monthly_estimate = item['SUM_MONTHLYESTIMATE']
-            capacity = item['CAPACITY']
-            activation_date_from = item['ACTIVATIONDATEFROM']
-            activation_date_to = item['ACTIVATIONDATETO']
+            post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
+            post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
+            if tipo_capacita_selezionata=='Solo BAU':
+                capacity = item['CAPACITY']
+            elif tipo_capacita_selezionata=='Solo picco':
+                capacity = item['PEAK_CAPACITY']
+            activation_date_from = item['ACTIVATION_DATE_FROM']
+            activation_date_to = item['ACTIVATION_DATE_TO']
             # PRODUCT TYPE: boolean, valori True/False
             product = ''
             if item['PRODUCT_890']:
@@ -439,7 +451,7 @@ def aggiungi_dati():
     if count_declared_capacity[0] == 0:
         for i in range(0 ,len(df_declared_capacity)):
             values_capacity = (df_declared_capacity['capacity'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['tenderIdGeoKey'][i], df_declared_capacity['product_890'][i], df_declared_capacity['product_AR'][i], df_declared_capacity['product_RS'][i], df_declared_capacity['tenderId'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['createdAt'][i], df_declared_capacity['peakCapacity'][i], df_declared_capacity['activationDateFrom'][i], df_declared_capacity['activationDateTo'][i], df_declared_capacity['pk'][i])
-            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("CAPACITY","GEOKEY","TENDERIDGEOKEY","PRODUCT_890","PRODUCT_AR","PRODUCT_RS","TENDERID","UNIFIEDDELIVERYDRIVER","CREATEDAT","PEAKCAPACITY","ACTIVATIONDATEFROM","ACTIVATIONDATETO","PK") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("CAPACITY","GEOKEY","TENDER_ID_GEOKEY","PRODUCT_890","PRODUCT_AR","PRODUCT_RS","TENDER_ID","UNIFIED_DELIVERY_DRIVER","CREATED_AT","PEAK_CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PK") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                         values_capacity)
     
     cur.execute('select count(*) from public."SENDER_LIMIT"')
@@ -447,7 +459,7 @@ def aggiungi_dati():
     if count_sender_limit[0] == 0:
         for i in range(0 ,len(df_sender_limit)):
             values_senderlimit = (df_sender_limit['pk'][i], df_sender_limit['deliveryDate'][i], df_sender_limit['weeklyEstimate'][i], df_sender_limit['monthlyEstimate'][i], df_sender_limit['originalEstimate'][i], df_sender_limit['paId'][i], df_sender_limit['productType'][i], df_sender_limit['province'][i])
-            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERYDATE","WEEKLYESTIMATE","MONTHLYESTIMATE","ORIGINALESTIMATE","PAID","PRODUCTTYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERY_DATE","WEEKLY_ESTIMATE","MONTHLY_ESTIMATE","ORIGINAL_ESTIMATE","PA_ID","PRODUCT_TYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
                         values_senderlimit)
 
     cur.execute('select count(*) from public."CAP_PROV_REG"')
