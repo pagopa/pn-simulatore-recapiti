@@ -48,7 +48,7 @@ class table_declared_capacity(models.Model):
     PRODUCT_890 = models.BooleanField(null=True)
     PRODUCT_AR = models.BooleanField(null=True)
     PRODUCT_RS = models.BooleanField(null=True)
-    TENDERID = models.CharField(max_length=8, null=True)
+    TENDER_ID = models.CharField(max_length=8, null=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
     CREATED_AT = NaiveDateTimeField(null=True)
     PEAK_CAPACITY = models.IntegerField(null=True)

@@ -25,9 +25,7 @@ locale.setlocale(locale.LC_ALL, 'it_IT')
 
 
 def homepage(request):
-    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
-    aggiungi_dati()
-    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
+
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
 
     context = {
@@ -381,9 +379,64 @@ def rimuovi_simulazione(request, id_simulazione):
     return redirect(next_url)
 
 
-def login_page(request):
-    return render(request, "login_page.html")
+def carica_dati_db(request):
+    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
+    df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
+    df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('./static/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
 
+    conn = psycopg2.connect(database = DATABASES['default']['NAME'],
+                            user = DATABASES['default']['USER'],
+                            password = DATABASES['default']['PASSWORD'],
+                            host = DATABASES['default']['HOST'],
+                            port = DATABASES['default']['PORT'])
+
+    cur = conn.cursor()
+
+
+
+    cur.execute('select count(*) from public."DECLARED_CAPACITY"')
+    count_declared_capacity = cur.fetchone()
+    if count_declared_capacity[0] == 0:
+        for i in range(0 ,len(df_declared_capacity)):
+            values_capacity = (df_declared_capacity['capacity'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['tenderIdGeoKey'][i], df_declared_capacity['product_890'][i], df_declared_capacity['product_AR'][i], df_declared_capacity['product_RS'][i], df_declared_capacity['tenderId'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['createdAt'][i], df_declared_capacity['peakCapacity'][i], df_declared_capacity['activationDateFrom'][i], df_declared_capacity['activationDateTo'][i], df_declared_capacity['pk'][i])
+            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("CAPACITY","GEOKEY","TENDER_ID_GEOKEY","PRODUCT_890","PRODUCT_AR","PRODUCT_RS","TENDER_ID","UNIFIED_DELIVERY_DRIVER","CREATED_AT","PEAK_CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PK") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                        values_capacity)
+    
+    cur.execute('select count(*) from public."SENDER_LIMIT"')
+    count_sender_limit = cur.fetchone()
+    if count_sender_limit[0] == 0:
+        for i in range(0 ,len(df_sender_limit)):
+            values_senderlimit = (df_sender_limit['pk'][i], df_sender_limit['deliveryDate'][i], df_sender_limit['weeklyEstimate'][i], df_sender_limit['monthlyEstimate'][i], df_sender_limit['originalEstimate'][i], df_sender_limit['paId'][i], df_sender_limit['productType'][i], df_sender_limit['province'][i])
+            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERY_DATE","WEEKLY_ESTIMATE","MONTHLY_ESTIMATE","ORIGINAL_ESTIMATE","PA_ID","PRODUCT_TYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+                        values_senderlimit)
+
+    cur.execute('select count(*) from public."CAP_PROV_REG"')
+    count_cap_prov_reg = cur.fetchone()
+    if count_cap_prov_reg[0] == 0:
+        for i in range(0 ,len(df_cap_prov_reg)):
+            values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['Pop_cap'][i], df_cap_prov_reg['Prop_pop_cap'][i])
+            cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","COD_SIGLA_PROVINCIA","POP_CAP","PERCENTUALE_POP_CAP") VALUES (%s, %s, %s, %s, %s, %s)',
+                        values_capprovreg)
+
+    conn.commit()
+    conn.close()
+    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
+    return redirect("status")
+
+def rimuovi_dati_db(request):
+    ####### PAGINA PROVVISORIA DI RIMOZIONE DATI #######
+    conn = psycopg2.connect(database = DATABASES['default']['NAME'],
+                            user = DATABASES['default']['USER'],
+                            password = DATABASES['default']['PASSWORD'],
+                            host = DATABASES['default']['HOST'],
+                            port = DATABASES['default']['PORT'])
+    cur = conn.cursor()
+    cur.execute(f'DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO {DATABASES['default']['USER']}; GRANT ALL ON SCHEMA public TO public;')
+    conn.commit()
+    conn.close()
+    ####### PAGINA PROVVISORIA DI RIMOZIONE DATI #######
+    return redirect("status")
 
 # AJAX
 def ajax_get_capacita_from_mese(request):
@@ -429,49 +482,6 @@ def ajax_get_capacita_from_mese(request):
             })        
     return JsonResponse({'context': lista_capacita_finali})
 
-
-
-def aggiungi_dati():
-    df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
-    df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
-    df_cap_prov_reg = pd.read_csv('./static/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
-
-    conn = psycopg2.connect(database = DATABASES['default']['NAME'],
-                            user = DATABASES['default']['USER'],
-                            password = DATABASES['default']['PASSWORD'],
-                            host = DATABASES['default']['HOST'],
-                            port = DATABASES['default']['PORT'])
-
-    cur = conn.cursor()
-
-
-
-    cur.execute('select count(*) from public."DECLARED_CAPACITY"')
-    count_declared_capacity = cur.fetchone()
-    if count_declared_capacity[0] == 0:
-        for i in range(0 ,len(df_declared_capacity)):
-            values_capacity = (df_declared_capacity['capacity'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['tenderIdGeoKey'][i], df_declared_capacity['product_890'][i], df_declared_capacity['product_AR'][i], df_declared_capacity['product_RS'][i], df_declared_capacity['tenderId'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['createdAt'][i], df_declared_capacity['peakCapacity'][i], df_declared_capacity['activationDateFrom'][i], df_declared_capacity['activationDateTo'][i], df_declared_capacity['pk'][i])
-            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("CAPACITY","GEOKEY","TENDER_ID_GEOKEY","PRODUCT_890","PRODUCT_AR","PRODUCT_RS","TENDER_ID","UNIFIED_DELIVERY_DRIVER","CREATED_AT","PEAK_CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PK") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
-                        values_capacity)
-    
-    cur.execute('select count(*) from public."SENDER_LIMIT"')
-    count_sender_limit = cur.fetchone()
-    if count_sender_limit[0] == 0:
-        for i in range(0 ,len(df_sender_limit)):
-            values_senderlimit = (df_sender_limit['pk'][i], df_sender_limit['deliveryDate'][i], df_sender_limit['weeklyEstimate'][i], df_sender_limit['monthlyEstimate'][i], df_sender_limit['originalEstimate'][i], df_sender_limit['paId'][i], df_sender_limit['productType'][i], df_sender_limit['province'][i])
-            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERY_DATE","WEEKLY_ESTIMATE","MONTHLY_ESTIMATE","ORIGINAL_ESTIMATE","PA_ID","PRODUCT_TYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
-                        values_senderlimit)
-
-    cur.execute('select count(*) from public."CAP_PROV_REG"')
-    count_cap_prov_reg = cur.fetchone()
-    if count_cap_prov_reg[0] == 0:
-        for i in range(0 ,len(df_cap_prov_reg)):
-            values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['Pop_cap'][i], df_cap_prov_reg['Prop_pop_cap'][i])
-            cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","COD_SIGLA_PROVINCIA","POP_CAP","PERCENTUALE_POP_CAP") VALUES (%s, %s, %s, %s, %s, %s)',
-                        values_capprovreg)
-
-    conn.commit()
-    conn.close()
 
 
 
