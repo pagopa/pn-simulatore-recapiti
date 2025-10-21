@@ -1,10 +1,13 @@
 import dash
-from dash import dcc, html, Input, Output
+from dash import dcc, html, Input, Output, dash_table
 from django_plotly_dash import DjangoDash
 import plotly.graph_objs as go
 import plotly.express as px
 import numpy as np
 import pandas as pd
+import os
+from PagoPA.settings import *
+import json
 
 
 app = DjangoDash('SimpleExample')
@@ -27,7 +30,6 @@ for ente in enti:
 
 # Creazione DataFrame
 df_enti = pd.DataFrame(dati_enti, columns=["Ente", "Settimana", "Postalizzazioni"])
-
 
 # ---------- dati di esempio (sostituisci con i tuoi)
 regioni_province = {
@@ -56,9 +58,69 @@ for regione, province in regioni_province.items():
 
 df_regioni_recap = pd.DataFrame(rows)
 
+
+np.random.seed(258)
+# Creazione dataset
+dati_picchi = []
+for recapitista in recapitisti:
+    test = np.random.choice([0, 10])
+    for regione, province in regioni_province.items():
+        test = np.random.choice([0, 10])
+        if test >= 2:
+            for provincia in province:
+                valore = np.random.choice([0, 1])
+                dati_picchi.append([recapitista, regione, provincia, valore])
+
+df_picchi = pd.DataFrame(dati_picchi, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
+df_picchi = df_picchi.groupby(['Recapitista','Regione']).agg(
+    total_picco=('Assegnazione', 'sum'),
+    prov_count=('Provincia', 'count')
+)
+df_picchi['prop']= df_picchi['total_picco']/df_picchi['prov_count']
+# Definisco due soglie (puoi cambiarle come preferisci)
+soglia1 = 0.0001
+soglia2 = 0.5
+
+# Creo una nuova colonna "fascia"
+def classifica_prop(x):
+    if x < soglia1:
+        return "No picchi"
+    elif x < soglia2:
+        return "<50% picchi"
+    else:
+        return ">=50% picchi"
+
+df_picchi["fascia"] = df_picchi["prop"].apply(classifica_prop)
+
+# Assegno 3 colori fissi
+colori = {
+    "No picchi": "green",
+    "<50% picchi": "orange",
+    ">=50% picchi": "red"
+}
+
+df_picchi = df_picchi.reset_index()
+
+## mappa testo->numero per le fasce (adatta se hai altre categorie)
+fascia_to_num = {"No picchi": 0, "<50% picchi": 1, ">=50% picchi": 2}
+
+# costruisci un colorscale "discreto" che associa range a colori
+# struttura: [ [0.0,color_bassa], [0.3333,color_bassa], [0.3334,color_media], ... ]
+colorscale = [
+    [0.0, colori["No picchi"]], [0.3333, colori["No picchi"]],
+    [0.3334, colori["<50% picchi"]], [0.6666, colori["<50% picchi"]],
+    [0.6667, colori[">=50% picchi"]], [1.0, colori[">=50% picchi"]],
+]
+
+with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding = "utf-8") as f:
+        geojson = json.load(f)
+
 # layout
 app.layout = html.Div([
-    html.H3("Simulazione Pianificazione Postalizzazioni per Ente"),
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Ente",
+        style={"text-align":"center"}),
+
 
     html.Div([
 
@@ -75,7 +137,7 @@ app.layout = html.Div([
                 multi=True,
                 placeholder="Seleziona Ente:"
             ),
-        ], style={"display": "inline-block"}),
+        ], style={"width": "100%", "display": "inline-block"}),
     ], style={"margin-bottom": "10px"}),
 
     html.Div([
@@ -90,7 +152,7 @@ app.layout = html.Div([
 
         html.Div([
 
-            html.Label("Seleziona Regione (multi):"),
+            html.Label("Seleziona Regione:"),
 
             dcc.Dropdown(
 
@@ -99,22 +161,22 @@ app.layout = html.Div([
                 options=[{"label": r, "value": r} for r in sorted(df_regioni_recap["Regione"].unique())],
                 value=list(sorted(df_regioni_recap["Regione"].unique())),
                 multi=True,
-                placeholder="Seleziona le regioni"
+                placeholder="Seleziona una o più regioni..."
             ),
         ], style={"width": "48%", "display": "inline-block"}),
 
         html.Div([
 
-            html.Label("Seleziona Recapitista (multi):"),
+            html.Label("Seleziona Recapitista:"),
 
             dcc.Dropdown(
 
                 id="recap-filter",
 
-                options=[{"label": r, "value": r} for r in sorted(recapitisti)],
+                options=[{"label": r, "value": r} for r in sorted(recapitisti)] + [{'label': 'Select all', 'value': 'all_values'}],
                 value=list(sorted(recapitisti)),
                 multi=True,
-                placeholder="Seleziona i recapitisti"
+                placeholder="Seleziona un recapitista..."
             )
         ], style={"width": "48%", "display": "inline-block", "float": "right"})
     ], style={"margin-bottom": "10px"}),
@@ -122,6 +184,70 @@ app.layout = html.Div([
     html.Div([
 
         dcc.Graph(id="area-plot")
+
+    ]),
+
+    html.H3(
+        "Mappa dei picchi per Recapitista",
+        style={"text-align":"center"}),
+
+
+    html.Div([
+
+        html.Div([
+
+            html.Label("Seleziona Recapitista:"),
+
+            dcc.Dropdown(
+
+                id="recap-only-filter",
+
+                options=[{"label": r, "value": r} for r in sorted(recapitisti)],
+                value=recapitisti[0],
+                placeholder="Seleziona Recapitista:"
+            ),
+        ], style={"width": "100%", "display": "inline-block"}),
+    ], style={"margin-bottom": "10px"}),
+
+    html.Div([
+
+        dcc.Graph(id="map-plot")
+
+    ]),
+
+    html.Div([
+
+        dash_table.DataTable(
+            id='datatable-region',
+            data=df_picchi.to_dict('records'),
+            columns=[
+                {'name': i, 'id': i} for i in df_picchi.columns
+            ],
+            #style_as_list_view=True,
+            style_cell={
+                'padding': '5px',
+                'textAlign': 'center',
+            },
+            # style_header={
+            #     'backgroundColor': "#585858",
+            #     'color': 'white',
+            #     'fontWeight': 'bold',
+
+            # },
+            #sort_action="native",
+            style_data_conditional=[{
+            'if': {
+                'state': 'active'  # 'active' | 'selected'
+                },
+            'backgroundColor': 'rgba(0, 116, 217, 0.3)',
+            'border': '1px solid rgb(0, 116, 217)'
+            }],
+            #sort_mode='multi',
+            selected_rows=[],
+            page_action='native',
+            page_current= 0,
+            page_size= 20,
+        )
 
     ])
 ])
@@ -135,8 +261,6 @@ def update_chart_ente(ente_sel):
     if not ente_sel:
         return px.line(title="Nessuna selezione effettuata")
 
-    df_enti = pd.DataFrame(dati_enti, columns=["Ente", "Settimana", "Postalizzazioni"])
-
     filtered_enti = df_enti[df_enti["Ente"].isin(ente_sel)]
 
     fig_ente = px.line(
@@ -144,8 +268,7 @@ def update_chart_ente(ente_sel):
         x="Settimana",
         y="Postalizzazioni",
         color='Ente',
-        markers=True,
-        title="Pianificazione Postalizzazioni per Ente"
+        markers=True
     )
     fig_ente.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
     return fig_ente
@@ -175,119 +298,57 @@ def update_chart_regioni_recap(regioni_sel, recap_sel):
     fig_reg_recap.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
     return fig_reg_recap
  
+@app.callback(
+    Output("map-plot", "figure"),
+    Input("recap-only-filter", "value")
+)
+def update_map_recap(recap_only_sel):
+    # se non selezionato nulla → grafico vuoto
+    
+    filtered_df_picchi = df_picchi[df_picchi["Recapitista"] == recap_only_sel]
+    filtered_df_picchi["z"] = filtered_df_picchi["fascia"].map(fascia_to_num)
+
+    fig_picchi = go.Figure()
+    fig_picchi = fig_picchi.add_trace(
+        go.Choroplethmapbox(
+            geojson=geojson,
+            locations=filtered_df_picchi["Regione"],
+            z=filtered_df_picchi["z"],
+            featureidkey="properties.reg_name",
+            colorscale=colorscale,
+            zmin=0, zmax=2,
+            marker_opacity=0.6,
+            marker_line_width=0,
+            name=recap_only_sel,
+            #visible=recap_sel,   # mostra solo il primo inizialmente
+            showscale=False,
+            customdata=filtered_df_picchi[["fascia"]].values,
+            hovertemplate="<b>%{location}</b><br>Recapitista: " + recap_only_sel + "<br>Fascia: %{customdata[0]}<extra></extra>"
+        )
+    )
+    fig_picchi.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_zoom=4.5,
+        mapbox_center={"lat": 41.9, "lon": 12.5},
+        height=800,
+        #updatemenus=[dict(buttons=buttons,pad={"r": 20, "t": 20}, direction="down", x=1.12, y=1.12)],
+        margin={"r":100,"t":100,"l":100,"b":100},
+        #title="Assegnazioni per Recapitista (fasce)"
+    )
+    return fig_picchi
+
+@app.callback(
+    Output("datatable-region", "data"),
+    Input("recap-only-filter", "value")
+)
+def update_table_recap(recap_only_sel):
+
+    filtered_df_picchi = df_picchi[df_picchi["Recapitista"] == recap_only_sel]
+    filtered_df_picchi["z"] = filtered_df_picchi["fascia"].map(fascia_to_num)
+
+    return filtered_df_picchi.to_dict("records")
 
 
 
-dashboard_name1 = 'dash_example_1'
-dash_example1 = DjangoDash(name=dashboard_name1,
-                           serve_locally=True,
-                           # app_name=app_name
-                          )
-
-# Below is a random Dash app.
-# I encountered no major problems in using Dash this way. I did encounter problems but it was because
-# I was using e.g. Bootstrap inconsistenyly across the dash layout. Staying consistent worked fine for me.
-dash_example1.layout = html.Div(id='main',
-                                children=[
-                                    html.Div([dcc.Dropdown(id='my-dropdown1',
-                                                           options=[{'label': 'New York City', 'value': 'NYC'},
-                                                                    {'label': 'Montreal', 'value': 'MTL'},
-                                                                    {'label': 'San Francisco', 'value': 'SF'}
-                                                                   ],
-                                                           value='NYC',
-                                                           className='col-md-12',
-                                                          ),
-                                              html.Div(id='test-output-div')
-                                             ]),
-
-                                    dcc.Dropdown(
-                                        id='my-dropdown2',
-                                        options=[
-                                            {'label': 'Oranges', 'value': 'Oranges'},
-                                            {'label': 'Plums', 'value': 'Plums'},
-                                            {'label': 'Peaches', 'value': 'Peaches'}
-                                        ],
-                                        value='Oranges',
-                                        className='col-md-12',
-                                    ),
-
-                                    html.Div(id='test-output-div2'),
-                                    html.Div(id='test-output-div3')
-
-                                ]) # end of 'main'
-
-@dash_example1.expanded_callback(
-    dash.dependencies.Output('test-output-div', 'children'),
-    [dash.dependencies.Input('my-dropdown1', 'value')])
-def callback_test(*args, **kwargs): #pylint: disable=unused-argument
-    'Callback to generate test data on each change of the dropdown'
-
-    # Creating a random Graph from a Plotly example:
-    N = 500
-    random_x = np.linspace(0, 1, N)
-    random_y = np.random.randn(N)
-
-    # Create a trace
-    trace = go.Scatter(x=random_x,
-                       y=random_y)
-
-    data = [trace]
-
-    layout = dict(title='',
-                  yaxis=dict(zeroline=False, title='Total Expense (£)',),
-                  xaxis=dict(zeroline=False, title='Date', tickangle=0),
-                  margin=dict(t=20, b=50, l=50, r=40),
-                  height=350,
-                 )
 
 
-    fig = dict(data=data, layout=layout)
-    line_graph = dcc.Graph(id='line-area-graph2', figure=fig, style={'display':'inline-block', 'width':'100%',
-                                                                     'height':'100%;'})
-    children = [line_graph]
-
-    return children
-
-
-@dash_example1.expanded_callback(
-    dash.dependencies.Output('test-output-div2', 'children'),
-    [dash.dependencies.Input('my-dropdown2', 'value')])
-def callback_test2(*args, **kwargs):
-    'Callback to exercise session functionality'
-
-    children = [html.Div(["You have selected %s." %(args[0])]),
-                html.Div(["The session context message is '%s'" %(kwargs['session_state']['django_to_dash_context'])])]
-
-    return children
-
-@dash_example1.expanded_callback(
-    [dash.dependencies.Output('test-output-div3', 'children')],
-    [dash.dependencies.Input('my-dropdown1', 'value')])
-def callback_test(*args, **kwargs): #pylint: disable=unused-argument
-    'Callback to generate test data on each change of the dropdown'
-
-    # Creating a random Graph from a Plotly example:
-    N = 500
-    random_x = np.linspace(0, 1, N)
-    random_y = np.random.randn(N)
-
-    # Create a trace
-    trace = go.Scatter(x=random_x,
-                       y=random_y)
-
-    data = [trace]
-
-    layout = dict(title='',
-                  yaxis=dict(zeroline=False, title='Total Expense (£)',),
-                  xaxis=dict(zeroline=False, title='Date', tickangle=0),
-                  margin=dict(t=20, b=50, l=50, r=40),
-                  height=350,
-                 )
-
-
-    fig = dict(data=data, layout=layout)
-    line_graph = dcc.Graph(id='line-area-graph2', figure=fig, style={'display':'inline-block', 'width':'100%',
-                                                                     'height':'100%;'})
-    children = [line_graph]
-
-    return [children]
