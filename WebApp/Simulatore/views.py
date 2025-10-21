@@ -488,7 +488,7 @@ def nuova_simulazione(request, id_simulazione):
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new':
         # Mese da simulare
-        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('DELIVERYDATE')).values_list('mese', flat=True).distinct().order_by('mese')
+        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATIONDATEFROM')).values_list('mese', flat=True).distinct().order_by('mese')
         lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
         context = {
              'lista_mesi_univoci': lista_mesi_univoci
@@ -502,7 +502,6 @@ def nuova_simulazione(request, id_simulazione):
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
-
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
@@ -548,7 +547,7 @@ def salva_simulazione(request):
                     RECAPITISTA = recapitista,
                     REGIONE = singola_riga['regione'],
                     PROVINCIA = singola_riga['provincia'],
-                    POSTALIZZAZIONI = singola_riga['postalizzazioni_mensili'].split(' ')[0],
+                    POSTALIZZAZIONI = singola_riga['postalizzazioni_settimanali'].split(' ')[0],
                     ACTIVATION_DATE_FROM = singola_riga['inizioPeriodoValidita'],
                     ACTIVATION_DATE_TO = singola_riga['finePeriodoValidita'],
                     CAPACITA = singola_riga['capacita'],
@@ -597,7 +596,7 @@ def ajax_get_capacita_from_mese(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
     if request.accepts:
         # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(DELIVERYDATE__year=mese_da_simulare.split('-')[0], DELIVERYDATE__month=mese_da_simulare.split('-')[1]).values())
+        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(ACTIVATIONDATEFROM__year=mese_da_simulare.split('-')[0], ACTIVATIONDATEFROM__month=mese_da_simulare.split('-')[1]).values())
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
             recapitista = item['UNIFIEDDELIVERYDRIVER']
@@ -605,9 +604,17 @@ def ajax_get_capacita_from_mese(request):
             provincia = item['PROVINCE']
             post_weekly_estimate = item['SUM_WEEKLYESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLYESTIMATE']
-            post_original_estimate = item['SUM_ORIGINALESTIMATE']
             capacity = item['CAPACITY']
-            delivery_date = item['DELIVERYDATE']
+            activation_date_from = item['ACTIVATIONDATEFROM']
+            activation_date_to = item['ACTIVATIONDATETO']
+            # PRODUCT TYPE: boolean, valori True/False
+            product = ''
+            if item['PRODUCT_890']:
+                product += '890-'
+            if item['PRODUCT_AR']:
+                product += 'AR-'
+            if product!='':
+                product = product[:-1]
             
             if recapitista not in lista_capacita_finali:
                 lista_capacita_finali[recapitista] = []
@@ -617,16 +624,17 @@ def ajax_get_capacita_from_mese(request):
                 'provincia': provincia,
                 'post_weekly_estimate': post_weekly_estimate,
                 'post_monthly_estimate': post_monthly_estimate,
-                'post_original_estimate': post_original_estimate,
-                'capacity': capacity,
-                'delivery_date': delivery_date,
+                'product': product,
+                'activation_date_from': activation_date_from,
+                'activation_date_to': activation_date_to,
+                'capacity': capacity
             })        
     return JsonResponse({'context': lista_capacita_finali})
 
 
 
 def aggiungi_dati():
-    df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str)
+    df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
     df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
     df_cap_prov_reg = pd.read_csv('./static/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
 
@@ -644,8 +652,8 @@ def aggiungi_dati():
     count_declared_capacity = cur.fetchone()
     if count_declared_capacity[0] == 0:
         for i in range(0 ,len(df_declared_capacity)):
-            values_capacity = (df_declared_capacity['unifiedDeliveryDriverGeokey'][i], df_declared_capacity['deliveryDate'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['usedCapacity'][i], df_declared_capacity['capacity'][i])
-            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("UNIFIEDDELIVERYDRIVERGEOKEY","DELIVERYDATE","GEOKEY","UNIFIEDDELIVERYDRIVER","USEDCAPACITY","CAPACITY") VALUES (%s, %s, %s, %s, %s, %s)',
+            values_capacity = (df_declared_capacity['capacity'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['tenderIdGeoKey'][i], df_declared_capacity['product_890'][i], df_declared_capacity['product_AR'][i], df_declared_capacity['product_RS'][i], df_declared_capacity['tenderId'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['createdAt'][i], df_declared_capacity['peakCapacity'][i], df_declared_capacity['activationDateFrom'][i], df_declared_capacity['activationDateTo'][i], df_declared_capacity['pk'][i])
+            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("CAPACITY","GEOKEY","TENDERIDGEOKEY","PRODUCT_890","PRODUCT_AR","PRODUCT_RS","TENDERID","UNIFIEDDELIVERYDRIVER","CREATEDAT","PEAKCAPACITY","ACTIVATIONDATEFROM","ACTIVATIONDATETO","PK") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                         values_capacity)
     
     cur.execute('select count(*) from public."SENDER_LIMIT"')
@@ -660,8 +668,8 @@ def aggiungi_dati():
     count_cap_prov_reg = cur.fetchone()
     if count_cap_prov_reg[0] == 0:
         for i in range(0 ,len(df_cap_prov_reg)):
-            values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['DescrMacroregione'][i])
-            cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","CODSIGLAPROVINCIA","DESCRMACROREGIONE") VALUES (%s, %s, %s, %s, %s)',
+            values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['Pop_cap'][i], df_cap_prov_reg['Prop_pop_cap'][i])
+            cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","COD_SIGLA_PROVINCIA","POP_CAP","PERCENTUALE_POP_CAP") VALUES (%s, %s, %s, %s, %s, %s)',
                         values_capprovreg)
 
     conn.commit()

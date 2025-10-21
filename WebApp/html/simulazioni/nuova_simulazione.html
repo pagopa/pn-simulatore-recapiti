@@ -385,8 +385,8 @@
     function validateRow(row) {
         const td = $(row).find('td');
         const valpostalizzazione = parseInt(td.eq(2).text().trim()) || 0; // terzo campo -> postalizzazioni
-        const valcapacity = parseInt(td.eq(5).find('input').val()) || 0; // sesto campo -> capacità
-        const alertTd = td.eq(6); // colonna alert
+        const valcapacity = parseInt(td.eq(6).find('input').val()) || 0; // sesto campo -> capacità
+        const alertTd = td.eq(7); // colonna alert
         alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
         if (valpostalizzazione >= valcapacity) {
             alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità minori delle postalizzazioni"></i>');
@@ -395,7 +395,7 @@
     }
 
     // funzione che si triggera ogni volta che viene modificata la capacità
-    $(document).on('input change', '.table-capacita tbody tr td:nth-child(6) input', function() {
+    $(document).on('input change', '.table-capacita tbody tr td:nth-child(7) input', function() {
         const row = $(this).closest('tr');
         validateRow(row);
     });
@@ -449,7 +449,7 @@
     }
 </script>
 
-<!-- jQuery/Ajax per accordion Capacità -->
+<!-- jQuery/Ajax per accordion output_capacity_setting -->
 <script>
     var select_mese_da_simulare = document.querySelector('#mese_da_simulare');
     select_mese_da_simulare.addEventListener('change',function(){
@@ -483,6 +483,7 @@
                                                 <th scope="col">Regione</th>
                                                 <th scope="col">Provincia</th>
                                                 <th scope="col">Numero di post. settimanali</th>
+                                                <th scope="col">Product</th>
                                                 <th scope="col">Inizio periodo di validità</th>
                                                 <th scope="col">Fine periodo di validità</th>
                                                 <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
@@ -496,9 +497,10 @@
                             <tr>
                                 <td>${singola_capacity.regione}</td>
                                 <td>${singola_capacity.provincia}</td>
-                                <td>${singola_capacity.post_weekly_estimate} (mensili: ${singola_capacity.post_original_estimate})</td>
-                                <td><input type="date" class="form-control text-center inizioPeriodoValidita" id="inizioPeriodoValidita" value="${singola_capacity.delivery_date}" onkeydown="return (event.keyCode!=13);"></td>
-                                <td><input type="date" class="form-control text-center finePeriodoValidita" id="finePeriodoValidita" value="2026-02-08" onkeydown="return (event.keyCode!=13);"></td>
+                                <td>${singola_capacity.post_weekly_estimate} (mensili: ${singola_capacity.post_monthly_estimate})</td>
+                                <td>${singola_capacity.product}</td>
+                                <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
+                                <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
                                 <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.capacity}</label></td>
                                 <td></td>
                             </tr>
@@ -562,9 +564,9 @@
                 let item = {
                     regione: row.find('td').eq(0).text().trim(),
                     provincia: row.find('td').eq(1).text().trim(),
-                    postalizzazioni_mensili: row.find('td').eq(2).text().trim(),
-                    inizioPeriodoValidita: row.find('.inizioPeriodoValidita').val(),
-                    finePeriodoValidita: row.find('.finePeriodoValidita').val(),
+                    postalizzazioni_settimanali: row.find('td').eq(2).text().trim(),
+                    inizioPeriodoValidita: row.find('td').eq(4).text().trim(),
+                    finePeriodoValidita: row.find('td').eq(5).text().trim(),
                     capacita: row.find('.input_capacita').val(),
                 };
                 data[gruppo].push(item);
