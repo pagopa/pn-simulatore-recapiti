@@ -1,32 +1,112 @@
 import dash
-from dash import dcc, html
+from dash import dcc, html, Input, Output
 from django_plotly_dash import DjangoDash
-
-
 import plotly.graph_objs as go
+import plotly.express as px
 import numpy as np
+import pandas as pd
 
 
-# app without callback
-def create_simple_app():
-    app = DjangoDash('SimpleExample')
-    
-    app.layout = html.Div([
-        dcc.Graph(
-            figure={
-                'data': [
-                    {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
-                    {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': 'NYC'},
-                ],
-            }
-        )
+app = DjangoDash('SimpleExample')
+
+# ---------- dati di esempio (sostituisci con i tuoi)
+regioni_province = {
+    "Lombardia": ["Milano", "Bergamo", "Brescia"],
+    "Lazio": ["Roma", "Latina", "Viterbo"],
+    "Campania": ["Napoli", "Salerno", "Caserta"],
+    "Sicilia": ["Palermo", "Catania", "Messina"]
+}
+recapitisti = ["Poste", "Sailpost", "Fulmine", "Express"]
+
+np.random.seed(42)
+rows = []
+for regione, province in regioni_province.items():
+    for provincia in province:
+        recap = np.random.choice(recapitisti)
+        base = np.random.randint(5000, 12000)
+        decremento = np.random.randint(800, 2000)
+        for settimana in range(1, 5):
+            valore = max(500, base - decremento * (settimana - 1))
+            rows.append({
+                "Regione": regione,
+                "Provincia": provincia,
+                "Recapitista": recap,
+                "Settimana": f"Sett. {settimana}",
+                "Postalizzazioni": valore
+            })
+
+df = pd.DataFrame(rows)
+
+# layout
+app.layout = html.Div([
+
+    html.H3("Previsione Postalizzazioni per Provincia"),
+
+    html.Div([
+
+        html.Div([
+
+            html.Label("Seleziona Regione (multi):"),
+
+            dcc.Dropdown(
+
+                id="regione-filter",
+
+                options=[{"label": r, "value": r} for r in sorted(df["Regione"].unique())],
+                value=list(sorted(df["Regione"].unique())),
+                multi=True,
+                placeholder="Seleziona le regioni"
+            ),
+        ], style={"width": "48%", "display": "inline-block"}),
+
+        html.Div([
+
+            html.Label("Seleziona Recapitista (multi):"),
+
+            dcc.Dropdown(
+
+                id="recap-filter",
+
+                options=[{"label": r, "value": r} for r in sorted(df["Recapitista"].unique())],
+                value=list(sorted(df["Recapitista"].unique())),
+                multi=True,
+                placeholder="Seleziona i recapitisti"
+            )
+        ], style={"width": "48%", "display": "inline-block", "float": "right"})
+    ], style={"margin-bottom": "10px"}),
+
+    html.Div([
+
+        dcc.Graph(id="area-plot")
+
     ])
-    
-    return app
+])
 
-# create app
-create_simple_app()
+@app.callback(
+    Output("area-plot", "figure"),
+    Input("regione-filter", "value"),
+    Input("recap-filter", "value")
+)
+def update_chart(regioni_sel, recap_sel):
+    # se non selezionato nulla → grafico vuoto
+    if not regioni_sel or not recap_sel:
+        return px.area(title="Nessuna selezione effettuata")
 
+    dff = df[df["Regione"].isin(regioni_sel) & df["Recapitista"].isin(recap_sel)]
+    dff["ProvinciaRecap"] = dff["Provincia"] + " - " + dff["Recapitista"]
+
+    fig = px.area(
+        dff,
+        x="Settimana",
+        y="Postalizzazioni",
+        color="ProvinciaRecap",
+        line_group="ProvinciaRecap",
+        markers=True,
+        title="Previsione Postalizzazioni (filtrata)"
+    )
+    fig.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    return fig
+ 
 
 
 
