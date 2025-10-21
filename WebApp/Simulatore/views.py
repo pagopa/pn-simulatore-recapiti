@@ -35,6 +35,8 @@ def homepage(request):
     }
     return render(request, "home.html", context)
 
+def dashboard_view(request):
+    return render(request, 'Simulatore/dashboard.html')
 
 def risultati(request, id_simulazione):
 

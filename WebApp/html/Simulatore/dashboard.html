@@ -1,0 +1,12 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+{% load plotly_dash %}
+    <div>        
+        {% plotly_direct name="dash_example_1" %}
+        <!-- si può utilizzare anche {% plotly_app name="SimpleExample" ratio=1 %} -->
+    </div>
+
+    {% plotly_footer %}
+
+{% endblock content %}

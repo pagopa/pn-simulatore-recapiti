@@ -48,7 +48,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Simulatore',
-    'django_pgviews'
+    'django_pgviews',
+    # dash
+    'django_plotly_dash',
+    'dpd_static_support'
 ]
 
 MIDDLEWARE = [
@@ -59,6 +62,18 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # dash 
+    'django_plotly_dash.middleware.BaseMiddleware',
+    'django_plotly_dash.middleware.ExternalRedirectionMiddleware',
+]
+
+# dash
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'django_plotly_dash.finders.DashAssetFinder',
+    'django_plotly_dash.finders.DashComponentFinder',
+    'django_plotly_dash.finders.DashAppDirectoryFinder',
 ]
 
 ROOT_URLCONF = 'PagoPA.urls'
@@ -73,12 +88,16 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # dash
+                'django.template.context_processors.debug',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = 'PagoPA.wsgi.application'
+# dash
+ASGI_APPLICATION = 'PagoPA.asgi.application'
 
 
 # Database
@@ -138,3 +157,6 @@ else:
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# dash
+X_FRAME_OPTIONS = 'SAMEORIGIN'

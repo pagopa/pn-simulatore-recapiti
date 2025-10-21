@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from Simulatore.views import *
 from django.http import JsonResponse
 from django.conf import settings
@@ -27,6 +27,11 @@ urlpatterns = [
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),
+
+    # DASH
+    # la dashboard viene generata su http://localhost:8000/django_plotly_dash/app/SimpleExample/ e, poi, viene viene recuperata dalla pagina html http://localhost:8000/dash/
+    path('dash/', include('Simulatore.urls')),
+    path('django_plotly_dash/', include('django_plotly_dash.urls')),
 ]
 
 
