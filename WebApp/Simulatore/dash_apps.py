@@ -9,6 +9,26 @@ import pandas as pd
 
 app = DjangoDash('SimpleExample')
 
+enti = [
+"Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
+"Poste Italiane", "Agenzia Entrate", "Comune di Milano", "Regione Toscana", "Comune di Napoli"
+]
+
+# Simulazione dati per 4 settimane
+np.random.seed(42)
+dati_enti = []
+for ente in enti:
+    base = np.random.randint(2000, 8000)  # Valore base per ente
+    for settimana in range(1, 5):
+        # Fluttuazione con rumore
+        valore = base + np.random.randint(-2000, 3000)
+        valore = max(500, valore)  # Minimo 500
+        dati_enti.append([ente, f"Sett. {settimana}", valore])
+
+# Creazione DataFrame
+df_enti = pd.DataFrame(dati_enti, columns=["Ente", "Settimana", "Postalizzazioni"])
+
+
 # ---------- dati di esempio (sostituisci con i tuoi)
 regioni_province = {
     "Lombardia": ["Milano", "Bergamo", "Brescia"],
@@ -18,7 +38,6 @@ regioni_province = {
 }
 recapitisti = ["Poste", "Sailpost", "Fulmine", "Express"]
 
-np.random.seed(42)
 rows = []
 for regione, province in regioni_province.items():
     for provincia in province:
@@ -35,12 +54,37 @@ for regione, province in regioni_province.items():
                 "Postalizzazioni": valore
             })
 
-df = pd.DataFrame(rows)
+df_regioni_recap = pd.DataFrame(rows)
 
 # layout
 app.layout = html.Div([
+    html.H3("Simulazione Pianificazione Postalizzazioni per Ente"),
 
-    html.H3("Previsione Postalizzazioni per Provincia"),
+    html.Div([
+
+        html.Div([
+
+            html.Label("Seleziona Ente:"),
+
+            dcc.Dropdown(
+
+                id="ente-filter",
+
+                options=[{"label": r, "value": r} for r in sorted(enti)],
+                value=list(sorted(enti)),
+                multi=True,
+                placeholder="Seleziona Ente:"
+            ),
+        ], style={"display": "inline-block"}),
+    ], style={"margin-bottom": "10px"}),
+
+    html.Div([
+
+        dcc.Graph(id="line-plot")
+
+    ]),
+
+    html.H3("Simulazione Pianificazione Postalizzazioni per Provincia e Recapitista"),
 
     html.Div([
 
@@ -52,8 +96,8 @@ app.layout = html.Div([
 
                 id="regione-filter",
 
-                options=[{"label": r, "value": r} for r in sorted(df["Regione"].unique())],
-                value=list(sorted(df["Regione"].unique())),
+                options=[{"label": r, "value": r} for r in sorted(df_regioni_recap["Regione"].unique())],
+                value=list(sorted(df_regioni_recap["Regione"].unique())),
                 multi=True,
                 placeholder="Seleziona le regioni"
             ),
@@ -67,8 +111,8 @@ app.layout = html.Div([
 
                 id="recap-filter",
 
-                options=[{"label": r, "value": r} for r in sorted(df["Recapitista"].unique())],
-                value=list(sorted(df["Recapitista"].unique())),
+                options=[{"label": r, "value": r} for r in sorted(recapitisti)],
+                value=list(sorted(recapitisti)),
                 multi=True,
                 placeholder="Seleziona i recapitisti"
             )
@@ -83,29 +127,53 @@ app.layout = html.Div([
 ])
 
 @app.callback(
+    Output("line-plot", "figure"),
+    Input("ente-filter", "value")
+)
+def update_chart_ente(ente_sel):
+    # se non selezionato nulla → grafico vuoto
+    if not ente_sel:
+        return px.line(title="Nessuna selezione effettuata")
+
+    df_enti = pd.DataFrame(dati_enti, columns=["Ente", "Settimana", "Postalizzazioni"])
+
+    filtered_enti = df_enti[df_enti["Ente"].isin(ente_sel)]
+
+    fig_ente = px.line(
+        filtered_enti,
+        x="Settimana",
+        y="Postalizzazioni",
+        color='Ente',
+        markers=True,
+        title="Pianificazione Postalizzazioni per Ente"
+    )
+    fig_ente.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    return fig_ente
+
+@app.callback(
     Output("area-plot", "figure"),
     Input("regione-filter", "value"),
     Input("recap-filter", "value")
 )
-def update_chart(regioni_sel, recap_sel):
+def update_chart_regioni_recap(regioni_sel, recap_sel):
     # se non selezionato nulla → grafico vuoto
     if not regioni_sel or not recap_sel:
         return px.area(title="Nessuna selezione effettuata")
 
-    dff = df[df["Regione"].isin(regioni_sel) & df["Recapitista"].isin(recap_sel)]
-    dff["ProvinciaRecap"] = dff["Provincia"] + " - " + dff["Recapitista"]
+    filtered_regioni_recap = df_regioni_recap[df_regioni_recap["Regione"].isin(regioni_sel) & df_regioni_recap["Recapitista"].isin(recap_sel)]
+    filtered_regioni_recap["Provincia - Recapitista"] = filtered_regioni_recap["Provincia"] + " - " + filtered_regioni_recap["Recapitista"]
 
-    fig = px.area(
-        dff,
+    fig_reg_recap = px.area(
+        filtered_regioni_recap,
         x="Settimana",
         y="Postalizzazioni",
-        color="ProvinciaRecap",
-        line_group="ProvinciaRecap",
+        color="Provincia - Recapitista",
+        line_group="Provincia - Recapitista",
         markers=True,
-        title="Previsione Postalizzazioni (filtrata)"
+        title="Pianificazione Postalizzazioni per Regione e Recapitista"
     )
-    fig.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
-    return fig
+    fig_reg_recap.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    return fig_reg_recap
  
 
 
