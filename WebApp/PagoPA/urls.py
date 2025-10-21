@@ -14,7 +14,7 @@ urlpatterns = [
 
     # SIMULAZIONI
     path('nuova_simulazione/<id_simulazione>', nuova_simulazione, name='nuova_simulazione'),
-    path('risultati/<id_simulazione>', risultati, name='risultati'),
+    #path('risultati/<id_simulazione>', risultati, name='risultati'),
     path('confronto_risultati/<id_simulazione>', confronto_risultati, name='confronto_risultati'),
     path('salva_simulazione', salva_simulazione, name='salva_simulazione'),
     path('rimuovi_simulazione/<id_simulazione>', rimuovi_simulazione, name='rimuovi_simulazione'),
@@ -30,7 +30,7 @@ urlpatterns = [
 
     # DASH
     # la dashboard viene generata su http://localhost:8000/django_plotly_dash/app/SimpleExample/ e, poi, viene viene recuperata dalla pagina html http://localhost:8000/dash/
-    path('dash/', include('Simulatore.urls')),
+    path('', include('Simulatore.urls')),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
 ]
 
