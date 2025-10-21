@@ -310,6 +310,9 @@ def salva_simulazione(request):
         else:
             stato = 'Schedulata'
     
+    mese_da_simulare = request.POST['mese_da_simulare']
+    tipo_capacita_da_modificare = request.POST['tipo_capacita_da_modificare']
+
     # NUOVA SIMULAZIONE
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST['id_simulazione']: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
         id_simulazione_salvata = table_simulazione.objects.create(
@@ -317,7 +320,9 @@ def salva_simulazione(request):
             DESCRIZIONE = descrizione_simulazione,
             STATO = stato,
             TRIGGER = tipo_trigger,
-            TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+            TIMESTAMP_ESECUZIONE = timestamp_esecuzione,
+            MESE_SIMULAZIONE = mese_da_simulare,
+            TIPO_CAPACITA = tipo_capacita_da_modificare
         )
         capacita_json = request.POST.get('capacita_json')
         try:
@@ -328,15 +333,16 @@ def salva_simulazione(request):
         for recapitista, righe_tabella in capacita_json.items():
             for singola_riga in righe_tabella:
                 table_capacita_modificate.objects.create(
-                    MESE_SIMULAZIONE = request.POST['mese_da_simulare'],
-                    TIPO_CAPACITA = request.POST['tipo_capacita_da_modificare'],
-                    RECAPITISTA = recapitista,
+                    UNIFIED_DELIVERY_DRIVER = recapitista,
+                    ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
+                    ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
+                    CAPACITY = singola_riga['capacita'],
+                    SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[0], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
+                    SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
                     REGIONE = singola_riga['regione'],
-                    PROVINCIA = singola_riga['provincia'],
-                    POSTALIZZAZIONI = singola_riga['postalizzazioni_settimanali'].split(' ')[0],
-                    ACTIVATION_DATE_FROM = singola_riga['inizioPeriodoValidita'],
-                    ACTIVATION_DATE_TO = singola_riga['finePeriodoValidita'],
-                    CAPACITA = singola_riga['capacita'],
+                    PROVINCE = singola_riga['provincia'],
+                    PRODUCT_890 = True if '890' in singola_riga['product'] else False,
+                    PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
                     SIMULAZIONE_ID = id_simulazione_salvata
                 )
 
@@ -348,6 +354,8 @@ def salva_simulazione(request):
         simulazione_da_modificare.STATO = stato
         simulazione_da_modificare.TRIGGER = tipo_trigger
         simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+        simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
+        simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
         simulazione_da_modificare.save()
 
     if request.POST['stato'] == 'Bozza':

@@ -25,19 +25,16 @@ class table_simulazione(models.Model):
 
 class table_capacita_modificate(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
-    CAPACITY = models.IntegerField(null=True)
-    GEOKEY = models.CharField(max_length=5, null=True)
-    TENDER_ID_GEOKEY = models.CharField(max_length=11, null=True)
-    PRODUCT_890 = models.BooleanField(null=True)
-    PRODUCT_AR = models.BooleanField(null=True)
-    PRODUCT_RS = models.BooleanField(null=True)
-    TENDER_ID = models.CharField(max_length=8, null=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
-    CREATED_AT = NaiveDateTimeField(null=True)
-    PEAK_CAPACITY = models.IntegerField(null=True)
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
-    PK = models.CharField(max_length=100, null=True)
+    CAPACITY = models.IntegerField(null=True)
+    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
+    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_MODIFICATE'

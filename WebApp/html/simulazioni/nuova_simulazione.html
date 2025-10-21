@@ -396,7 +396,6 @@
         if (valpostalizzazione >= valcapacity) {
             alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità minori delle postalizzazioni"></i>');
         }
-        
     }
 
     // funzione che si triggera ogni volta che viene modificata la capacità
@@ -421,37 +420,6 @@
         allowInput:true,
         defaultDate: '{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
-</script>
-
-<!-- flatpickr per vincoli datepicker STEP 3: l'inizializzazione dei calendari datepicker (flatpickr) dev'essere fatta solo dopo aver caricato l'input con il relativo id -->
- <script>
-    function inizializzazione_datepicker_flatpickr(){
-        flatpickr("#inizioPeriodoValidita", {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            disable: [
-                function(date) {
-                    // abilitiamo solo i lunedì (1)
-                    return !(date.getDay() === 1);
-                }
-            ],
-        });
-
-        flatpickr("#finePeriodoValidita", {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            disable: [
-                function(date) {
-                    // abilitiamo solo le domeniche (0)
-                    return !(date.getDay() === 0);
-                }
-            ],
-        });
-    }
 </script>
 
 <!-- jQuery/Ajax per accordion output_capacity_setting -->
@@ -527,8 +495,6 @@
                     counter++;  
                 }
                 content.innerHTML = content_capacita;
-                // start funzione javascript per gestione tabelle dentro ogni accordion (STEP 3)
-                inizializzazione_datepicker_flatpickr();
                 // dopo aver creato la tabella lanciamo la validateRow() su tutte le tabelle
                 $('.table-capacita tbody tr').each(function() {
                     validateRow(this);
@@ -578,6 +544,7 @@
                     regione: row.find('td').eq(0).text().trim(),
                     provincia: row.find('td').eq(1).text().trim(),
                     postalizzazioni_settimanali: row.find('td').eq(2).text().trim(),
+                    product: row.find('td').eq(3).text().trim(),
                     inizioPeriodoValidita: row.find('td').eq(4).text().trim(),
                     finePeriodoValidita: row.find('td').eq(5).text().trim(),
                     capacita: row.find('.input_capacita').val(),
