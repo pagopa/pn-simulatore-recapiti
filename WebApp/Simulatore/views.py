@@ -274,7 +274,7 @@ def nuova_simulazione(request, id_simulazione):
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new':
         # Mese da simulare
-        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATIONDATEFROM')).values_list('mese', flat=True).distinct().order_by('mese')
+        lista_mesi_univoci = table_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
         lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
         context = {
              'lista_mesi_univoci': lista_mesi_univoci
@@ -382,17 +382,17 @@ def ajax_get_capacita_from_mese(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
     if request.accepts:
         # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(ACTIVATIONDATEFROM__year=mese_da_simulare.split('-')[0], ACTIVATIONDATEFROM__month=mese_da_simulare.split('-')[1]).values())
+        lista_capacita_grezze = list(table_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
-            recapitista = item['UNIFIEDDELIVERYDRIVER']
+            recapitista = item['UNIFIED_DELIVERY_DRIVER']
             regione = item['REGIONE']
             provincia = item['PROVINCE']
-            post_weekly_estimate = item['SUM_WEEKLYESTIMATE']
-            post_monthly_estimate = item['SUM_MONTHLYESTIMATE']
+            post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
+            post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
             capacity = item['CAPACITY']
-            activation_date_from = item['ACTIVATIONDATEFROM']
-            activation_date_to = item['ACTIVATIONDATETO']
+            activation_date_from = item['ACTIVATION_DATE_FROM']
+            activation_date_to = item['ACTIVATION_DATE_TO']
             # PRODUCT TYPE: boolean, valori True/False
             product = ''
             if item['PRODUCT_890']:
@@ -439,7 +439,7 @@ def aggiungi_dati():
     if count_declared_capacity[0] == 0:
         for i in range(0 ,len(df_declared_capacity)):
             values_capacity = (df_declared_capacity['capacity'][i], df_declared_capacity['geoKey'][i], df_declared_capacity['tenderIdGeoKey'][i], df_declared_capacity['product_890'][i], df_declared_capacity['product_AR'][i], df_declared_capacity['product_RS'][i], df_declared_capacity['tenderId'][i], df_declared_capacity['unifiedDeliveryDriver'][i], df_declared_capacity['createdAt'][i], df_declared_capacity['peakCapacity'][i], df_declared_capacity['activationDateFrom'][i], df_declared_capacity['activationDateTo'][i], df_declared_capacity['pk'][i])
-            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("CAPACITY","GEOKEY","TENDERIDGEOKEY","PRODUCT_890","PRODUCT_AR","PRODUCT_RS","TENDERID","UNIFIEDDELIVERYDRIVER","CREATEDAT","PEAKCAPACITY","ACTIVATIONDATEFROM","ACTIVATIONDATETO","PK") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+            cur.execute('INSERT INTO public."DECLARED_CAPACITY" ("CAPACITY","GEOKEY","TENDER_ID_GEOKEY","PRODUCT_890","PRODUCT_AR","PRODUCT_RS","TENDER_ID","UNIFIED_DELIVERY_DRIVER","CREATED_AT","PEAK_CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PK") VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                         values_capacity)
     
     cur.execute('select count(*) from public."SENDER_LIMIT"')
@@ -447,7 +447,7 @@ def aggiungi_dati():
     if count_sender_limit[0] == 0:
         for i in range(0 ,len(df_sender_limit)):
             values_senderlimit = (df_sender_limit['pk'][i], df_sender_limit['deliveryDate'][i], df_sender_limit['weeklyEstimate'][i], df_sender_limit['monthlyEstimate'][i], df_sender_limit['originalEstimate'][i], df_sender_limit['paId'][i], df_sender_limit['productType'][i], df_sender_limit['province'][i])
-            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERYDATE","WEEKLYESTIMATE","MONTHLYESTIMATE","ORIGINALESTIMATE","PAID","PRODUCTTYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+            cur.execute('INSERT INTO public."SENDER_LIMIT" ("PK","DELIVERY_DATE","WEEKLY_ESTIMATE","MONTHLY_ESTIMATE","ORIGINAL_ESTIMATE","PA_ID","PRODUCT_TYPE","PROVINCE") VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
                         values_senderlimit)
 
     cur.execute('select count(*) from public."CAP_PROV_REG"')
