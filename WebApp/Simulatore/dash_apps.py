@@ -146,7 +146,9 @@ app.layout = html.Div([
 
     ]),
 
-    html.H3("Simulazione Pianificazione Postalizzazioni per Provincia e Recapitista"),
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Provincia e Recapitista",
+        style={"text-align":"center"}),
 
     html.Div([
 
@@ -292,8 +294,7 @@ def update_chart_regioni_recap(regioni_sel, recap_sel):
         y="Postalizzazioni",
         color="Provincia - Recapitista",
         line_group="Provincia - Recapitista",
-        markers=True,
-        title="Pianificazione Postalizzazioni per Regione e Recapitista"
+        markers=True
     )
     fig_reg_recap.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
     return fig_reg_recap
