@@ -151,7 +151,7 @@
                         <option disabled value="Produzione" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
                         <option value="Solo BAU" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo BAU' %}selected{% endif %}>Solo BAU</option>
                         <option value="Solo picco" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo picco' %}selected{% endif %}>Solo picco</option>
-                        <option disabled value="BAU e picco combinate" {% if simulazione_da_modificare.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
+                        <option value="BAU e picco combinate" {% if simulazione_da_modificare.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
@@ -443,6 +443,7 @@
             data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata},
             success: function(resp){
                 var counter = 0;
+                // scorriamo i recapitisti e creiamo le relative sezioni (accordion) di ogni recapitista
                 for (var recapitista in resp.context){
                     content_capacita += `
                         <div class="accordion" data-group="${recapitista}">
@@ -469,6 +470,8 @@
                                             </thead>
                                             <tbody class="table-group-divider text-center">
                             `;
+                    
+                    // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
                     resp.context[recapitista].forEach(function(singola_capacity) {
                         content_capacita += `
                             <tr>

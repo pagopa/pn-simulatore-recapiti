@@ -455,6 +455,12 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                 capacity = item['CAPACITY']
             elif tipo_capacita_selezionata=='Solo picco':
                 capacity = item['PEAK_CAPACITY']
+            elif tipo_capacita_selezionata == 'BAU e picco combinate':
+                # REGOLA: quando i volumi sono inferiori alla BAU setta BAU mentre se i volumi sono superiori alla BAU o al picco setta picco.
+                if post_weekly_estimate < item['CAPACITY']:
+                    capacity = item['CAPACITY']
+                else:
+                    capacity = item['PEAK_CAPACITY']
             activation_date_from = item['ACTIVATION_DATE_FROM']
             activation_date_to = item['ACTIVATION_DATE_TO']
             # PRODUCT TYPE: boolean, valori True/False
