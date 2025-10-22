@@ -21,7 +21,7 @@ from django.http import JsonResponse
 
 import psycopg2
 
-locale.setlocale(locale.LC_ALL, 'it_IT')
+locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
 def homepage(request):
