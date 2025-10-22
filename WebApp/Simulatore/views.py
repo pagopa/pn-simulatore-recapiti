@@ -269,20 +269,19 @@ def bozze(request):
     return render(request, "simulazioni/bozze.html", context)
 
 def nuova_simulazione(request, id_simulazione):
+    # Mese da simulare
+    lista_mesi_univoci = view_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
+    lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
+    context = {
+        'lista_mesi_univoci': lista_mesi_univoci
+    }
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new':
-        # Mese da simulare
-        lista_mesi_univoci = view_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
-        lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
-        context = {
-             'lista_mesi_univoci': lista_mesi_univoci
-        }
+        pass
     # MODIFICA SIMULAZIONE
     else:
-        simulazione = table_simulazione.objects.get(ID = id_simulazione)
-        context = {
-            'simulazione': simulazione
-        }
+        simulazione_da_modificare = table_simulazione.objects.get(ID = id_simulazione)
+        context['simulazione_da_modificare'] = simulazione_da_modificare
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
@@ -439,7 +438,7 @@ def rimuovi_dati_db(request):
     return redirect("status")
 
 # AJAX
-def ajax_get_capacita_from_mese(request):
+def ajax_get_capacita_from_mese_and_tipo(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
     tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
     if request.accepts:

@@ -9,9 +9,10 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# se siamo in prod lanciamo il comando collectstatic
+# se siamo in prod lanciamo il comando collectstatic e il comando migrate
 RUN if [ "$DJANGO_ENV" = "prod" ]; then \ 
       python manage.py collectstatic --noinput ; \
+      python manage.py migrate --noinput ; \
     fi
 
 EXPOSE 8080

@@ -28,7 +28,7 @@
                     <label class="form-label"><b>Nome simulazione *</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione.NOME}}" required>
+                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione_da_modificare.NOME}}" required>
                 </div>
             </div>
             <br>
@@ -37,7 +37,7 @@
                     <label class="form-label"><b>Descrizione</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione.DESCRIZIONE|default_if_none:''}}</textarea>
+                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione_da_modificare.DESCRIZIONE|default_if_none:''}}</textarea>
                 </div>
             </div>
             <br>
@@ -48,14 +48,14 @@
                 <div class="col-auto">
                     <!-- Radio Schedule -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione.TRIGGER == 'Schedule' %}checked{% endif %}>
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione_da_modificare.TRIGGER == 'Schedule' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio1">Schedule</label>
                     </div>
                 </div>
                 <div class="col-auto">
                     <!-- Radio Now -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione.TRIGGER == 'Now' %}checked{% endif %}>
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione_da_modificare.TRIGGER == 'Now' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio2">Now</label>
                     </div>
                 </div>
@@ -135,10 +135,10 @@
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare *</b></label>
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
-                        <option disabled value="Produzione">Produzione</option>
-                        <option value="Solo BAU">Solo BAU</option>
-                        <option value="Solo picco">Solo picco</option>
-                        <option disabled value="BAU e picco combinate">BAU e picco combinate</option>
+                        <option disabled value="Produzione" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
+                        <option value="Solo BAU" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo BAU' %}selected{% endif %}>Solo BAU</option>
+                        <option value="Solo picco" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo picco' %}selected{% endif %}>Solo picco</option>
+                        <option disabled value="BAU e picco combinate" {% if simulazione_da_modificare.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
@@ -146,7 +146,7 @@
                     <select class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi_univoci %}
-                            <option value="{{singolo_mese.0}}">{{singolo_mese.1}}</option>
+                            <option value="{{singolo_mese.0}}" {% if simulazione_da_modificare.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -163,7 +163,7 @@
             </div>
             <div class="row text-center">
                 <div class="col-8 mx-auto">
-                    <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax()">Carica tabelle capacità</button>
+                    <button type="button" class="btn btn-outline-primary" id="button_load_tabella_capacita_with_ajax" onclick="load_tabella_capacita_with_ajax()">Carica tabelle capacità</button>
                 </div>
                 <div class="col-4 mx-auto">
                 </div>
@@ -173,7 +173,7 @@
 
             <!-- Capacità recuperate da db -->
             <div class="text-center" id="spinner"></div>
-            <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_get_capacita_from_mese' %}></span>
+            <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_get_capacita_from_mese_and_tipo' %}></span>
 
             <br><br><br><br>
             <!-- Campo nascosto per contenere il JSON -->
@@ -208,7 +208,7 @@
                                 function form_submit_scheduling() {
                                     multiStepForm = document.getElementById("multiStepForm");
                                     var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
-                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_da_modificare.ID}}'}).appendTo('#multiStepForm');
                                     // riempimento input nascosto con capacità modificate dall'utente
                                     save_capacita_json();
                                     multiStepForm.submit();
@@ -242,7 +242,7 @@
             function form_submit_bozza() {
                 multiStepForm = document.getElementById("multiStepForm");
                 var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
-                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione.ID}}'}).appendTo('#multiStepForm');
+                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_da_modificare.ID}}'}).appendTo('#multiStepForm');
                 // riempimento input nascosto con capacità modificate dall'utente
                 save_capacita_json();
                 // submit form
@@ -418,7 +418,7 @@
         minuteIncrement: 30,
         minDate: new Date(),
         allowInput:true,
-        defaultDate: '{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
+        defaultDate: '{{simulazione_da_modificare.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
 
@@ -428,7 +428,7 @@
         var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
         // è obbligatorio selezionare sia il tipo di capacità che il mese da simulare
-        if (mese_da_simulare_selezionato == '' || tipo_capacita_selezionata == ''){
+        if (tipo_capacita_selezionata == '' ||  mese_da_simulare_selezionato == ''){
             return;
         }
         var content = document.getElementById('capacita_recuperate_da_db');
@@ -512,6 +512,15 @@
             }
         });
 	}
+</script>
+
+<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità  -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        if (document.querySelector('#tipo_capacita_da_modificare').value != '' && document.querySelector('#mese_da_simulare').value != ''){
+            document.getElementById("button_load_tabella_capacita_with_ajax").click();
+        }
+    });
 </script>
 
 
