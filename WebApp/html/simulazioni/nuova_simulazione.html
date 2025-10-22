@@ -394,7 +394,7 @@
         const alertTd = td.eq(7); // colonna alert
         alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
         if (valpostalizzazione >= valcapacity) {
-            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità minori delle postalizzazioni"></i>');
+            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità inferiore al numero di postalizzazioni"></i>');
         }
     }
 
