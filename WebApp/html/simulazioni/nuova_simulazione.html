@@ -129,7 +129,20 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
-            <br>
+            <div class="row text-center">
+                <div class="col-8">
+                </div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-xl" style="cursor: pointer;" title="Download csv"></i></p>
+                    <label style="font-size: 12px;">Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label" style="font-size: 12px;"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
+                    </div>
+                </div>
+            </div>
             <div class="row text-center">
                 <div class="col-4 mx-auto">
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare *</b></label>
@@ -150,22 +163,9 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-2 mx-auto">
-                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
-                    <label>Download capacità di default per input</label>
-                </div>
-                <div class="col-2 mx-auto">
-                    <div class="mb-3">
-                        <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
-                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
-                    </div>
-                </div>
-            </div>
-            <div class="row text-center">
-                <div class="col-8 mx-auto">
+                <div class="col-4 text-start">
+                    <br>
                     <button type="button" class="btn btn-outline-primary" id="button_load_tabella_capacita_with_ajax" onclick="load_tabella_capacita_with_ajax()">Carica tabelle capacità</button>
-                </div>
-                <div class="col-4 mx-auto">
                 </div>
             </div>
 
