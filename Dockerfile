@@ -14,8 +14,8 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput ;
-RUN python manage.py migrate --noinput ;
+RUN python WebApp/manage.py collectstatic --noinput ;
+RUN python WebApp/manage.py migrate --noinput ;
 
 
 EXPOSE 8080
