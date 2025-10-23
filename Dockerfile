@@ -9,10 +9,9 @@ ENV LANG=it_IT.UTF-8
 ENV LANGUAGE=it_IT:it
 ENV LC_ALL=it_IT.UTF-8
 
-COPY requirements.txt .
-RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
-
 COPY . .
+
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 RUN python WebApp/manage.py collectstatic --noinput ;
 
