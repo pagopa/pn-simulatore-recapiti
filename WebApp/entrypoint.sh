@@ -3,6 +3,8 @@
 # interrompe lo script se vi sono errori
 set -e
 
+echo "START DJANGO DB MIGRATE"
 python manage.py migrate --noinput
+echo "END DJANGO DB MIGRATE"
 
 exec gunicorn --chdir ./WebApp PagoPA.wsgi:application --bind 0.0.0.0:8080 --workers 3
