@@ -10,7 +10,7 @@ from PagoPA.settings import *
 import json
 
 
-app = DjangoDash('SimpleExample')
+app_risultati = DjangoDash('dash_risultati')
 
 enti = [
 "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
@@ -116,7 +116,7 @@ with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding
         geojson = json.load(f)
 
 # layout
-app.layout = html.Div([
+app_risultati.layout = html.Div([
     html.H3(
         "Simulazione Pianificazione Postalizzazioni per Ente",
         style={"text-align":"center"}),
@@ -254,7 +254,7 @@ app.layout = html.Div([
     ])
 ])
 
-@app.callback(
+@app_risultati.callback(
     Output("line-plot", "figure"),
     Input("ente-filter", "value")
 )
@@ -275,7 +275,7 @@ def update_chart_ente(ente_sel):
     fig_ente.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
     return fig_ente
 
-@app.callback(
+@app_risultati.callback(
     Output("area-plot", "figure"),
     Input("regione-filter", "value"),
     Input("recap-filter", "value")
@@ -299,7 +299,7 @@ def update_chart_regioni_recap(regioni_sel, recap_sel):
     fig_reg_recap.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
     return fig_reg_recap
  
-@app.callback(
+@app_risultati.callback(
     Output("map-plot", "figure"),
     Input("recap-only-filter", "value")
 )
@@ -338,7 +338,7 @@ def update_map_recap(recap_only_sel):
     )
     return fig_picchi
 
-@app.callback(
+@app_risultati.callback(
     Output("datatable-region", "data"),
     Input("recap-only-filter", "value")
 )
@@ -350,6 +350,510 @@ def update_table_recap(recap_only_sel):
     return filtered_df_picchi.to_dict("records")
 
 
+
+app_confronto = DjangoDash('dash_confronto_risultati')
+
+
+# layout
+app_confronto.layout = html.Div([
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Ente",
+        style={"text-align":"center"}),
+
+    html.Div([
+        html.Div([
+            html.H4("Simulazione 1",style={"text-align":"center"})
+        ], className="col-sm"),
+        html.Div([
+            html.H4("Simulazione 2",style={"text-align":"center"})
+        ], className="col-sm")
+    ], className='row text-center'),
+
+    html.Div([
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Ente:"),
+
+                    dcc.Dropdown(
+
+                        id="ente-filter-1",
+
+                        options=[{"label": r, "value": r} for r in sorted(enti)],
+                        value=list(sorted(enti)),
+                        multi=True,
+                        placeholder="Seleziona Ente:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="line-plot-1")
+
+            ]),
+        ], className="col-sm"),
+
+        html.Div([
+
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Ente:"),
+
+                    dcc.Dropdown(
+
+                        id="ente-filter-2",
+
+                        options=[{"label": r, "value": r} for r in sorted(enti)],
+                        value=list(sorted(enti)),
+                        multi=True,
+                        placeholder="Seleziona Ente:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="line-plot-2")
+
+            ]),  
+        ], className="col-sm"),
+    ], className='row text-center'),
+
+
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Provincia e Recapitista",
+        style={"text-align":"center"}),
+
+
+    html.Div([
+        html.Div([
+            html.H4("Simulazione 1",style={"text-align":"center"})
+        ], className="col-sm"),
+        html.Div([
+            html.H4("Simulazione 2",style={"text-align":"center"})
+        ], className="col-sm")
+    ], className='row text-center'),
+
+    html.Div([
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Regione:"),
+
+                    dcc.Dropdown(
+
+                        id="regione-filter-1",
+
+                        options=[{"label": r, "value": r} for r in sorted(df_regioni_recap["Regione"].unique())],
+                        value=list(sorted(df_regioni_recap["Regione"].unique())),
+                        multi=True,
+                        placeholder="Seleziona una o più regioni..."
+                    ),
+                ], style={"width": "48%", "display": "inline-block"}),
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-filter-1",
+
+                        options=[{"label": r, "value": r} for r in sorted(recapitisti)],
+                        value=list(sorted(recapitisti)),
+                        multi=True,
+                        placeholder="Seleziona un recapitista..."
+                    )
+                ], style={"width": "48%", "display": "inline-block", "float": "right"})
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="area-plot-1")
+
+            ]),
+        ], className="col-sm"),
+
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Regione:"),
+
+                    dcc.Dropdown(
+
+                        id="regione-filter-2",
+
+                        options=[{"label": r, "value": r} for r in sorted(df_regioni_recap["Regione"].unique())],
+                        value=list(sorted(df_regioni_recap["Regione"].unique())),
+                        multi=True,
+                        placeholder="Seleziona una o più regioni..."
+                    ),
+                ], style={"width": "48%", "display": "inline-block"}),
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-filter-2",
+
+                        options=[{"label": r, "value": r} for r in sorted(recapitisti)],
+                        value=list(sorted(recapitisti)),
+                        multi=True,
+                        placeholder="Seleziona un recapitista..."
+                    )
+                ], style={"width": "48%", "display": "inline-block", "float": "right"})
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="area-plot-2")
+
+            ]),
+        ], className="col-sm"),
+    ], className='row text-center'),
+
+    html.H3(
+        "Mappa dei picchi per Recapitista",
+        style={"text-align":"center"}),
+
+    html.Div([
+        html.Div([
+            html.H4("Simulazione 1",style={"text-align":"center"})
+        ], className="col-sm"),
+        html.Div([
+            html.H4("Simulazione 2",style={"text-align":"center"})
+        ], className="col-sm")
+    ], className='row text-center'),
+
+    html.Div([
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-only-filter-1",
+
+                        options=[{"label": r, "value": r} for r in sorted(recapitisti)],
+                        value=recapitisti[0],
+                        placeholder="Seleziona Recapitista:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="map-plot-1")
+
+            ]),
+
+            html.Div([
+
+                dash_table.DataTable(
+                    id='datatable-region-1',
+                    data=df_picchi.to_dict('records'),
+                    columns=[
+                        {'name': i, 'id': i} for i in df_picchi.columns
+                    ],
+                    #style_as_list_view=True,
+                    style_cell={
+                        'padding': '5px',
+                        'textAlign': 'center',
+                        'minWidth': '60px', 'width': '60px', 'maxWidth': '60px',
+                    },
+                    # style_header={
+                    #     'backgroundColor': "#585858",
+                    #     'color': 'white',
+                    #     'fontWeight': 'bold',
+
+                    # },
+                    #sort_action="native",
+                    #style_table={'width': '50%'},
+                    style_data_conditional=[{
+                    'if': {
+                        'state': 'active'  # 'active' | 'selected'
+                        },
+                    'backgroundColor': 'rgba(0, 116, 217, 0.3)',
+                    'border': '1px solid rgb(0, 116, 217)'
+                    }],
+                    #sort_mode='multi',
+                    selected_rows=[],
+                    page_action='native',
+                    page_current= 0,
+                    page_size= 20,
+                )
+
+            ]),
+
+        ], className="col-sm"),
+
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-only-filter-2",
+
+                        options=[{"label": r, "value": r} for r in sorted(recapitisti)],
+                        value=recapitisti[0],
+                        placeholder="Seleziona Recapitista:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="map-plot-2")
+            ]),
+
+            html.Div([
+
+                dash_table.DataTable(
+                    id='datatable-region-2',
+                    data=df_picchi.to_dict('records'),
+                    columns=[
+                        {'name': i, 'id': i} for i in df_picchi.columns
+                    ],
+                    #style_as_list_view=True,
+                    style_cell={
+                        'padding': '5px',
+                        'textAlign': 'center',
+                        'minWidth': '60px', 'width': '60px', 'maxWidth': '60px',
+                    },
+                    # style_header={
+                    #     'backgroundColor': "#585858",
+                    #     'color': 'white',
+                    #     'fontWeight': 'bold',
+
+                    # },
+                    #sort_action="native",
+                    style_data_conditional=[{
+                    'if': {
+                        'state': 'active'  # 'active' | 'selected'
+                        },
+                    'backgroundColor': 'rgba(0, 116, 217, 0.3)',
+                    'border': '1px solid rgb(0, 116, 217)'
+                    }],
+                    #sort_mode='multi',
+                    selected_rows=[],
+                    page_action='native',
+                    page_current= 0,
+                    page_size= 20,
+                )
+            ])
+        ], className="col-sm")
+    ], className='row text-center'),
+])
+
+@app_confronto.callback(
+    Output("line-plot-1", "figure"),
+    Input("ente-filter-1", "value")
+)
+def update_chart_ente_1(ente_sel):
+    # se non selezionato nulla → grafico vuoto
+    if not ente_sel:
+        return px.line(title="Nessuna selezione effettuata")
+
+    filtered_enti = df_enti[df_enti["Ente"].isin(ente_sel)]
+
+    fig_ente = px.line(
+        filtered_enti,
+        x="Settimana",
+        y="Postalizzazioni",
+        color='Ente',
+        markers=True
+    )
+    fig_ente.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    return fig_ente
+
+@app_confronto.callback(
+    Output("line-plot-2", "figure"),
+    Input("ente-filter-2", "value")
+)
+def update_chart_ente_2(ente_sel):
+    # se non selezionato nulla → grafico vuoto
+    if not ente_sel:
+        return px.line(title="Nessuna selezione effettuata")
+
+    filtered_enti = df_enti[df_enti["Ente"].isin(ente_sel)]
+
+    fig_ente = px.line(
+        filtered_enti,
+        x="Settimana",
+        y="Postalizzazioni",
+        color='Ente',
+        markers=True
+    )
+    fig_ente.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    return fig_ente
+
+
+@app_confronto.callback(
+    Output("area-plot-1", "figure"),
+    Input("regione-filter-1", "value"),
+    Input("recap-filter-1", "value")
+)
+def update_chart_regioni_recap_1(regioni_sel, recap_sel):
+    # se non selezionato nulla → grafico vuoto
+    if not regioni_sel or not recap_sel:
+        return px.area(title="Nessuna selezione effettuata")
+
+    filtered_regioni_recap = df_regioni_recap[df_regioni_recap["Regione"].isin(regioni_sel) & df_regioni_recap["Recapitista"].isin(recap_sel)]
+    filtered_regioni_recap["Provincia - Recapitista"] = filtered_regioni_recap["Provincia"] + " - " + filtered_regioni_recap["Recapitista"]
+
+    fig_reg_recap = px.area(
+        filtered_regioni_recap,
+        x="Settimana",
+        y="Postalizzazioni",
+        color="Provincia - Recapitista",
+        line_group="Provincia - Recapitista",
+        markers=True
+    )
+    fig_reg_recap.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    return fig_reg_recap
+
+
+@app_confronto.callback(
+    Output("area-plot-2", "figure"),
+    Input("regione-filter-2", "value"),
+    Input("recap-filter-2", "value")
+)
+def update_chart_regioni_recap_2(regioni_sel, recap_sel):
+    # se non selezionato nulla → grafico vuoto
+    if not regioni_sel or not recap_sel:
+        return px.area(title="Nessuna selezione effettuata")
+
+    filtered_regioni_recap = df_regioni_recap[df_regioni_recap["Regione"].isin(regioni_sel) & df_regioni_recap["Recapitista"].isin(recap_sel)]
+    filtered_regioni_recap["Provincia - Recapitista"] = filtered_regioni_recap["Provincia"] + " - " + filtered_regioni_recap["Recapitista"]
+
+    fig_reg_recap = px.area(
+        filtered_regioni_recap,
+        x="Settimana",
+        y="Postalizzazioni",
+        color="Provincia - Recapitista",
+        line_group="Provincia - Recapitista",
+        markers=True
+    )
+    fig_reg_recap.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    return fig_reg_recap
+ 
+@app_confronto.callback(
+    Output("map-plot-1", "figure"),
+    Input("recap-only-filter-1", "value")
+)
+def update_map_recap_1(recap_only_sel):
+    # se non selezionato nulla → grafico vuoto
+    
+    filtered_df_picchi = df_picchi[df_picchi["Recapitista"] == recap_only_sel]
+    filtered_df_picchi["z"] = filtered_df_picchi["fascia"].map(fascia_to_num)
+
+    fig_picchi = go.Figure()
+    fig_picchi = fig_picchi.add_trace(
+        go.Choroplethmapbox(
+            geojson=geojson,
+            locations=filtered_df_picchi["Regione"],
+            z=filtered_df_picchi["z"],
+            featureidkey="properties.reg_name",
+            colorscale=colorscale,
+            zmin=0, zmax=2,
+            marker_opacity=0.6,
+            marker_line_width=0,
+            name=recap_only_sel,
+            #visible=recap_sel,   # mostra solo il primo inizialmente
+            showscale=False,
+            customdata=filtered_df_picchi[["fascia"]].values,
+            hovertemplate="<b>%{location}</b><br>Recapitista: " + recap_only_sel + "<br>Fascia: %{customdata[0]}<extra></extra>"
+        )
+    )
+    fig_picchi.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_zoom=4.5,
+        mapbox_center={"lat": 41.9, "lon": 12.5},
+        height=800,
+        #updatemenus=[dict(buttons=buttons,pad={"r": 20, "t": 20}, direction="down", x=1.12, y=1.12)],
+        #margin={"r":100,"t":100,"l":100,"b":100},
+        #title="Assegnazioni per Recapitista (fasce)"
+    )
+    return fig_picchi
+
+@app_confronto.callback(
+    Output("datatable-region-1", "data"),
+    Input("recap-only-filter-1", "value")
+)
+def update_table_recap_1(recap_only_sel):
+
+    filtered_df_picchi = df_picchi[df_picchi["Recapitista"] == recap_only_sel]
+    filtered_df_picchi["z"] = filtered_df_picchi["fascia"].map(fascia_to_num)
+
+    return filtered_df_picchi.to_dict("records")
+
+@app_confronto.callback(
+    Output("map-plot-2", "figure"),
+    Input("recap-only-filter-2", "value")
+)
+def update_map_recap_2(recap_only_sel):
+    # se non selezionato nulla → grafico vuoto
+    
+    filtered_df_picchi = df_picchi[df_picchi["Recapitista"] == recap_only_sel]
+    filtered_df_picchi["z"] = filtered_df_picchi["fascia"].map(fascia_to_num)
+
+    fig_picchi = go.Figure()
+    fig_picchi = fig_picchi.add_trace(
+        go.Choroplethmapbox(
+            geojson=geojson,
+            locations=filtered_df_picchi["Regione"],
+            z=filtered_df_picchi["z"],
+            featureidkey="properties.reg_name",
+            colorscale=colorscale,
+            zmin=0, zmax=2,
+            marker_opacity=0.6,
+            marker_line_width=0,
+            name=recap_only_sel,
+            #visible=recap_sel,   # mostra solo il primo inizialmente
+            showscale=False,
+            customdata=filtered_df_picchi[["fascia"]].values,
+            hovertemplate="<b>%{location}</b><br>Recapitista: " + recap_only_sel + "<br>Fascia: %{customdata[0]}<extra></extra>"
+        )
+    )
+    fig_picchi.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_zoom=4.5,
+        mapbox_center={"lat": 41.9, "lon": 12.5},
+        height=800,
+        #updatemenus=[dict(buttons=buttons,pad={"r": 20, "t": 20}, direction="down", x=1.12, y=1.12)],
+        #margin={"r":100,"t":100,"l":100,"b":100},
+        #title="Assegnazioni per Recapitista (fasce)"
+    )
+    return fig_picchi
+
+@app_confronto.callback(
+    Output("datatable-region-2", "data"),
+    Input("recap-only-filter-2", "value")
+)
+def update_table_recap_2(recap_only_sel):
+
+    filtered_df_picchi = df_picchi[df_picchi["Recapitista"] == recap_only_sel]
+    filtered_df_picchi["z"] = filtered_df_picchi["fascia"].map(fascia_to_num)
+
+    return filtered_df_picchi.to_dict("records")
 
 
 
