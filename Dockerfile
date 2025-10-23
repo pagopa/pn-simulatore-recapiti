@@ -13,8 +13,6 @@ COPY . .
 
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-RUN python WebApp/manage.py collectstatic --noinput ;
-
 EXPOSE 8080
 
 RUN chmod +x /WebApp/entrypoint.sh
