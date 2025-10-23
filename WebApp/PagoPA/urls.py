@@ -23,7 +23,7 @@ urlpatterns = [
     path('bozze', bozze, name='bozze'),
 
     # AJAX
-    path('get_capacita_from_mese_ajax', ajax_get_capacita_from_mese, name="ajax_get_capacita_from_mese"),
+    path('get_capacita_from_mese_and_tipo_ajax', ajax_get_capacita_from_mese_and_tipo, name="ajax_get_capacita_from_mese_and_tipo"),
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),
@@ -32,6 +32,10 @@ urlpatterns = [
     # la dashboard viene generata su http://localhost:8000/django_plotly_dash/app/SimpleExample/ e, poi, viene viene recuperata dalla pagina html http://localhost:8000/dash/
     path('', include('Simulatore.urls')),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
+
+    # pagine provvisorie per caricamento e rimozione dati db
+    path('carica_dati_db', carica_dati_db, name='carica_dati_db'),
+    path('rimuovi_dati_db', rimuovi_dati_db, name='rimuovi_dati_db'),
 ]
 
 

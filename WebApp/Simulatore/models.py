@@ -48,7 +48,7 @@ class table_declared_capacity(models.Model):
     PRODUCT_890 = models.BooleanField(null=True)
     PRODUCT_AR = models.BooleanField(null=True)
     PRODUCT_RS = models.BooleanField(null=True)
-    TENDERID = models.CharField(max_length=8, null=True)
+    TENDER_ID = models.CharField(max_length=8, null=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
     CREATED_AT = NaiveDateTimeField(null=True)
     PEAK_CAPACITY = models.IntegerField(null=True)
@@ -162,4 +162,50 @@ class view_output_capacity_setting(pg.View):
 
     class Meta:
         db_table = 'output_capacity_setting'
+        managed = False
+
+
+
+# VISTA output_modified_capacity_setting
+class view_output_modified_capacity_setting(pg.View):
+    id = models.AutoField(primary_key=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
+    ORIGINAL_CAPACITY = models.IntegerField(null=True)
+    MODIFIED_CAPACITY = models.IntegerField(null=True)
+    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
+    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    MONTH_DELIVERY = models.SmallIntegerField(null=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+
+    sql = """
+        SELECT
+            ROW_NUMBER() OVER () AS id,
+            public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER", 
+            public."output_capacity_setting"."ACTIVATION_DATE_FROM", 
+            public."output_capacity_setting"."ACTIVATION_DATE_TO", 
+            public."output_capacity_setting"."CAPACITY" AS "ORIGINAL_CAPACITY", 
+            public."CAPACITA_MODIFICATE"."CAPACITY" AS "MODIFIED_CAPACITY",
+            public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE", 
+            public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
+            public."output_capacity_setting"."REGIONE", 
+            public."output_capacity_setting"."PROVINCE",
+            public."output_capacity_setting"."PRODUCT_890",
+            public."output_capacity_setting"."PRODUCT_AR",
+            public."output_capacity_setting"."MONTH_DELIVERY",
+            public."CAPACITA_MODIFICATE"."SIMULAZIONE_ID"
+        FROM public."CAPACITA_MODIFICATE" 
+        LEFT JOIN public."output_capacity_setting"
+            ON public."CAPACITA_MODIFICATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
+                AND public."CAPACITA_MODIFICATE"."PROVINCE" = public."output_capacity_setting"."PROVINCE"
+                AND public."CAPACITA_MODIFICATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
+    """
+
+    class Meta:
+        db_table = 'output_modified_capacity_setting'
         managed = False
