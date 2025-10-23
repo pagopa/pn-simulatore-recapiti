@@ -281,6 +281,7 @@ def nuova_simulazione(request, id_simulazione):
     # MODIFICA SIMULAZIONE
     else:
         simulazione_da_modificare = table_simulazione.objects.get(ID = id_simulazione)
+
         context['simulazione_da_modificare'] = simulazione_da_modificare
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
@@ -310,8 +311,15 @@ def salva_simulazione(request):
     mese_da_simulare = request.POST['mese_da_simulare']
     tipo_capacita_da_modificare = request.POST['tipo_capacita_da_modificare']
 
+    # recuperiamo le capacità modificate dall'utente
+    capacita_json = request.POST.get('capacita_json')
+    try:
+        capacita_json = json.loads(capacita_json)
+    except (TypeError, json.JSONDecodeError):
+        capacita_json = {}
+
     # NUOVA SIMULAZIONE
-    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST['id_simulazione']: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
+    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
         id_simulazione_salvata = table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
@@ -321,12 +329,7 @@ def salva_simulazione(request):
             MESE_SIMULAZIONE = mese_da_simulare,
             TIPO_CAPACITA = tipo_capacita_da_modificare
         )
-        capacita_json = request.POST.get('capacita_json')
-        try:
-            capacita_json = json.loads(capacita_json)
-        except (TypeError, json.JSONDecodeError):
-            capacita_json = {}
-
+        # scrittura sul db nella tabella CAPACITA_MODIFICATE
         for recapitista, righe_tabella in capacita_json.items():
             for singola_riga in righe_tabella:
                 table_capacita_modificate.objects.create(
@@ -354,6 +357,22 @@ def salva_simulazione(request):
         simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
         simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
         simulazione_da_modificare.save()
+        id_simulazione_salvata = simulazione_da_modificare
+        
+        lista_old_capacita_modificate = table_capacita_modificate.objects.filter(SIMULAZIONE_ID = request.POST['id_simulazione'])
+        # scrittura sul db nella tabella CAPACITA_MODIFICATE
+        lookup = {}
+        for recapitista, righe_tabella in capacita_json.items():
+            for row in righe_tabella:
+                lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
+
+        for singola_capacita in lista_old_capacita_modificate:
+            key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCE, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+            if key in lookup:
+                singola_capacita.CAPACITY = lookup[key]    
+        
+        table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
+        
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
@@ -441,9 +460,18 @@ def rimuovi_dati_db(request):
 def ajax_get_capacita_from_mese_and_tipo(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
     tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
+    id_simulazione = request.GET['id_simulazione']
+    get_modified_capacity = request.GET['get_modified_capacity']
     if request.accepts:
-        # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-        lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
+        if id_simulazione == '' or get_modified_capacity=='false':
+            # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
+            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
+            nuova_simulazione = True
+        else:
+            # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input)
+            # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
+            lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).values())
+            nuova_simulazione = False
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
             recapitista = item['UNIFIED_DELIVERY_DRIVER']
@@ -451,10 +479,22 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             provincia = item['PROVINCE']
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
-            if tipo_capacita_selezionata=='Solo BAU':
-                capacity = item['CAPACITY']
-            elif tipo_capacita_selezionata=='Solo picco':
-                capacity = item['PEAK_CAPACITY']
+            if nuova_simulazione:
+                if tipo_capacita_selezionata=='Solo BAU':
+                    capacity = item['CAPACITY']
+                elif tipo_capacita_selezionata=='Solo picco':
+                    capacity = item['PEAK_CAPACITY']
+                elif tipo_capacita_selezionata == 'BAU e picco combinate':
+                    # REGOLA: quando i volumi sono inferiori alla BAU setta BAU mentre se i volumi sono superiori alla BAU o al picco setta picco.
+                    if post_weekly_estimate < item['CAPACITY']:
+                        capacity = item['CAPACITY']
+                    else:
+                        capacity = item['PEAK_CAPACITY']
+                # qui è solo fittizia; è fondamentale quando non abbiamo una nuova simulazione
+                original_capacity = capacity
+            else:
+                original_capacity = item['ORIGINAL_CAPACITY']
+                capacity = item['MODIFIED_CAPACITY']
             activation_date_from = item['ACTIVATION_DATE_FROM']
             activation_date_to = item['ACTIVATION_DATE_TO']
             # PRODUCT TYPE: boolean, valori True/False
@@ -477,8 +517,13 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                 'product': product,
                 'activation_date_from': activation_date_from,
                 'activation_date_to': activation_date_to,
-                'capacity': capacity
-            })        
+                'capacity': capacity,
+                'original_capacity': original_capacity
+            })    
+    '''
+    STRUTTURA lista_capacita_finali:
+    
+    '''
     return JsonResponse({'context': lista_capacita_finali})
 
 

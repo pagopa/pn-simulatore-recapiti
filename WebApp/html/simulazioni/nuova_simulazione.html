@@ -129,7 +129,20 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
-            <br>
+            <div class="row text-center">
+                <div class="col-8">
+                </div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-xl" style="cursor: pointer;" title="Download csv"></i></p>
+                    <label style="font-size: 12px;">Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label" style="font-size: 12px;"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
+                    </div>
+                </div>
+            </div>
             <div class="row text-center">
                 <div class="col-4 mx-auto">
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare *</b></label>
@@ -138,7 +151,7 @@
                         <option disabled value="Produzione" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
                         <option value="Solo BAU" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo BAU' %}selected{% endif %}>Solo BAU</option>
                         <option value="Solo picco" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo picco' %}selected{% endif %}>Solo picco</option>
-                        <option disabled value="BAU e picco combinate" {% if simulazione_da_modificare.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
+                        <option value="BAU e picco combinate" {% if simulazione_da_modificare.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
                     </select>
                 </div>
                 <div class="col-4 mx-auto">
@@ -150,22 +163,9 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-2 mx-auto">
-                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-2x" style="cursor: pointer;" title="Download csv"></i></p>
-                    <label>Download capacità di default per input</label>
-                </div>
-                <div class="col-2 mx-auto">
-                    <div class="mb-3">
-                        <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
-                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
-                    </div>
-                </div>
-            </div>
-            <div class="row text-center">
-                <div class="col-8 mx-auto">
-                    <button type="button" class="btn btn-outline-primary" id="button_load_tabella_capacita_with_ajax" onclick="load_tabella_capacita_with_ajax()">Carica tabelle capacità</button>
-                </div>
-                <div class="col-4 mx-auto">
+                <div class="col-4 text-start">
+                    <br>
+                    <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax(false)">Carica tabelle capacità</button>
                 </div>
             </div>
 
@@ -394,7 +394,7 @@
         const alertTd = td.eq(7); // colonna alert
         alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
         if (valpostalizzazione >= valcapacity) {
-            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità minori delle postalizzazioni"></i>');
+            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità inferiore al numero di postalizzazioni"></i>');
         }
     }
 
@@ -424,9 +424,10 @@
 
 <!-- jQuery/Ajax per accordion output_capacity_setting -->
 <script>
-    function load_tabella_capacita_with_ajax() {
+    function load_tabella_capacita_with_ajax(get_modified_capacity) {
         var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
+        var id_simulazione = '{{simulazione_da_modificare.ID}}';
         // è obbligatorio selezionare sia il tipo di capacità che il mese da simulare
         if (tipo_capacita_selezionata == '' ||  mese_da_simulare_selezionato == ''){
             return;
@@ -440,9 +441,10 @@
         $.ajax({
             url: $('.capacita_recuperate_da_db').data('url'),
             type: 'GET',
-            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata},
+            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata, 'id_simulazione':id_simulazione, 'get_modified_capacity':get_modified_capacity},
             success: function(resp){
                 var counter = 0;
+                // scorriamo i recapitisti e creiamo le relative sezioni (accordion) di ogni recapitista
                 for (var recapitista in resp.context){
                     content_capacita += `
                         <div class="accordion" data-group="${recapitista}">
@@ -469,6 +471,8 @@
                                             </thead>
                                             <tbody class="table-group-divider text-center">
                             `;
+                    
+                    // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
                     resp.context[recapitista].forEach(function(singola_capacity) {
                         content_capacita += `
                             <tr>
@@ -478,7 +482,7 @@
                                 <td>${singola_capacity.product}</td>
                                 <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
                                 <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
-                                <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.capacity}</label></td>
+                                <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.original_capacity}</label></td>
                                 <td></td>
                             </tr>
                         `;
@@ -518,7 +522,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         if (document.querySelector('#tipo_capacita_da_modificare').value != '' && document.querySelector('#mese_da_simulare').value != ''){
-            document.getElementById("button_load_tabella_capacita_with_ajax").click();
+            load_tabella_capacita_with_ajax(true);
         }
     });
 </script>
