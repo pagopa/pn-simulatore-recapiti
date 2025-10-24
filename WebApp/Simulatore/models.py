@@ -204,6 +204,8 @@ class view_output_modified_capacity_setting(pg.View):
             ON public."CAPACITA_MODIFICATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
                 AND public."CAPACITA_MODIFICATE"."PROVINCE" = public."output_capacity_setting"."PROVINCE"
                 AND public."CAPACITA_MODIFICATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
+                AND public."CAPACITA_MODIFICATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
+                AND public."CAPACITA_MODIFICATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
     """
 
     class Meta:
