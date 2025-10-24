@@ -334,8 +334,38 @@ def salva_simulazione(request):
             MESE_SIMULAZIONE = mese_da_simulare,
             TIPO_CAPACITA = tipo_capacita_da_modificare
         )
-        # caso di simulazione salvata senza modificare capacità -> non salviamo alcuna capacità
-        if mese_da_simulare != None and tipo_capacita_da_modificare != None:
+
+    # MODIFICA SIMULAZIONE
+    else:
+        simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
+        simulazione_da_modificare.NOME = nome_simulazione
+        simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
+        simulazione_da_modificare.STATO = stato
+        simulazione_da_modificare.TRIGGER = tipo_trigger
+        simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+        simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
+        simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
+        simulazione_da_modificare.save()
+        id_simulazione_salvata = simulazione_da_modificare
+        
+
+    # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
+    if mese_da_simulare != None and tipo_capacita_da_modificare != None:
+        lista_old_capacita_modificate = table_capacita_modificate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
+        if lista_old_capacita_modificate:
+            # modifica delle CAPACITA_MODIFICATE salvate su db
+            lookup = {}
+            for recapitista, righe_tabella in capacita_json.items():
+                for row in righe_tabella:
+                    lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
+
+            for singola_capacita in lista_old_capacita_modificate:
+                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCE, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+                if key in lookup:
+                    singola_capacita.CAPACITY = lookup[key]    
+            
+            table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
+        else:
             # scrittura sul db nella tabella CAPACITA_MODIFICATE
             for recapitista, righe_tabella in capacita_json.items():
                 for singola_riga in righe_tabella:
@@ -353,35 +383,6 @@ def salva_simulazione(request):
                         SIMULAZIONE_ID = id_simulazione_salvata
                     )
 
-    # MODIFICA SIMULAZIONE
-    else:
-        simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
-        simulazione_da_modificare.NOME = nome_simulazione
-        simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
-        simulazione_da_modificare.STATO = stato
-        simulazione_da_modificare.TRIGGER = tipo_trigger
-        simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
-        simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
-        simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
-        simulazione_da_modificare.save()
-        id_simulazione_salvata = simulazione_da_modificare
-        
-        # caso di simulazione salvata senza modificare capacità -> non salviamo alcuna capacità
-        if mese_da_simulare != None and tipo_capacita_da_modificare != None:
-            lista_old_capacita_modificate = table_capacita_modificate.objects.filter(SIMULAZIONE_ID = request.POST['id_simulazione'])
-            # scrittura sul db nella tabella CAPACITA_MODIFICATE
-            lookup = {}
-            for recapitista, righe_tabella in capacita_json.items():
-                for row in righe_tabella:
-                    lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
-
-            for singola_capacita in lista_old_capacita_modificate:
-                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCE, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
-                if key in lookup:
-                    singola_capacita.CAPACITY = lookup[key]    
-            
-            table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
-        
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
     elif request.POST['stato'] == 'Schedulata-Inlavorazione':
