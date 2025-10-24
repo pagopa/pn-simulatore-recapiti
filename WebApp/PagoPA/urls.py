@@ -1,8 +1,6 @@
 from django.urls import path, include
 from Simulatore.views import *
 from django.http import JsonResponse
-from django.conf import settings
-from django.conf.urls.static import static
 
 # HEALTH CHECK RESPONSE
 def status_view(request):
