@@ -25,7 +25,7 @@
         <div class="card p-4">
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label"><b>Nome simulazione *</b></label>
+                    <label class="form-label"><b>Nome simulazione</b></label>
                 </div>
                 <div class="col-auto w-50">
                     <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione_da_modificare.NOME}}" required>
@@ -34,7 +34,7 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label"><b>Descrizione</b></label>
+                    <label class="form-label"><b>Descrizione (opzionale)</b></label>
                 </div>
                 <div class="col-auto w-50">
                     <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione_da_modificare.DESCRIZIONE|default_if_none:''}}</textarea>
@@ -43,7 +43,7 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label"><b>Data-ora pianificazione *</b>&nbsp;&nbsp;</label>
+                    <label class="form-label"><b>Data-ora pianificazione</b>&nbsp;&nbsp;</label>
                 </div>
                 <div class="col-auto">
                     <!-- Radio Schedule -->
@@ -93,16 +93,17 @@
                 <input class="form-check-input" type="checkbox" value="" id="commesse_default" checked disabled>
                 <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
             </div>
-            <div class="row text-center opacity-50">
-                <div class="col-8 mx-auto"></div>
+            <div class="row text-center">
+                <div class="col-8">
+                </div>
                 <div class="col-2 mx-auto">
-                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-2x" title="Download csv"></i></p>
-                    <label>Download capacità di default per input</label>
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-xl" style="cursor: pointer;" title="Download csv"></i></p>
+                    <label style="font-size: 12px;">Download capacità di default per input</label>
                 </div>
                 <div class="col-2 mx-auto">
                     <div class="mb-3">
-                        <label for="formFileSm" class="form-label"><b>Carica capacità da file</b></label>
-                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv" disabled>
+                        <label for="formFileSm" class="form-label" style="font-size: 12px;"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
                     </div>
                 </div>
             </div>
@@ -144,8 +145,8 @@
                 </div>
             </div>
             <div class="row text-center">
-                <div class="col-4 mx-auto">
-                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare *</b></label>
+                <div class="col-5 mx-auto">
+                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
                         <option disabled value="Produzione" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
@@ -154,8 +155,8 @@
                         <option value="BAU e picco combinate" {% if simulazione_da_modificare.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
                     </select>
                 </div>
-                <div class="col-4 mx-auto">
-                    <label for="mese_da_simulare"><b>Mese da simulare *</b></label>
+                <div class="col-5 mx-auto">
+                    <label for="mese_da_simulare"><b>Mese da simulare</b></label>
                     <select class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi_univoci %}
@@ -163,7 +164,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-4 text-start">
+                <div class="col-2 mx-auto">
                     <br>
                     <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax(false)">Carica tabelle capacità</button>
                 </div>

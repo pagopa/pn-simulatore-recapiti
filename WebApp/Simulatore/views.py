@@ -92,15 +92,20 @@ def salva_simulazione(request):
         else:
             stato = 'Schedulata'
     
-    mese_da_simulare = request.POST['mese_da_simulare']
-    tipo_capacita_da_modificare = request.POST['tipo_capacita_da_modificare']
-
+    mese_da_simulare = None
+    if 'mese_da_simulare' in request.POST:
+        mese_da_simulare = request.POST['mese_da_simulare']
+    tipo_capacita_da_modificare = None
+    if 'tipo_capacita_da_modificare' in request.POST:
+        tipo_capacita_da_modificare = request.POST['tipo_capacita_da_modificare']
+    
     # recuperiamo le capacità modificate dall'utente
     capacita_json = request.POST.get('capacita_json')
     try:
         capacita_json = json.loads(capacita_json)
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
+    
 
     # NUOVA SIMULAZIONE
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
@@ -113,22 +118,6 @@ def salva_simulazione(request):
             MESE_SIMULAZIONE = mese_da_simulare,
             TIPO_CAPACITA = tipo_capacita_da_modificare
         )
-        # scrittura sul db nella tabella CAPACITA_MODIFICATE
-        for recapitista, righe_tabella in capacita_json.items():
-            for singola_riga in righe_tabella:
-                table_capacita_modificate.objects.create(
-                    UNIFIED_DELIVERY_DRIVER = recapitista,
-                    ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
-                    ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
-                    CAPACITY = singola_riga['capacita'],
-                    SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[0], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
-                    SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
-                    REGIONE = singola_riga['regione'],
-                    PROVINCE = singola_riga['provincia'],
-                    PRODUCT_890 = True if '890' in singola_riga['product'] else False,
-                    PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
-                    SIMULAZIONE_ID = id_simulazione_salvata
-                )
 
     # MODIFICA SIMULAZIONE
     else:
@@ -143,20 +132,40 @@ def salva_simulazione(request):
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
         
-        lista_old_capacita_modificate = table_capacita_modificate.objects.filter(SIMULAZIONE_ID = request.POST['id_simulazione'])
-        # scrittura sul db nella tabella CAPACITA_MODIFICATE
-        lookup = {}
-        for recapitista, righe_tabella in capacita_json.items():
-            for row in righe_tabella:
-                lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
 
-        for singola_capacita in lista_old_capacita_modificate:
-            key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCE, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
-            if key in lookup:
-                singola_capacita.CAPACITY = lookup[key]    
-        
-        table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
-        
+    # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
+    if mese_da_simulare != None and tipo_capacita_da_modificare != None:
+        lista_old_capacita_modificate = table_capacita_modificate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
+        if lista_old_capacita_modificate:
+            # modifica delle CAPACITA_MODIFICATE salvate su db
+            lookup = {}
+            for recapitista, righe_tabella in capacita_json.items():
+                for row in righe_tabella:
+                    lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
+
+            for singola_capacita in lista_old_capacita_modificate:
+                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCE, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+                if key in lookup:
+                    singola_capacita.CAPACITY = lookup[key]    
+            
+            table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
+        else:
+            # scrittura sul db nella tabella CAPACITA_MODIFICATE
+            for recapitista, righe_tabella in capacita_json.items():
+                for singola_riga in righe_tabella:
+                    table_capacita_modificate.objects.create(
+                        UNIFIED_DELIVERY_DRIVER = recapitista,
+                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
+                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
+                        CAPACITY = singola_riga['capacita'],
+                        SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[0], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
+                        SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
+                        REGIONE = singola_riga['regione'],
+                        PROVINCE = singola_riga['provincia'],
+                        PRODUCT_890 = True if '890' in singola_riga['product'] else False,
+                        PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
+                        SIMULAZIONE_ID = id_simulazione_salvata
+                    )
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
@@ -183,9 +192,9 @@ def rimuovi_simulazione(request, id_simulazione):
 
 def carica_dati_db(request):
     ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
-    df_declared_capacity = pd.read_csv('./static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
-    df_sender_limit = pd.read_csv('./static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
-    df_cap_prov_reg = pd.read_csv('./static/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
+    df_declared_capacity = pd.read_csv(os.path.join(BASE_DIR, 'data/db_declared_capacity.csv'), dtype=str, keep_default_na=False)
+    df_sender_limit = pd.read_csv(os.path.join(BASE_DIR, 'data/db_sender_limit.csv'), dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv(os.path.join(BASE_DIR, 'data/CAP_PROV_REG.csv'), dtype=str, keep_default_na=False)
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
                             user = DATABASES['default']['USER'],
