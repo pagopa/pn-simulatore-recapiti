@@ -28,7 +28,7 @@
                     <label class="form-label"><b>Nome simulazione</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione_da_modificare.NOME}}" required>
+                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
                 </div>
             </div>
             <br>
@@ -37,7 +37,7 @@
                     <label class="form-label"><b>Descrizione (opzionale)</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione_da_modificare.DESCRIZIONE|default_if_none:''}}</textarea>
+                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione_selezionata.DESCRIZIONE|default_if_none:''}}</textarea>
                 </div>
             </div>
             <br>
@@ -48,14 +48,14 @@
                 <div class="col-auto">
                     <!-- Radio Schedule -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione_da_modificare.TRIGGER == 'Schedule' %}checked{% endif %}>
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione_selezionata.TRIGGER == 'Schedule' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio1">Schedule</label>
                     </div>
                 </div>
                 <div class="col-auto">
                     <!-- Radio Now -->
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione_da_modificare.TRIGGER == 'Now' %}checked{% endif %}>
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione_selezionata.TRIGGER == 'Now' %}checked{% endif %}>
                         <label class="form-check-label" for="inlineRadio2">Now</label>
                     </div>
                 </div>
@@ -149,10 +149,10 @@
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
-                        <option disabled value="Produzione" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
-                        <option value="Solo BAU" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo BAU' %}selected{% endif %}>Solo BAU</option>
-                        <option value="Solo picco" {% if simulazione_da_modificare.TIPO_CAPACITA == 'Solo picco' %}selected{% endif %}>Solo picco</option>
-                        <option value="BAU e picco combinate" {% if simulazione_da_modificare.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
+                        <option disabled value="Produzione" {% if simulazione_selezionata.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
+                        <option value="Solo BAU" {% if simulazione_selezionata.TIPO_CAPACITA == 'Solo BAU' %}selected{% endif %}>Solo BAU</option>
+                        <option value="Solo picco" {% if simulazione_selezionata.TIPO_CAPACITA == 'Solo picco' %}selected{% endif %}>Solo picco</option>
+                        <option value="BAU e picco combinate" {% if simulazione_selezionata.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
                     </select>
                 </div>
                 <div class="col-5 mx-auto">
@@ -160,7 +160,7 @@
                     <select class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi_univoci %}
-                            <option value="{{singolo_mese.0}}" {% if simulazione_da_modificare.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
+                            <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -209,7 +209,8 @@
                                 function form_submit_scheduling() {
                                     multiStepForm = document.getElementById("multiStepForm");
                                     var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
-                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_da_modificare.ID}}'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
                                     // riempimento input nascosto con capacità modificate dall'utente
                                     save_capacita_json();
                                     multiStepForm.submit();
@@ -243,7 +244,8 @@
             function form_submit_bozza() {
                 multiStepForm = document.getElementById("multiStepForm");
                 var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
-                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_da_modificare.ID}}'}).appendTo('#multiStepForm');
+                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
+                var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
                 // riempimento input nascosto con capacità modificate dall'utente
                 save_capacita_json();
                 // submit form
@@ -419,7 +421,7 @@
         minuteIncrement: 30,
         minDate: new Date(),
         allowInput:true,
-        defaultDate: '{{simulazione_da_modificare.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
+        defaultDate: '{{simulazione_selezionata.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
 
@@ -428,7 +430,7 @@
     function load_tabella_capacita_with_ajax(get_modified_capacity) {
         var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
-        var id_simulazione = '{{simulazione_da_modificare.ID}}';
+        var id_simulazione = '{{simulazione_selezionata.ID}}';
         // è obbligatorio selezionare sia il tipo di capacità che il mese da simulare
         if (tipo_capacita_selezionata == '' ||  mese_da_simulare_selezionato == ''){
             return;

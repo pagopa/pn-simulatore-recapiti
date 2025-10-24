@@ -59,14 +59,23 @@ def nuova_simulazione(request, id_simulazione):
     context = {
         'lista_mesi_univoci': lista_mesi_univoci
     }
+    # New_from_old
+    new_from_old = None
+    if 'id' in request.GET:
+        new_from_old = request.GET['id']
     # NUOVA SIMULAZIONE
-    if id_simulazione == 'new':
+    if id_simulazione == 'new' and new_from_old == None:
         pass
+    # New_from_old
+    elif id_simulazione == 'new' and new_from_old != None:
+        simulazione_selezionata = table_simulazione.objects.get(ID = new_from_old)
+        simulazione_selezionata.new_from_old = True
+        context['simulazione_selezionata'] = simulazione_selezionata
     # MODIFICA SIMULAZIONE
     else:
-        simulazione_da_modificare = table_simulazione.objects.get(ID = id_simulazione)
-
-        context['simulazione_da_modificare'] = simulazione_da_modificare
+        simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
+        simulazione_selezionata.new_from_old = False
+        context['simulazione_selezionata'] = simulazione_selezionata
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
@@ -106,9 +115,8 @@ def salva_simulazione(request):
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
     
-
-    # NUOVA SIMULAZIONE
-    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
+    # NUOVA SIMULAZIONE o new_from_old
+    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
         id_simulazione_salvata = table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
