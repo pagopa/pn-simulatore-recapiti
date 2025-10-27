@@ -36,9 +36,3 @@ urlpatterns = [
     path('rimuovi_dati_db', rimuovi_dati_db, name='rimuovi_dati_db'),
 ]
 
-
-# riservato alle pagine d'errore
-handler400 = "Simulatore.views.handle_error_400"
-handler403 = "Simulatore.views.handle_error_403"
-handler404 = "Simulatore.views.handle_error_404"
-handler500 = "Simulatore.views.handle_error_500"

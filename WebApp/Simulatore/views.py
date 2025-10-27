@@ -533,16 +533,3 @@ def ajax_get_capacita_from_mese_and_tipo(request):
     
     '''
     return JsonResponse({'context': lista_capacita_finali})
-
-
-
-
-# ERROR PAGES
-def handle_error_400(request, exception):
-    return render(request, 'error_pages/error_400.html')
-def handle_error_403(request, exception):
-    return render(request, 'error_pages/error_403.html')
-def handle_error_404(request, exception):
-    return render(request, 'error_pages/error_404.html')
-def handle_error_500(request, *args, **argv):
-    return render(request, "error_pages/error_500.html", status=500)
