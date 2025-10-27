@@ -419,8 +419,6 @@ def carica_dati_db(request):
 
     cur = conn.cursor()
 
-
-
     cur.execute('select count(*) from public."DECLARED_CAPACITY"')
     count_declared_capacity = cur.fetchone()
     if count_declared_capacity[0] == 0:
@@ -447,11 +445,33 @@ def carica_dati_db(request):
 
     conn.commit()
     conn.close()
-    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
     return redirect("status")
 
-def rimuovi_dati_db(request):
-    ####### PAGINA PROVVISORIA DI RIMOZIONE DATI #######
+def svuota_tabelle_db(request):
+    ####### PAGINA PROVVISORIA CHE SVUOTA TUTTE LE TABELLE DEL DB SENZA ELIMINARLE #######
+    conn = psycopg2.connect(database = DATABASES['default']['NAME'],
+                            user = DATABASES['default']['USER'],
+                            password = DATABASES['default']['PASSWORD'],
+                            host = DATABASES['default']['HOST'],
+                            port = DATABASES['default']['PORT'])
+
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    tabelle_da_eliminare = ['CAPACITA_MODIFICATE','DECLARED_CAPACITY','SENDER_LIMIT','CAP_PROV_REG','SIMULAZIONE']
+
+    # svuotiamo le tabelle
+    for singola_tabella in tabelle_da_eliminare:
+        cur.execute(f"TRUNCATE TABLE \"{singola_tabella}\" RESTART IDENTITY CASCADE;")
+
+    cur.close()
+    conn.close()
+
+    return redirect("status")
+
+
+def svuota_db(request):
+    ####### PAGINA PROVVISORIA CHE SVUOTA TUTTO IL DB #######
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
                             user = DATABASES['default']['USER'],
                             password = DATABASES['default']['PASSWORD'],
@@ -461,7 +481,6 @@ def rimuovi_dati_db(request):
     cur.execute(f'DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO {DATABASES['default']['USER']}; GRANT ALL ON SCHEMA public TO public;')
     conn.commit()
     conn.close()
-    ####### PAGINA PROVVISORIA DI RIMOZIONE DATI #######
     return redirect("status")
 
 # AJAX
