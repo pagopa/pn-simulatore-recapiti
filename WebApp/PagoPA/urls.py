@@ -35,5 +35,6 @@ urlpatterns = [
     path('carica_dati_db', carica_dati_db, name='carica_dati_db'),
     path('svuota_tabelle_db', svuota_tabelle_db, name='svuota_tabelle_db'),
     path('svuota_db', svuota_db, name='svuota_db'),
+    path('debug_paths/', debug_paths, name='debug_paths'),
 ]
 

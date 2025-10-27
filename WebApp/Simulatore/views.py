@@ -21,6 +21,9 @@ from django.http import JsonResponse
 
 import psycopg2
 
+from pathlib import Path
+from django.http import HttpResponse
+
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
@@ -552,3 +555,50 @@ def ajax_get_capacita_from_mese_and_tipo(request):
     
     '''
     return JsonResponse({'context': lista_capacita_finali})
+
+
+
+
+def debug_paths(request):
+    """Pagina temporanea per debug dei path"""
+    debug_info = []
+    
+    # Path importanti da verificare
+    paths_to_check = [
+       ('.', Path('.').resolve()),
+        ('__file__', Path(__file__).resolve()),
+        ('BASE_DIR', Path(__file__).resolve().parent.parent),
+        ('STATIC_DIR', Path(__file__).resolve().parent.parent / 'static'),
+        ('cwd', Path.cwd()),
+        ('./static/data/', Path('./static/data/').resolve()),
+        ('../static/data/', Path('../static/data/').resolve()),
+    ]
+    
+    for name, path in paths_to_check:
+        exists = path.exists()
+        debug_info.append(f"{name}: {path} → Esiste: {exists}")
+        if exists and path.is_dir():
+            try:
+                files = list(path.glob('*'))
+                debug_info.append(f"  Contenuti: {[f.name for f in files[:5]]}")
+            except:
+                debug_info.append(f"  [Errore nel leggere contenuti]")
+    
+    # Verifica specifica del file CSV
+    csv_paths = [
+        './static/data/db_declared_capacity.csv',
+        '../static/data/db_declared_capacity.csv', 
+        'static/data/db_declared_capacity.csv',
+        '/app/static/data/db_declared_capacity.csv',
+        '/WebApp/static/data/db_declared_capacity.csv',
+    ]
+    
+    debug_info.append("\n--- RICERCA FILE CSV ---")
+    for csv_path in csv_paths:
+        path_obj = Path(csv_path)
+        exists = path_obj.exists()
+        debug_info.append(f"CSV Path: {csv_path} → Esiste: {exists}")
+        if exists:
+            debug_info.append(f"  Path assoluto: {path_obj.resolve()}")
+    
+    return HttpResponse('<pre>' + '\n'.join(debug_info) + '</pre>')
