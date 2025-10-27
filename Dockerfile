@@ -1,5 +1,6 @@
 FROM 911845998067.dkr.ecr.eu-central-1.amazonaws.com/python:3.13.7-slim-bookworm
 
+WORKDIR /WebApp
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
