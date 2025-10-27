@@ -407,9 +407,9 @@ def rimuovi_simulazione(request, id_simulazione):
 
 def carica_dati_db(request):
     ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
-    df_declared_capacity = pd.read_csv(os.path.join(STATIC_DIR, 'data/db_declared_capacity.csv'), dtype=str, keep_default_na=False)
-    df_sender_limit = pd.read_csv(os.path.join(STATIC_DIR, 'data/db_sender_limit.csv'), dtype=str, keep_default_na=False)
-    df_cap_prov_reg = pd.read_csv(os.path.join(STATIC_DIR, 'data/CAP_PROV_REG.csv'), dtype=str, keep_default_na=False)
+    df_declared_capacity = pd.read_csv('./static/data/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
+    df_sender_limit = pd.read_csv('./static/data/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('./static/data/data/CAP_PROV_REG.csv', dtype=str, keep_default_na=False)
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
                             user = DATABASES['default']['USER'],
