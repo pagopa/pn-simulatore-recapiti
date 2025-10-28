@@ -392,26 +392,6 @@
     }
 </script>
 
-<!-- icona alert settimanale -->
-<script>
-    function validateRow(row) {
-        const td = $(row).find('td');
-        const valpostalizzazione = parseInt(td.eq(3).text().trim()) || 0; // terzo campo -> postalizzazioni
-        const valcapacity = parseInt(td.eq(6).find('input').val()) || 0; // sesto campo -> capacità
-        const alertTd = td.eq(8); // colonna alert
-        alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
-        if (valpostalizzazione >= valcapacity) {
-            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Capacità settimanale inferiore al numero di postalizzazioni settimanali"></i>');
-        }
-    }
-
-    // funzione che si triggera ogni volta che viene modificata la capacità
-    $(document).on('input change', '.input_capacita', function() {
-        const row = $(this).closest('tr');
-        validateRow(row);
-    });
-</script>
-
 <!-- flatpickr datetimepicker STEP 1 -->
  <script>
     flatpickr("#timeSchedule", {
@@ -532,9 +512,9 @@
                 $('.table-capacita tbody tr').each(function() {
                     validateRow(this);
                 });
-                // dopo aver creato la tabella lanciamo la sommaCapacity() su tutte le tabelle
+                // dopo aver creato la tabella lanciamo la sommaCapacitySettimanale() su tutte le tabelle
                 $('.table-capacita').each(function() {
-                    sommaCapacity(this);
+                    sommaCapacitySettimanale(this);
                 });
                 
                 // cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale'
@@ -603,32 +583,48 @@
     }
 </script>
 
-<!-- Somma capacità settimanali per ogni tabella ed aggiornamento capacità mensile in real-time (con alert se ) -->
+<!-- ALERT + somma capacità settimanali per ogni tabella ed aggiornamento capacità mensile in real-time -->
 <script>
     // funzione che si triggera ogni volta che viene modificata la capacità
     $(document).on('input change', '.input_capacita', function() {
+        const row = $(this).closest('tr');
+        validateRow(row);
         const table = $(this).closest('.table-capacita');
-        sommaCapacity(table);
+        sommaCapacitySettimanale(table);
     });
+
+    function validateRow(row) {
+        const td = $(row).find('td');
+        const valpostalizzazione = parseInt(td.eq(3).text().trim()) || 0; // terzo campo -> postalizzazioni
+        const valcapacity = parseInt(td.eq(6).find('input').val()) || 0; // sesto campo -> capacità
+        const alertTd = td.eq(8); // colonna alert
+        alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
+        if (valcapacity < valpostalizzazione) {
+            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Capacità settimanale inferiore al numero di postalizzazioni settimanali"></i>');
+        }
+    }
     
-    function sommaCapacity(table) {
-        let somma = 0;
+    function sommaCapacitySettimanale(table) {
+        let sommaCapacita = 0;
         const $table = $(table);
         $table.find('.input_capacita').each(function() {
             const valore = parseInt($(this).val()) || 0;
-            somma += valore;
+            sommaCapacita += valore;
         });
-        $table.closest('.accordion-collapse').prev('.accordion-header').find('.somma_capacita').text(somma);
+        $table.closest('.accordion-collapse').prev('.accordion-header').find('.somma_capacita').text(sommaCapacita);
         // dopo aver aggiornato in real-time la somma mensile delle capacità andiamo a fare il confronto con le postalizzazioni mensili per alert rosso sul sotto-accordion
-        confrontaValori($table, somma);
+        alertMensileRosso($table, sommaCapacita);
     }
 
-    function confrontaValori($table, sommaCapacita) {
+    function alertMensileRosso($table, sommaCapacita) {
+        const alert_settimanale_giallo = $table.find('td:nth-child(9) .fa-triangle-exclamation[style*="orange"]').length > 0;
         const accordionHeader = $table.closest('.accordion-collapse').prev('.accordion-header')        
         const postalizzazioni_mensili = parseInt(accordionHeader.find('.somma_postalizzazioni').text()) || 0;        
         if (sommaCapacita < postalizzazioni_mensili) {
             accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità mensile inferiore al numero di postalizzazioni mensili"></i>');
-        } else {
+        } else if (alert_settimanale_giallo == true) {
+            accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Una o più capacità settimanali è inferiore al numero di postalizzazioni settimanale"></i>');            
+        } else{
             accordionHeader.find('.alert_mensile').empty(); // puliamo eventuali alert precedenti;
         }
     }
