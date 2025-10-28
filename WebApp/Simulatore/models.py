@@ -32,7 +32,8 @@ class table_capacita_modificate(models.Model):
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
-    PROVINCE = models.CharField(max_length=5, null=True)
+    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    PROVINCIA = models.CharField(max_length=50, null=True)
     PRODUCT_890 = models.BooleanField(max_length=5, null=True)
     PRODUCT_AR = models.BooleanField(max_length=5, null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
@@ -96,7 +97,8 @@ class view_output_capacity_setting(pg.View):
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
-    PROVINCE = models.CharField(max_length=5, null=True)
+    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    PROVINCIA = models.CharField(max_length=50, null=True)
     PRODUCT_890 = models.BooleanField(max_length=5, null=True)
     PRODUCT_AR = models.BooleanField(max_length=5, null=True)
     MONTH_DELIVERY = models.SmallIntegerField(null=True)
@@ -128,7 +130,8 @@ class view_output_capacity_setting(pg.View):
 	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_WEEKLY_ESTIMATE", 
 	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_MONTHLY_ESTIMATE", 
 	        "PROV_REG"."REGIONE", 
-	        "SUM_SENDERLIMIT_BY_MONTH"."PROVINCE",
+            "PROV_REG"."COD_SIGLA_PROVINCIA",
+	        "PROV_REG"."PROVINCIA",
 			"SUM_SENDERLIMIT_BY_MONTH"."PRODUCT_TYPE",
 			public."DECLARED_CAPACITY"."PRODUCT_890",
 			public."DECLARED_CAPACITY"."PRODUCT_AR",
@@ -152,12 +155,14 @@ class view_output_capacity_setting(pg.View):
 		SUM("SUM_WEEKLY_ESTIMATE") AS "SUM_WEEKLY_ESTIMATE",
 		SUM("SUM_MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE",
 		"REGIONE",
-		"PROVINCE",
+		"PROVINCIA",
+        "COD_SIGLA_PROVINCIA",
 		"PRODUCT_890",
 		"PRODUCT_AR",
 		"MONTH_DELIVERY"
 	FROM "FILTERED_CAPACITY_BY_PRODUCT"
-	GROUP BY "UNIFIED_DELIVERY_DRIVER","PROVINCE","MONTH_DELIVERY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","PEAK_CAPACITY","REGIONE","PRODUCT_890","PRODUCT_AR"
+	GROUP BY "UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","MONTH_DELIVERY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","PEAK_CAPACITY","REGIONE","PROVINCIA","PRODUCT_890","PRODUCT_AR"
+    ORDER BY "REGIONE" ASC,"PROVINCIA" ASC
     """
 
     class Meta:
@@ -177,7 +182,8 @@ class view_output_modified_capacity_setting(pg.View):
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
-    PROVINCE = models.CharField(max_length=5, null=True)
+    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    PROVINCIA = models.CharField(max_length=50, null=True)
     PRODUCT_890 = models.BooleanField(max_length=5, null=True)
     PRODUCT_AR = models.BooleanField(max_length=5, null=True)
     MONTH_DELIVERY = models.SmallIntegerField(null=True)
@@ -194,7 +200,8 @@ class view_output_modified_capacity_setting(pg.View):
             public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE", 
             public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
             public."output_capacity_setting"."REGIONE", 
-            public."output_capacity_setting"."PROVINCE",
+            public."output_capacity_setting"."COD_SIGLA_PROVINCIA",
+            public."output_capacity_setting"."PROVINCIA",
             public."output_capacity_setting"."PRODUCT_890",
             public."output_capacity_setting"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",
@@ -202,7 +209,7 @@ class view_output_modified_capacity_setting(pg.View):
         FROM public."CAPACITA_MODIFICATE" 
         LEFT JOIN public."output_capacity_setting"
             ON public."CAPACITA_MODIFICATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
-                AND public."CAPACITA_MODIFICATE"."PROVINCE" = public."output_capacity_setting"."PROVINCE"
+                AND public."CAPACITA_MODIFICATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
                 AND public."CAPACITA_MODIFICATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
                 AND public."CAPACITA_MODIFICATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
                 AND public."CAPACITA_MODIFICATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"

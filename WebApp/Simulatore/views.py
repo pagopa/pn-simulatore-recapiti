@@ -152,7 +152,7 @@ def salva_simulazione(request):
                     lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
 
             for singola_capacita in lista_old_capacita_modificate:
-                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCE, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
                 if key in lookup:
                     singola_capacita.CAPACITY = lookup[key]    
             
@@ -166,10 +166,10 @@ def salva_simulazione(request):
                         ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
                         ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
                         CAPACITY = singola_riga['capacita'],
-                        SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[0], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
-                        SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
+                        SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'],
+                        #SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
                         REGIONE = singola_riga['regione'],
-                        PROVINCE = singola_riga['provincia'],
+                        PROVINCIA = singola_riga['provincia'],
                         PRODUCT_890 = True if '890' in singola_riga['product'] else False,
                         PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
                         SIMULAZIONE_ID = id_simulazione_salvata
@@ -200,9 +200,9 @@ def rimuovi_simulazione(request, id_simulazione):
 
 def carica_dati_db(request):
     ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
-    df_declared_capacity = pd.read_csv(os.path.join(BASE_DIR, 'data/db_declared_capacity.csv'), dtype=str, keep_default_na=False)
-    df_sender_limit = pd.read_csv(os.path.join(BASE_DIR, 'data/db_sender_limit.csv'), dtype=str, keep_default_na=False)
-    df_cap_prov_reg = pd.read_csv(os.path.join(BASE_DIR, 'data/CAP_PROV_REG.csv'), dtype=str, keep_default_na=False)
+    df_declared_capacity = pd.read_csv('static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
+    df_sender_limit = pd.read_csv('static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('static/data/lookup_regione_provincia_cap.csv', dtype=str, keep_default_na=False)
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
                             user = DATABASES['default']['USER'],
@@ -211,8 +211,6 @@ def carica_dati_db(request):
                             port = DATABASES['default']['PORT'])
 
     cur = conn.cursor()
-
-
 
     cur.execute('select count(*) from public."DECLARED_CAPACITY"')
     count_declared_capacity = cur.fetchone()
@@ -240,11 +238,33 @@ def carica_dati_db(request):
 
     conn.commit()
     conn.close()
-    ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
     return redirect("status")
 
-def rimuovi_dati_db(request):
-    ####### PAGINA PROVVISORIA DI RIMOZIONE DATI #######
+def svuota_tabelle_db(request):
+    ####### PAGINA PROVVISORIA CHE SVUOTA TUTTE LE TABELLE DEL DB SENZA ELIMINARLE #######
+    conn = psycopg2.connect(database = DATABASES['default']['NAME'],
+                            user = DATABASES['default']['USER'],
+                            password = DATABASES['default']['PASSWORD'],
+                            host = DATABASES['default']['HOST'],
+                            port = DATABASES['default']['PORT'])
+
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    tabelle_da_eliminare = ['CAPACITA_MODIFICATE','DECLARED_CAPACITY','SENDER_LIMIT','CAP_PROV_REG','SIMULAZIONE']
+
+    # svuotiamo le tabelle
+    for singola_tabella in tabelle_da_eliminare:
+        cur.execute(f"TRUNCATE TABLE \"{singola_tabella}\" RESTART IDENTITY CASCADE;")
+
+    cur.close()
+    conn.close()
+
+    return redirect("status")
+
+
+def svuota_db(request):
+    ####### PAGINA PROVVISORIA CHE SVUOTA TUTTO IL DB #######
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
                             user = DATABASES['default']['USER'],
                             password = DATABASES['default']['PASSWORD'],
@@ -254,7 +274,6 @@ def rimuovi_dati_db(request):
     cur.execute(f'DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO {DATABASES['default']['USER']}; GRANT ALL ON SCHEMA public TO public;')
     conn.commit()
     conn.close()
-    ####### PAGINA PROVVISORIA DI RIMOZIONE DATI #######
     return redirect("status")
 
 # AJAX
@@ -277,7 +296,8 @@ def ajax_get_capacita_from_mese_and_tipo(request):
         for item in lista_capacita_grezze:
             recapitista = item['UNIFIED_DELIVERY_DRIVER']
             regione = item['REGIONE']
-            provincia = item['PROVINCE']
+            cod_sigla_provincia = item['COD_SIGLA_PROVINCIA']
+            provincia = item['PROVINCIA']
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
             if nuova_simulazione:
@@ -308,25 +328,30 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                 product = product[:-1]
             
             if recapitista not in lista_capacita_finali:
-                lista_capacita_finali[recapitista] = []
+                lista_capacita_finali[recapitista] = {}
+            if regione+provincia+product not in lista_capacita_finali[recapitista]:
+                lista_capacita_finali[recapitista][regione+provincia+product] = []
             
-            lista_capacita_finali[recapitista].append({
-                'regione': regione,
-                'provincia': provincia,
-                'post_weekly_estimate': post_weekly_estimate,
-                'post_monthly_estimate': post_monthly_estimate,
-                'product': product,
-                'activation_date_from': activation_date_from,
-                'activation_date_to': activation_date_to,
-                'capacity': capacity,
-                'original_capacity': original_capacity
-            })    
+            lista_capacita_finali[recapitista][regione+provincia+product].append(
+                {
+                    'regione': regione,
+                    'provincia': provincia,
+                    'cod_sigla_provincia': cod_sigla_provincia,
+                    'post_weekly_estimate': post_weekly_estimate,
+                    'post_monthly_estimate': post_monthly_estimate,
+                    'product': product,
+                    'activation_date_from': activation_date_from,
+                    'activation_date_to': activation_date_to,
+                    'capacity': capacity,
+                    'original_capacity': original_capacity
+                }
+            )
+
     '''
     STRUTTURA lista_capacita_finali:
     
     '''
     return JsonResponse({'context': lista_capacita_finali})
-
 
 
 

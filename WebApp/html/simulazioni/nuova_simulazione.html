@@ -43,6 +43,20 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
+                    <label class="form-label"><b>Mese da simulare</b></label>
+                </div>
+                <div class="col-auto w-50">
+                    <select required class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
+                        <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
+                        {% for singolo_mese in lista_mesi_univoci %}
+                            <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
                     <label class="form-label"><b>Data-ora pianificazione</b>&nbsp;&nbsp;</label>
                 </div>
                 <div class="col-auto">
@@ -145,7 +159,7 @@
                 </div>
             </div>
             <div class="row text-center">
-                <div class="col-5 mx-auto">
+                <div class="col-4 mx-auto">
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
@@ -155,19 +169,11 @@
                         <option value="BAU e picco combinate" {% if simulazione_selezionata.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
                     </select>
                 </div>
-                <div class="col-5 mx-auto">
-                    <label for="mese_da_simulare"><b>Mese da simulare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
-                        <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
-                        {% for singolo_mese in lista_mesi_univoci %}
-                            <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-2 mx-auto">
+                <div class="col-3 mx-auto">
                     <br>
                     <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax(false)">Carica tabelle capacità</button>
                 </div>
+                <div class="col-5 mx-auto"></div>
             </div>
 
             <br>
@@ -259,7 +265,7 @@
 
 
 {% block scripts %}
-<!-- GESTIONE 3 STEP -->
+<!-- GESTIONE STEP -->
 <script>
     let currentStep = 1;
     const button_salva_bozza = document.getElementById("salva_bozza");
@@ -346,7 +352,6 @@
     updateSaveButton();
 </script>
 
-
 <!-- mostra/nascondi datetime picker quando viene selezionato/deselezionato il radiobutton "Schedule" -->
 <script>
     const radioSchedule = document.getElementById("inlineRadio1");
@@ -387,22 +392,21 @@
     }
 </script>
 
-
-<!-- icona alert -->
+<!-- icona alert settimanale -->
 <script>
     function validateRow(row) {
         const td = $(row).find('td');
-        const valpostalizzazione = parseInt(td.eq(2).text().trim()) || 0; // terzo campo -> postalizzazioni
+        const valpostalizzazione = parseInt(td.eq(3).text().trim()) || 0; // terzo campo -> postalizzazioni
         const valcapacity = parseInt(td.eq(6).find('input').val()) || 0; // sesto campo -> capacità
-        const alertTd = td.eq(7); // colonna alert
+        const alertTd = td.eq(8); // colonna alert
         alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
         if (valpostalizzazione >= valcapacity) {
-            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità inferiore al numero di postalizzazioni"></i>');
+            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Capacità settimanale inferiore al numero di postalizzazioni settimanale"></i>');
         }
     }
 
     // funzione che si triggera ogni volta che viene modificata la capacità
-    $(document).on('input change', '.table-capacita tbody tr td:nth-child(7) input', function() {
+    $(document).on('input change', '.input_capacita', function() {
         const row = $(this).closest('tr');
         validateRow(row);
     });
@@ -446,66 +450,93 @@
             type: 'GET',
             data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata, 'id_simulazione':id_simulazione, 'get_modified_capacity':get_modified_capacity},
             success: function(resp){
-                var counter = 0;
+                var counter_livello_1 = 0;
                 // scorriamo i recapitisti e creiamo le relative sezioni (accordion) di ogni recapitista
                 for (var recapitista in resp.context){
                     content_capacita += `
                         <div class="accordion" data-group="${recapitista}">
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#${counter}" aria-expanded="true" aria-controls="${counter}">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}">
                                         <b>RECAPITISTA: ${recapitista}</b>
                                     </button>
                                 </h2>
-                                <div id="${counter}" class="accordion-collapse collapse">
+                                <div id="recapitista_${counter_livello_1}" class="accordion-collapse collapse">
                                     <div class="accordion-body table-responsive">
-                                        <table class="table table-hover table-capacita">
-                                            <thead class="text-center">
-                                                <tr>
-                                                <th scope="col">Regione</th>
-                                                <th scope="col">Provincia</th>
-                                                <th scope="col">Numero di post. settimanali</th>
-                                                <th scope="col">Product</th>
-                                                <th scope="col">Inizio periodo di validità</th>
-                                                <th scope="col">Fine periodo di validità</th>
-                                                <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
-                                                <th scope="col"></th> <!-- colonna per alert -->
-                                                </tr>
-                                            </thead>
-                                            <tbody class="table-group-divider text-center">
-                            `;
-                    
-                    // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
-                    resp.context[recapitista].forEach(function(singola_capacity) {
+                    `;
+                    var counter_livello_2 = 0;
+                    // scorriamo regione+provincia+product per ogni recapitista
+                    for (var singola_regione_provincia_product in resp.context[recapitista]){
                         content_capacita += `
-                            <tr>
-                                <td>${singola_capacity.regione}</td>
-                                <td>${singola_capacity.provincia}</td>
-                                <td>${singola_capacity.post_weekly_estimate} (mensili: ${singola_capacity.post_monthly_estimate})</td>
-                                <td>${singola_capacity.product}</td>
-                                <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
-                                <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
-                                <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.original_capacity}</label></td>
-                                <td></td>
-                            </tr>
+                            <div class="accordion" data-group="${singola_regione_provincia_product}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
+                                            <b>${resp.context[recapitista][singola_regione_provincia_product][0]['regione']} - ${resp.context[recapitista][singola_regione_provincia_product][0]['provincia']} - ${resp.context[recapitista][singola_regione_provincia_product][0]['product']} - N° post. mensili: ${resp.context[recapitista][singola_regione_provincia_product][0]['post_monthly_estimate']} - Capacità <span class="somma_capacita"></span></b>
+                                        </button>
+                                    </h2>
+                                    <div id="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" class="accordion-collapse collapse">
+                                        <div class="accordion-body table-responsive">
+                                            <table class="table table-hover table-capacita">
+                                                <thead class="text-center">
+                                                    <tr>
+                                                    <th scope="col">Regione</th>
+                                                    <th scope="col">Provincia</th>
+                                                    <th scope="col">Product</th>
+                                                    <th scope="col">Numero di post. settimanali</th>
+                                                    <th scope="col">Inizio periodo di validità</th>
+                                                    <th scope="col">Fine periodo di validità</th>
+                                                    <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
+                                                    <th scope="col" class="align-bottom">Capacità di produzione</th>
+                                                    <th scope="col"></th> <!-- colonna per alert -->
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="table-group-divider text-center">
+                                    `;
+                        // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
+                        resp.context[recapitista][singola_regione_provincia_product].forEach(function(singola_capacity) {
+                            content_capacita += `
+                                                    <tr>
+                                                        <td>${singola_capacity.regione}</td>
+                                                        <td>${singola_capacity.provincia}</td>
+                                                        <td>${singola_capacity.product}</td>
+                                                        <td>${singola_capacity.post_weekly_estimate}</td>
+                                                        <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
+                                                        <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
+                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.original_capacity}</label></td>
+                                                        <td>-</td>
+                                                        <td></td>
+                                                    </tr>
+                            `;
+                        });
+                        content_capacita += `
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>                    
                         `;
-                    });
-                    
+                        counter_livello_2++;
+                    };
                     content_capacita += `
-                                            </tbody>
-                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>                    
                     `;
-                    counter++;  
+                    counter_livello_1++;  
                 }
                 content.innerHTML = content_capacita;
                 // dopo aver creato la tabella lanciamo la validateRow() su tutte le tabelle
                 $('.table-capacita tbody tr').each(function() {
                     validateRow(this);
                 });
+                // dopo aver creato la tabella lanciamo la sommaCapacity() su tutte le tabelle
+                $('.table-capacita').each(function() {
+                    sommaCapacity(this);
+                });
+                
                 // cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale'
                 select_tipo_capacita_da_modificare();
                 // abilitiamo il tasto "Avvia Scheduling"
@@ -529,7 +560,6 @@
         }
     });
 </script>
-
 
 <!-- Caricamento testo per modal che appare al click sul bottone "Avvia scheduling" -->
 <script>
@@ -571,6 +601,25 @@
         // riempiamo un input nascosto inserendo il json
         $('#capacita_json').val(JSON.stringify(data));
     }
+</script>
+
+<!-- Somma capacità settimanali per ogni tabella ed aggiornamento capacità mensile in real-time -->
+<script>
+    function sommaCapacity(table) {
+        let somma = 0;
+        const $table = $(table);
+        $table.find('.input_capacita').each(function() {
+            const valore = parseInt($(this).val()) || 0;
+            somma += valore;
+        });
+        $table.closest('.accordion-collapse').prev('.accordion-header').find('.somma_capacita').text(somma);
+    }
+
+    // funzione che si triggera ogni volta che viene modificata la capacità
+    $(document).on('input change', '.input_capacita', function() {
+        const table = $(this).closest('.table-capacita');
+        sommaCapacity(table);
+    });
 </script>
 
 {% endblock %}
