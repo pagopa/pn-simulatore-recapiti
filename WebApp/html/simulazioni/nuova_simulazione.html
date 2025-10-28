@@ -401,7 +401,7 @@
         const alertTd = td.eq(8); // colonna alert
         alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
         if (valpostalizzazione >= valcapacity) {
-            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Capacità settimanale inferiore al numero di postalizzazioni settimanale"></i>');
+            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Capacità settimanale inferiore al numero di postalizzazioni settimanali"></i>');
         }
     }
 
@@ -472,7 +472,7 @@
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
                                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
-                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_provincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_provincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_provincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: ${resp.context[recapitista][singola_regione_provincia_product][0]['post_monthly_estimate']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE: <span class="somma_capacita"></span></b>
+                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_provincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_provincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_provincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.context[recapitista][singola_regione_provincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
                                         </button>
                                     </h2>
                                     <div id="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" class="accordion-collapse collapse">
@@ -603,8 +603,14 @@
     }
 </script>
 
-<!-- Somma capacità settimanali per ogni tabella ed aggiornamento capacità mensile in real-time -->
+<!-- Somma capacità settimanali per ogni tabella ed aggiornamento capacità mensile in real-time (con alert se ) -->
 <script>
+    // funzione che si triggera ogni volta che viene modificata la capacità
+    $(document).on('input change', '.input_capacita', function() {
+        const table = $(this).closest('.table-capacita');
+        sommaCapacity(table);
+    });
+    
     function sommaCapacity(table) {
         let somma = 0;
         const $table = $(table);
@@ -613,13 +619,19 @@
             somma += valore;
         });
         $table.closest('.accordion-collapse').prev('.accordion-header').find('.somma_capacita').text(somma);
+        // dopo aver aggiornato in real-time la somma mensile delle capacità andiamo a fare il confronto con le postalizzazioni mensili per alert rosso sul sotto-accordion
+        confrontaValori($table, somma);
     }
 
-    // funzione che si triggera ogni volta che viene modificata la capacità
-    $(document).on('input change', '.input_capacita', function() {
-        const table = $(this).closest('.table-capacita');
-        sommaCapacity(table);
-    });
+    function confrontaValori($table, sommaCapacita) {
+        const accordionHeader = $table.closest('.accordion-collapse').prev('.accordion-header')        
+        const postalizzazioni_mensili = parseInt(accordionHeader.find('.somma_postalizzazioni').text()) || 0;        
+        if (sommaCapacita < postalizzazioni_mensili) {
+            accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità mensile inferiore al numero di postalizzazioni mensili"></i>');
+        } else {
+            accordionHeader.find('.alert_mensile').empty(); // puliamo eventuali alert precedenti;
+        }
+    }
 </script>
 
 {% endblock %}
