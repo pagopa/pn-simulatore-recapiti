@@ -439,7 +439,7 @@
                 // scorriamo i recapitisti e creiamo le relative sezioni (accordion) di ogni recapitista
                 for (var recapitista in resp.context){
                     content_capacita += `
-                        <div class="accordion" data-group="${recapitista}">
+                        <div class="accordion accordion_recapitista" data-group="${recapitista}">
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}">
@@ -483,7 +483,7 @@
                             content_capacita += `
                                                     <tr>
                                                         <td>${singola_capacity.regione}</td>
-                                                        <td>${singola_capacity.provincia}</td>
+                                                        <td>${singola_capacity.cod_sigla_provincia}</td>
                                                         <td>${singola_capacity.product}</td>
                                                         <td>${singola_capacity.post_weekly_estimate}</td>
                                                         <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
@@ -565,7 +565,7 @@
 <script>
     function save_capacita_json() {
         let data = {};
-        $('.accordion').each(function() {
+        $('.accordion_recapitista').each(function() {
             let gruppo = $(this).data('group');
             data[gruppo] = [];
 
@@ -573,9 +573,9 @@
                 let row = $(this);
                 let item = {
                     regione: row.find('td').eq(0).text().trim(),
-                    provincia: row.find('td').eq(1).text().trim(),
-                    postalizzazioni_settimanali: row.find('td').eq(2).text().trim(),
-                    product: row.find('td').eq(3).text().trim(),
+                    cod_sigla_provincia: row.find('td').eq(1).text().trim(),
+                    product: row.find('td').eq(2).text().trim(),
+                    postalizzazioni_settimanali: row.find('td').eq(3).text().trim(),
                     inizioPeriodoValidita: row.find('td').eq(4).text().trim(),
                     finePeriodoValidita: row.find('td').eq(5).text().trim(),
                     capacita: row.find('.input_capacita').val(),

@@ -129,7 +129,7 @@ def salva_simulazione(request):
         capacita_json = json.loads(capacita_json)
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
-    
+        
     # NUOVA SIMULAZIONE o new_from_old
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
         id_simulazione_salvata = table_simulazione.objects.create(
@@ -164,10 +164,10 @@ def salva_simulazione(request):
             lookup = {}
             for recapitista, righe_tabella in capacita_json.items():
                 for row in righe_tabella:
-                    lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
+                    lookup[(recapitista, row["cod_sigla_provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
 
             for singola_capacita in lista_old_capacita_modificate:
-                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.COD_SIGLA_PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
                 if key in lookup:
                     singola_capacita.CAPACITY = lookup[key]    
             
@@ -182,9 +182,8 @@ def salva_simulazione(request):
                         ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
                         CAPACITY = singola_riga['capacita'],
                         SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'],
-                        #SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
                         REGIONE = singola_riga['regione'],
-                        PROVINCIA = singola_riga['provincia'],
+                        COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
                         PRODUCT_890 = True if '890' in singola_riga['product'] else False,
                         PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
                         SIMULAZIONE_ID = id_simulazione_salvata
