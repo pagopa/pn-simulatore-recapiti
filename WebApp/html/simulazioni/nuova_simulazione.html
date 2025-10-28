@@ -48,7 +48,7 @@
                 <div class="col-auto w-50">
                     <select required class="form-select" aria-label="Default select example" id="mese_da_simulare" name="mese_da_simulare">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
-                        {% for singolo_mese in lista_mesi_univoci %}
+                        {% for singolo_mese in lista_mesi %}
                             <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
                         {% endfor %}
                     </select>

@@ -9,9 +9,13 @@ import numpy as np
 import os
 from PagoPA.settings import *
 
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from .models import *
+from django.db.models import Q
 
 from django.db.models.functions import TruncMonth
 
@@ -54,10 +58,21 @@ def bozze(request):
 
 def nuova_simulazione(request, id_simulazione):
     # Mese da simulare
-    lista_mesi_univoci = view_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
-    lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
+    lista_mesi = [('2026-01', 'Gennaio 2026')]
+    
+    '''
+    data_oggi = date.today()
+    mese_corrente = data_oggi + relativedelta(months=+4) #NOTA: per mese corrente intendiamo mese di oggi +4 mesi in avanti
+    lista_mesi = [] #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
+    for i in range(4):
+        mese_data = mese_corrente + relativedelta(months=+i)
+        codice = mese_data.strftime("%Y-%m")
+        nome = mese_data.strftime("%B %Y").capitalize()
+        lista_mesi.append((codice, nome))
+    '''
+
     context = {
-        'lista_mesi_univoci': lista_mesi_univoci
+        'lista_mesi': lista_mesi
     }
     # New_from_old
     new_from_old = None
@@ -279,13 +294,19 @@ def svuota_db(request):
 # AJAX
 def ajax_get_capacita_from_mese_and_tipo(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
+    # calcolo del primo lunedì del mese successivo al mese selezionato dall'utente per la simulazione
+    anno, mese = map(int, mese_da_simulare.split('-'))
+    primo_lunedi_mese_successivo = date(anno, mese, 1) + relativedelta(months=+1)
+    offset = (0 - primo_lunedi_mese_successivo.weekday()) % 7 # RICORDA: con weekday(), 0=lunedì, 6=domenica
+    primo_lunedi_mese_successivo = str(primo_lunedi_mese_successivo + timedelta(days=offset))
+
     tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
     id_simulazione = request.GET['id_simulazione']
     get_modified_capacity = request.GET['get_modified_capacity']
     if request.accepts:
         if id_simulazione == '' or get_modified_capacity=='false':
             # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
+            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).values())
             nuova_simulazione = True
         else:
             # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input)
