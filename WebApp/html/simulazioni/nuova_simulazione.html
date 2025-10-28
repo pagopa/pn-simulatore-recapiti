@@ -164,9 +164,9 @@
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
                         <option disabled value="Produzione" {% if simulazione_selezionata.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
-                        <option value="Solo BAU" {% if simulazione_selezionata.TIPO_CAPACITA == 'Solo BAU' %}selected{% endif %}>Solo BAU</option>
-                        <option value="Solo picco" {% if simulazione_selezionata.TIPO_CAPACITA == 'Solo picco' %}selected{% endif %}>Solo picco</option>
-                        <option value="BAU e picco combinate" {% if simulazione_selezionata.TIPO_CAPACITA == 'BAU e picco combinate' %}selected{% endif %}>BAU e picco combinate</option>
+                        <option value="BAU" {% if simulazione_selezionata.TIPO_CAPACITA == 'BAU' %}selected{% endif %}>BAU</option>
+                        <option value="Picco" {% if simulazione_selezionata.TIPO_CAPACITA == 'Picco' %}selected{% endif %}>Picco</option>
+                        <option value="Combinata" {% if simulazione_selezionata.TIPO_CAPACITA == 'Combinata' %}selected{% endif %}>Combinata</option>
                     </select>
                 </div>
                 <div class="col-3 mx-auto">
@@ -382,12 +382,17 @@
     });
 </script>
 
-<!-- cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale' -->
+<!-- cattura il valore della select tipo_capacita_da_modificare e lo inserisce nell'intestazione della colonna 'Capacità settimanale' e nel sotto-accordion -->
 <script>
     function select_tipo_capacita_da_modificare() {
-        d = document.getElementById("tipo_capacita_da_modificare").value;
+        tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
+        // inseriamo il tipo_capacita_da_modificare nell'intestazione della colonna 'Capacità settimanale'
         document.querySelectorAll(".th_capacita_settimanale").forEach(el => {
-            el.innerHTML = '<br>(' + d + ')';
+            el.innerHTML = '<br>(' + tipo_capacita_selezionata + ')';
+        });
+        // inseriamo il tipo_capacita_da_modificare nel sotto-accordion
+        document.querySelectorAll(".span_tipo_capacita_selezionata").forEach(span => {
+            span.textContent = ' ('+tipo_capacita_selezionata+')';
         });
     }
 </script>
@@ -452,7 +457,7 @@
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
                                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
-                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_provincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_provincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_provincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.context[recapitista][singola_regione_provincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
+                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_provincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_provincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_provincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.context[recapitista][singola_regione_provincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
                                         </button>
                                     </h2>
                                     <div id="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" class="accordion-collapse collapse">
@@ -618,7 +623,7 @@
 
     function alertMensileRosso($table, sommaCapacita) {
         const alert_settimanale_giallo = $table.find('td:nth-child(9) .fa-triangle-exclamation[style*="orange"]').length > 0;
-        const accordionHeader = $table.closest('.accordion-collapse').prev('.accordion-header')        
+        const accordionHeader = $table.closest('.accordion-collapse').prev('.accordion-header');       
         const postalizzazioni_mensili = parseInt(accordionHeader.find('.somma_postalizzazioni').text()) || 0;        
         if (sommaCapacita < postalizzazioni_mensili) {
             accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità mensile inferiore al numero di postalizzazioni mensili"></i>');

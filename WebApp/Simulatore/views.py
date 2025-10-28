@@ -322,11 +322,11 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
             if nuova_simulazione:
-                if tipo_capacita_selezionata=='Solo BAU':
+                if tipo_capacita_selezionata=='BAU':
                     capacity = item['CAPACITY']
-                elif tipo_capacita_selezionata=='Solo picco':
+                elif tipo_capacita_selezionata=='Picco':
                     capacity = item['PEAK_CAPACITY']
-                elif tipo_capacita_selezionata == 'BAU e picco combinate':
+                elif tipo_capacita_selezionata == 'Combinata':
                     # REGOLA: quando i volumi sono inferiori alla BAU setta BAU mentre se i volumi sono superiori alla BAU o al picco setta picco.
                     if post_weekly_estimate < item['CAPACITY']:
                         capacity = item['CAPACITY']
