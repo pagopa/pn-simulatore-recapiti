@@ -161,9 +161,9 @@ def salva_simulazione(request):
 
     # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
-        lista_old_capacita_modificate = table_capacita_modificate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
+        lista_old_capacita_modificate = table_capacita_simulate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
         if lista_old_capacita_modificate:
-            # modifica delle CAPACITA_MODIFICATE salvate su db
+            # modifica delle CAPACITA_SIMULATE salvate su db
             lookup = {}
             for recapitista, righe_tabella in capacita_json.items():
                 for row in righe_tabella:
@@ -174,13 +174,13 @@ def salva_simulazione(request):
                 if key in lookup:
                     singola_capacita.CAPACITY = lookup[key]    
             
-            table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
+            table_capacita_simulate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
         else:
             print(capacita_json)
-            # scrittura sul db nella tabella CAPACITA_MODIFICATE
+            # scrittura sul db nella tabella CAPACITA_SIMULATE
             for recapitista, righe_tabella in capacita_json.items():
                 for singola_riga in righe_tabella:
-                    table_capacita_modificate.objects.create(
+                    table_capacita_simulate.objects.create(
                         UNIFIED_DELIVERY_DRIVER = recapitista,
                         ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
                         ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
@@ -203,7 +203,7 @@ def rimuovi_simulazione(request, id_simulazione):
     try:
         simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
         try:
-            lista_capacita_modificata_da_rimuovere = table_capacita_modificate.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID)
+            lista_capacita_modificata_da_rimuovere = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID)
             for singola_capacita in lista_capacita_modificata_da_rimuovere:
                 singola_capacita.delete()
         except:
@@ -221,6 +221,8 @@ def carica_dati_db(request):
     df_declared_capacity = pd.read_csv('static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
     df_sender_limit = pd.read_csv('static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
     df_cap_prov_reg = pd.read_csv('static/data/lookup_regione_provincia_cap.csv', dtype=str, keep_default_na=False)
+    df_paper_delivery = pd.read_csv('./static/data/db_paper_delivery.csv', dtype=str, keep_default_na=False)
+
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
                             user = DATABASES['default']['USER'],
@@ -253,6 +255,17 @@ def carica_dati_db(request):
             values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['Pop_cap'][i], df_cap_prov_reg['Prop_pop_cap'][i])
             cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","COD_SIGLA_PROVINCIA","POP_CAP","PERCENTUALE_POP_CAP") VALUES (%s, %s, %s, %s, %s, %s)',
                         values_capprovreg)
+    
+    cur.execute('select count(*) from public."RESULTS"')
+    count_results = cur.fetchone()
+    if count_results[0] == 0:
+        for i in range(0 ,len(df_paper_delivery)):
+            values_paper_delivery = (df_paper_delivery['pk'][i], df_paper_delivery['sk'][i], df_paper_delivery['attempt'][i], df_paper_delivery['cap'][i], 
+                                     df_paper_delivery['createdAt'][i], df_paper_delivery['iun'][i],df_paper_delivery['notificationSentAt'][i], df_paper_delivery['prepareRequestDate'][i],
+                                     df_paper_delivery['priority'][i], df_paper_delivery['productType'][i],df_paper_delivery['province'][i], df_paper_delivery['requestId'][i],
+                                     df_paper_delivery['senderPaId'][i], df_paper_delivery['tenderId'][i],df_paper_delivery["unifiedDeliveryDriver"][i],df_paper_delivery['week_delivery'][i], df_paper_delivery['ID_SIMULAZIONE'][i],)
+            cur.execute('INSERT INTO public."RESULTS" ("PK","SK","ATTEMPT","CAP","CREATED_AT","IUN","NOTIFICATION_SENT_AT","PREPARE_REQUEST_DATE","PRIORITY","PRODUCT_TYPE","PROVINCE","REQUEST_ID","SENDER_PA_ID","TENDER_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY","SIMULAZIONE_ID") VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s)',
+                        values_paper_delivery)
 
     conn.commit()
     conn.close()
@@ -269,7 +282,7 @@ def svuota_tabelle_db(request):
     conn.autocommit = True
     cur = conn.cursor()
 
-    tabelle_da_eliminare = ['CAPACITA_MODIFICATE','DECLARED_CAPACITY','SENDER_LIMIT','CAP_PROV_REG','SIMULAZIONE']
+    tabelle_da_eliminare = ['CAPACITA_SIMULATE','DECLARED_CAPACITY','SENDER_LIMIT','CAP_PROV_REG','SIMULAZIONE']
 
     # svuotiamo le tabelle
     for singola_tabella in tabelle_da_eliminare:

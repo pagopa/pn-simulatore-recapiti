@@ -17,13 +17,14 @@ class table_simulazione(models.Model):
     TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)
     MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)
     TIPO_CAPACITA = models.CharField(max_length=25, null=True)
+    TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
     class Meta:
         db_table = 'SIMULAZIONE'
         indexes = [
             models.Index(fields=['STATO'], name='INDICE_STATO')
         ]
 
-class table_capacita_modificate(models.Model):
+class table_capacita_simulate(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
@@ -36,7 +37,7 @@ class table_capacita_modificate(models.Model):
     PRODUCT_AR = models.BooleanField(max_length=5, null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
-        db_table = 'CAPACITA_MODIFICATE'
+        db_table = 'CAPACITA_SIMULATE'
 
 
 class table_declared_capacity(models.Model):
@@ -194,7 +195,7 @@ class view_output_modified_capacity_setting(pg.View):
             public."output_capacity_setting"."ACTIVATION_DATE_FROM", 
             public."output_capacity_setting"."ACTIVATION_DATE_TO", 
             public."output_capacity_setting"."CAPACITY" AS "ORIGINAL_CAPACITY", 
-            public."CAPACITA_MODIFICATE"."CAPACITY" AS "MODIFIED_CAPACITY",
+            public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
             public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE", 
             public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
             public."output_capacity_setting"."REGIONE", 
@@ -203,16 +204,130 @@ class view_output_modified_capacity_setting(pg.View):
             public."output_capacity_setting"."PRODUCT_890",
             public."output_capacity_setting"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",
-            public."CAPACITA_MODIFICATE"."SIMULAZIONE_ID"
-        FROM public."CAPACITA_MODIFICATE" 
+            public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+        FROM public."CAPACITA_SIMULATE" 
         LEFT JOIN public."output_capacity_setting"
-            ON public."CAPACITA_MODIFICATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
-                AND public."CAPACITA_MODIFICATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
-                AND public."CAPACITA_MODIFICATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
-                AND public."CAPACITA_MODIFICATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
-                AND public."CAPACITA_MODIFICATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
+            ON public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
+                AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
+                AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
+                AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
+                AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
     """
 
     class Meta:
         db_table = 'output_modified_capacity_setting'
+        managed = False
+
+
+class table_results(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    PK = models.CharField(max_length=80, null=True)
+    SK = models.CharField(max_length=80, null=True)
+    ATTEMPT = models.IntegerField(null=True)
+    CAP = models.CharField(max_length=5, null=True)
+    CREATED_AT = NaiveDateTimeField(null=True)
+    IUN = models.CharField(max_length=80, null=True)
+    NOTIFICATION_SENT_AT = NaiveDateTimeField(null=True)
+    PREPARE_REQUEST_DATE = NaiveDateTimeField(null=True)
+    PRIORITY = models.IntegerField(null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REQUEST_ID = models.CharField(max_length=200, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    TENDER_ID = models.CharField(max_length=8, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'RESULTS'
+
+
+# VISTA output_grafico_ente
+class view_output_grafico_ente(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    COUNT_REQUEST = models.IntegerField(null=True)
+
+    sql = """
+        SELECT
+            ROW_NUMBER() OVER () AS id,
+            "SIMULAZIONE_ID", 
+            "SENDER_PA_ID", 
+            "SETTIMANA_DELIVERY",
+            COUNT(DISTINCT "REQUEST_ID") AS "COUNT_REQUEST"
+        FROM public."RESULTS"
+        GROUP BY ("SIMULAZIONE_ID","SENDER_PA_ID","SETTIMANA_DELIVERY")
+    """
+
+    class Meta:
+        db_table = 'output_grafico_ente'
+        managed = False
+
+
+
+# VISTA output_grafico_reg_recap
+class view_output_grafico_reg_recap(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    COUNT_REQUEST = models.IntegerField(null=True)
+
+    sql = """
+        SELECT
+            ROW_NUMBER() OVER () AS id,
+            public."RESULTS"."SIMULAZIONE_ID", 
+            public."RESULTS"."PROVINCE",
+            public."CAP_PROV_REG"."REGIONE",
+            public."RESULTS"."UNIFIED_DELIVERY_DRIVER",
+            public."RESULTS"."SETTIMANA_DELIVERY",
+            COUNT(DISTINCT public."RESULTS"."REQUEST_ID") AS "COUNT_REQUEST"
+        FROM public."RESULTS"
+        LEFT JOIN public."CAP_PROV_REG"
+            ON public."RESULTS"."PROVINCE" = public."CAP_PROV_REG"."COD_SIGLA_PROVINCIA"
+        GROUP BY (public."RESULTS"."SIMULAZIONE_ID",public."RESULTS"."PROVINCE",public."CAP_PROV_REG"."REGIONE",public."RESULTS"."UNIFIED_DELIVERY_DRIVER",public."RESULTS"."SETTIMANA_DELIVERY")
+    """
+
+    class Meta:
+        db_table = 'output_grafico_reg_recap'
+        managed = False
+
+
+# VISTA output_grafico_mappa_picchi
+class view_output_grafico_mappa_picchi(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    FLAG_PICCO = models.IntegerField(null=True)
+
+    sql = """
+        SELECT
+            ROW_NUMBER() OVER () AS id,
+            public."output_grafico_reg_recap"."SIMULAZIONE_ID", 
+            public."output_grafico_reg_recap"."PROVINCE",
+            public."output_grafico_reg_recap"."REGIONE",
+            public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER",
+            public."output_grafico_reg_recap"."SETTIMANA_DELIVERY",
+            CASE 
+                WHEN public."output_grafico_reg_recap"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
+                    THEN 1
+                    ELSE 0
+            END AS "FLAG_PICCO"
+        FROM public."output_grafico_reg_recap"
+        LEFT JOIN public."CAPACITA_SIMULATE"
+            ON public."output_grafico_reg_recap"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+            AND public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
+            AND public."output_grafico_reg_recap"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
+            AND public."output_grafico_reg_recap"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+    """
+
+    class Meta:
+        db_table = 'output_grafico_mappa_picchi'
         managed = False
