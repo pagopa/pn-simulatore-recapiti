@@ -22,6 +22,7 @@ urlpatterns = [
 
     # AJAX
     path('get_capacita_from_mese_and_tipo_ajax', ajax_get_capacita_from_mese_and_tipo, name="ajax_get_capacita_from_mese_and_tipo"),
+    path('get_province/', get_province, name='get_province'),
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),

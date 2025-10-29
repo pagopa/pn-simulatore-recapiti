@@ -71,8 +71,11 @@ def nuova_simulazione(request, id_simulazione):
         lista_mesi.append((codice, nome))
     '''
 
+    lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
+
     context = {
-        'lista_mesi': lista_mesi
+        'lista_mesi': lista_mesi,
+        'lista_regioni': lista_regioni
     }
     # New_from_old
     new_from_old = None
@@ -173,6 +176,7 @@ def salva_simulazione(request):
             
             table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
         else:
+            print(capacita_json)
             # scrittura sul db nella tabella CAPACITA_MODIFICATE
             for recapitista, righe_tabella in capacita_json.items():
                 for singola_riga in righe_tabella:
@@ -374,6 +378,12 @@ def ajax_get_capacita_from_mese_and_tipo(request):
     return JsonResponse({'context': lista_capacita_finali})
 
 
+def get_province(request):
+    regione = request.GET.get('regione')
+    if regione:
+        lista_province = list(table_cap_prov_reg.objects.filter(REGIONE=regione).values_list('PROVINCIA', flat=True).distinct().order_by('PROVINCIA'))
+        return JsonResponse(lista_province, safe=False)
+    return JsonResponse([], safe=False)
 
 # ERROR PAGES
 def handle_error_400(request, exception):

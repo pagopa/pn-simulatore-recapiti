@@ -43,12 +43,12 @@
                                             <div class="col offset-md-2">
                                                 <p><b>Nome simulazione</b>: {{simulazione.NOME}}</p>
                                                 <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE}}</p>
+                                                <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</p>
                                             </div>
                                             <div class="col">
-                                                <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</p>
+                                                <p><b>Mese di simulazione</b>: {{simulazione.MESE_SIMULAZIONE}}</p>
+                                                <p><b>Tipo capacità</b>: {{simulazione.TIPO_CAPACITA}}</p>
                                                 <p><b>Stato</b>: {% if simulazione.STATO == 'Lavorata' %}Lavorata 🟢{% elif simulazione.STATO == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.STATO == 'Schedulata' %}Schedulata 📅{% elif simulazione.STATO == 'Non completata' %}Non completata 🔴{% endif %}</p>
-                                                {% if simulazione.STATO == 'Lavorata'%}<p><b>Durata</b>: {{simulazione.durata}}</p>{% endif %}
-                                                {% if simulazione.STATO == 'Non completata'%}<p><b>Errore</b>: {{simulazione.errore}}</p>{% endif %}
                                             </div>
                                         </div>
                                         <br>
@@ -210,10 +210,10 @@
                 columnControl: ['order', ['search']],
                 render: function (data, type, row) {
                     if (type === 'display') {
-                        // mostriamo solo i primi 20 caratteri
-                        return data.length > 20 ? data.substr(0, 20) + '…' : data;
+                        // mostriamo solo i primi 30 caratteri
+                        return data.length > 30 ? data.substr(0, 30) + '…' : data;
                     }
-                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 20 caratteri
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 30 caratteri
                     return data;
                 }
             },
