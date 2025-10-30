@@ -17,7 +17,7 @@ enti = [
 "Poste Italiane", "Agenzia Entrate", "Comune di Milano", "Regione Toscana", "Comune di Napoli"
 ]
 
-# Simulazione dati per 4 settimane
+#Simulazione dati per 4 settimane
 np.random.seed(42)
 dati_enti = []
 for ente in enti:
@@ -28,7 +28,7 @@ for ente in enti:
         valore = max(500, valore)  # Minimo 500
         dati_enti.append([ente, f"Sett. {settimana}", valore])
 
-# Creazione DataFrame
+# # Creazione DataFrame
 df_enti = pd.DataFrame(dati_enti, columns=["Ente", "Settimana", "Postalizzazioni"])
 
 # ---------- dati di esempio (sostituisci con i tuoi)
@@ -117,6 +117,8 @@ with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding
 
 # layout
 app_risultati.layout = html.Div([
+    dcc.Location(id="url", refresh=False), # serve a catturare l'url
+    html.H3(id="titolo-simulazione"),
     html.H3(
         "Simulazione Pianificazione Postalizzazioni per Ente",
         style={"text-align":"center"}),
@@ -129,13 +131,10 @@ app_risultati.layout = html.Div([
             html.Label("Seleziona Ente:"),
 
             dcc.Dropdown(
-
                 id="ente-filter",
-
-                options=[{"label": r, "value": r} for r in sorted(enti)],
-                value=list(sorted(enti)),
-                multi=True,
-                placeholder="Seleziona Ente:"
+                options=[],
+                value=[],
+                multi=True
             ),
         ], style={"width": "100%", "display": "inline-block"}),
     ], style={"margin-bottom": "10px"}),
@@ -255,25 +254,57 @@ app_risultati.layout = html.Div([
 ])
 
 @app_risultati.callback(
-    Output("line-plot", "figure"),
-    Input("ente-filter", "value")
+    Output("titolo-simulazione", "children"),
+    Input("url", "pathname")
 )
-def update_chart_ente(ente_sel):
+def aggiorna_da_url(pathname):
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    titolo = "risultati simulazione: "+str(id_simulazione)
+    return titolo
+
+
+@app_risultati.callback(
+    Output("line-plot", "figure"),
+    Input("ente-filter", "value"),
+    Input("url", "pathname")
+)
+def update_chart_ente(ente_sel, pathname):
+    from .models import view_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    filtered_enti_2 = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
+    df_filtered_enti_2 = pd.DataFrame(filtered_enti_2)
+    
     # se non selezionato nulla → grafico vuoto
     if not ente_sel:
         return px.line(title="Nessuna selezione effettuata")
 
-    filtered_enti = df_enti[df_enti["Ente"].isin(ente_sel)]
+    df_filtered_enti_2 = df_filtered_enti_2[df_filtered_enti_2["SENDER_PA_ID"].isin(ente_sel)]
 
     fig_ente = px.line(
-        filtered_enti,
-        x="Settimana",
-        y="Postalizzazioni",
-        color='Ente',
+        df_filtered_enti_2,
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color='SENDER_PA_ID',
         markers=True
     )
     fig_ente.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+
     return fig_ente
+
+
+@app_risultati.callback(
+    Output("ente-filter", "options"),
+    Output("ente-filter", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown(pathname):
+    from .models import view_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(lista_enti)]
+    value = list(sorted(lista_enti))
+    return options, value
+
 
 @app_risultati.callback(
     Output("area-plot", "figure"),
