@@ -38,7 +38,11 @@ if env_hosts:
 else:
     ALLOWED_HOSTS = []
 
-CSRF_TRUSTED_ORIGINS = ALLOWED_HOSTS
+CSRF_TRUSTED_ORIGINS = []
+for singolo_host in ALLOWED_HOSTS:
+    CSRF_TRUSTED_ORIGINS.append('http://'+str(singolo_host))
+    CSRF_TRUSTED_ORIGINS.append('https://'+str(singolo_host))
+
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
 SECURE_SSL_REDIRECT = False
