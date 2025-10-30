@@ -13,7 +13,7 @@ urlpatterns = [
     # SIMULAZIONI
     path('nuova_simulazione/<id_simulazione>', nuova_simulazione, name='nuova_simulazione'),
     #path('risultati/<id_simulazione>', risultati, name='risultati'),
-    path('confronto_risultati/<id_simulazione>', confronto_risultati, name='confronto_risultati'),
+    #path('confronto_risultati/<id_simulazione>', confronto_risultati, name='confronto_risultati'),
     path('salva_simulazione', salva_simulazione, name='salva_simulazione'),
     path('rimuovi_simulazione/<id_simulazione>', rimuovi_simulazione, name='rimuovi_simulazione'),
 
@@ -22,6 +22,7 @@ urlpatterns = [
 
     # AJAX
     path('get_capacita_from_mese_and_tipo_ajax', ajax_get_capacita_from_mese_and_tipo, name="ajax_get_capacita_from_mese_and_tipo"),
+    path('get_province/', get_province, name='get_province'),
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),
@@ -35,6 +36,11 @@ urlpatterns = [
     path('carica_dati_db', carica_dati_db, name='carica_dati_db'),
     path('svuota_tabelle_db', svuota_tabelle_db, name='svuota_tabelle_db'),
     path('svuota_db', svuota_db, name='svuota_db'),
-    path('debug_paths/', debug_paths, name='debug_paths'),
 ]
 
+
+# riservato alle pagine d'errore
+handler400 = "Simulatore.views.handle_error_400"
+handler403 = "Simulatore.views.handle_error_403"
+handler404 = "Simulatore.views.handle_error_404"
+handler500 = "Simulatore.views.handle_error_500"

@@ -106,10 +106,10 @@
                 columnControl: ['order', ['search']],
                 render: function (data, type, row) {
                     if (type === 'display') {
-                        // mostriamo solo i primi 20 caratteri
-                        return data.length > 20 ? data.substr(0, 20) + '…' : data;
+                        // mostriamo solo i primi 30 caratteri
+                        return data.length > 30 ? data.substr(0, 30) + '…' : data;
                     }
-                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 20 caratteri
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 30 caratteri
                     return data;
                 }
             },

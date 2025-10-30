@@ -9,9 +9,13 @@ import numpy as np
 import os
 from PagoPA.settings import *
 
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 from .models import *
+from django.db.models import Q
 
 from django.db.models.functions import TruncMonth
 
@@ -20,9 +24,6 @@ import locale
 from django.http import JsonResponse
 
 import psycopg2
-
-from pathlib import Path
-from django.http import HttpResponse
 
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -38,227 +39,11 @@ def homepage(request):
 
 
 def risultati(request, id_simulazione):
-    return render(request, "Simulatore/dashboard.html")
-
+    return render(request, "Simulatore/dashboard_risultati.html")
 
 def confronto_risultati(request, id_simulazione):
-    enti = [
-    "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
-    "Poste Italiane", "Agenzia Entrate", "Comune di Milano", "Regione Toscana", "Comune di Napoli"
-    ]
+    return render(request, "Simulatore/dashboard_confronto_risultati.html")
 
-    # Simulazione dati per 4 settimane
-    np.random.seed(42)
-    dati = []
-    for ente in enti:
-        base = np.random.randint(2000, 8000)  # Valore base per ente
-        for settimana in range(1, 5):
-            # Fluttuazione con rumore
-            valore = base + np.random.randint(-2000, 3000)
-            valore = max(500, valore)  # Minimo 500
-            dati.append([ente, f"Sett. {settimana}", valore])
-
-    # Creazione DataFrame
-    df = pd.DataFrame(dati, columns=["Ente", "Settimana", "Postalizzazioni"])
-    fig_first = px.line(df, x='Settimana', y='Postalizzazioni', color='Ente', markers=True)
-
-    # istruzione per passare il grafico alla pagina html
-    fig_first_for_visualizzation = json.dumps(fig_first, cls=putils.PlotlyJSONEncoder)
-
-    # Definizione di regioni e province associate
-    regioni_province = {
-        "Lombardia": ["Milano", "Bergamo", "Brescia"],
-        "Lazio": ["Roma", "Latina", "Viterbo"],
-        "Campania": ["Napoli", "Salerno", "Caserta"],
-        "Sicilia": ["Palermo", "Catania", "Messina"]
-    }
-
-    # Generazione dataset simulato con andamento decrescente
-    dati_regioni = []
-    for regione, province in regioni_province.items():
-        for provincia in province:
-            base = np.random.randint(5000, 12000)
-            decremento = np.random.randint(800, 2000)
-            for settimana in range(1, 5):
-                valore = max(500, base - decremento * (settimana - 1))
-                dati_regioni.append([regione, provincia, f"Sett. {settimana}", valore])
-
-    # Creazione DataFrame
-    df_regioni = pd.DataFrame(dati_regioni, columns=["Regione", "Provincia", "Settimana", "Postalizzazioni"])
-    # Grafico lineare province
-
-    fig_second = px.area(
-        df_regioni,
-        x="Settimana",
-        y="Postalizzazioni",
-        color="Provincia",
-        line_group="Provincia",
-        markers=True,
-        title="Previsione Postalizzazioni per Provincia"
-    )
-
-    # Dropdown per filtrare per regione
-    buttons = []
-    for regione in df_regioni["Regione"].unique():
-        province_regione = df_regioni[df_regioni["Regione"] == regione]["Provincia"].unique()
-        visible = [provincia in province_regione for provincia in df_regioni["Provincia"].unique()]
-        buttons.append(
-            dict(
-                label=regione,
-                method="update",
-                args=[{"visible": visible}, {"title": f"Previsione Postalizzazioni - {regione}"}]
-            )
-        )
-
-    # Aggiungi opzione "Tutte"
-    buttons.insert(
-        0,
-        dict(
-            label="Tutte",
-            method="update",
-            args=[{"visible": [True] * df_regioni["Provincia"].nunique()}, {"title": "Previsione Postalizzazioni - Tutte le Regioni"}]
-        )
-    )
-
-    # Layout con dropdown
-    fig_second.update_layout(
-        updatemenus=[dict(
-            buttons=buttons,
-            direction="down",
-            showactive=True,
-            x=1.15,
-            y=1.2
-        )]
-    )
-
-    # istruzione per passare il grafico alla pagina html
-    fig_second_for_visualizzation = json.dumps(fig_second, cls=putils.PlotlyJSONEncoder)
-
-    with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding = "utf-8") as f:
-        geojson = json.load(f)
-
-    # Definizione recapitisti, regioni e province
-    recapitisti = ["Poste", "FSU", "RTI Fulmine", "Post & Service"]
-    regioni_province = {
-            "Lombardia": ["Milano", "Bergamo", "Brescia"],
-            "Lazio": ["Roma", "Latina", "Viterbo"],
-            "Campania": ["Napoli", "Salerno", "Caserta"],
-            "Sicilia": ["Palermo", "Catania", "Messina"]
-        }
-
-    # Creazione dataset
-    dati = []
-    for recapitista in recapitisti:
-        test = np.random.choice([0, 10])
-        for regione, province in regioni_province.items():
-            test = np.random.choice([0, 10])
-            if test >= 2:
-                for provincia in province:
-                    valore = np.random.choice([0, 1])
-                    dati.append([recapitista, regione, provincia, valore])
-
-    df_recapitisti = pd.DataFrame(dati, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
-    df_recapitisti = df_recapitisti.groupby(['Recapitista','Regione']).agg(
-        total_picco=('Assegnazione', 'sum'),
-        prov_count=('Provincia', 'count')
-    )
-    df_recapitisti['prop']= df_recapitisti['total_picco']/df_recapitisti['prov_count']
-    # Definisco due soglie (puoi cambiarle come preferisci)
-    soglia1 = 0.0001
-    soglia2 = 0.5
-
-    # Creo una nuova colonna "fascia"
-    def classifica_prop(x):
-        if x < soglia1:
-            return "No picchi"
-        elif x < soglia2:
-            return "<50% picchi"
-        else:
-            return ">=50% picchi"
-
-    df_recapitisti["fascia"] = df_recapitisti["prop"].apply(classifica_prop)
-
-    # Assegno 3 colori fissi
-    colori = {
-        "No picchi": "green",
-        "<50% picchi": "orange",
-        ">=50% picchi": "red"
-    }
-
-    df_recapitisti = df_recapitisti.reset_index()
-
-    ## mappa testo->numero per le fasce (adatta se hai altre categorie)
-    fascia_to_num = {"No picchi": 0, "<50% picchi": 1, ">=50% picchi": 2}
-
-    # costruisci un colorscale "discreto" che associa range a colori
-    # struttura: [ [0.0,color_bassa], [0.3333,color_bassa], [0.3334,color_media], ... ]
-    colorscale = [
-        [0.0, colori["No picchi"]], [0.3333, colori["No picchi"]],
-        [0.3334, colori["<50% picchi"]], [0.6666, colori["<50% picchi"]],
-        [0.6667, colori[">=50% picchi"]], [1.0, colori[">=50% picchi"]],
-    ]
-
-    recapitisti = df_recapitisti["Recapitista"].unique()
-    fig_third = go.Figure()
-
-    # crea una traccia (choropleth) per ogni recapitista
-    for rec in recapitisti:
-        df_temp = df_recapitisti[df_recapitisti["Recapitista"] == rec].copy()
-        # mappa le fasce su z numerico
-        df_temp["z"] = df_temp["fascia"].map(fascia_to_num)
-
-        # aggiungi la traccia; usiamo customdata per mostrare la fascia testuale nel tooltip
-        fig_third.add_trace(go.Choroplethmapbox(
-            geojson=geojson,
-            locations=df_temp["Regione"],
-            z=df_temp["z"],
-            featureidkey="properties.reg_name",
-            colorscale=colorscale,
-            zmin=0, zmax=2,
-            marker_opacity=0.6,
-            marker_line_width=0,
-            name=rec,
-            visible=(rec == recapitisti[0]),   # mostra solo il primo inizialmente
-            showscale=False,
-            customdata=df_temp[["fascia"]].values,
-            hovertemplate="<b>%{location}</b><br>Recapitista: " + rec + "<br>Fascia: %{customdata[0]}<extra></extra>"
-        ))
-
-    # costruisci i bottoni per il dropdown (uno per recapitista + 'Tutte')
-    buttons = []
-
-    # Bottoni singoli
-    for i, rec in enumerate(recapitisti):
-        visible = [False] * len(recapitisti)
-        visible[i] = True
-        buttons.append(dict(
-            label=rec,
-            method="update",
-            args=[{"visible": visible}, {"title": f"Assegnazioni - {rec}"}]
-        ))
-
-    fig_third.update_layout(
-        mapbox_style="carto-positron",
-        mapbox_zoom=4.5,
-        mapbox_center={"lat": 41.9, "lon": 12.5},
-        height=800,
-        updatemenus=[dict(buttons=buttons,pad={"r": 20, "t": 20}, direction="down", x=1.12, y=1.12)],
-        margin={"r":100,"t":100,"l":100,"b":100},
-        title="Assegnazioni per Recapitista (fasce)"
-    )
-
-    # istruzione per passare il grafico alla pagina html
-    fig_third_for_visualizzation = json.dumps(fig_third, cls=putils.PlotlyJSONEncoder)
-
-    context = {
-        'fig_first_for_visualizzation_A': fig_first_for_visualizzation,
-        'fig_first_for_visualizzation_B': fig_first_for_visualizzation,
-        'fig_second_for_visualizzation_A': fig_second_for_visualizzation,
-        'fig_second_for_visualizzation_B': fig_second_for_visualizzation,
-        'fig_third_for_visualizzation_A': fig_third_for_visualizzation,
-        'fig_third_for_visualizzation_B': fig_third_for_visualizzation
-    }
-    return render(request, "simulazioni/confronto_risultati.html", context)
 
 def calendario(request):
     return render(request, "calendario/calendario.html")
@@ -273,19 +58,42 @@ def bozze(request):
 
 def nuova_simulazione(request, id_simulazione):
     # Mese da simulare
-    lista_mesi_univoci = view_output_capacity_setting.objects.annotate(mese=TruncMonth('ACTIVATION_DATE_FROM')).values_list('mese', flat=True).distinct().order_by('mese')
-    lista_mesi_univoci = [(d.strftime("%Y-%m"),d.strftime("%B %Y").capitalize()) for d in lista_mesi_univoci]
+    lista_mesi = [('2026-01', 'Gennaio 2026')]
+    
+    '''
+    data_oggi = date.today()
+    mese_corrente = data_oggi + relativedelta(months=+4) #NOTA: per mese corrente intendiamo mese di oggi +4 mesi in avanti
+    lista_mesi = [] #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
+    for i in range(4):
+        mese_data = mese_corrente + relativedelta(months=+i)
+        codice = mese_data.strftime("%Y-%m")
+        nome = mese_data.strftime("%B %Y").capitalize()
+        lista_mesi.append((codice, nome))
+    '''
+
+    lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
+
     context = {
-        'lista_mesi_univoci': lista_mesi_univoci
+        'lista_mesi': lista_mesi,
+        'lista_regioni': lista_regioni
     }
+    # New_from_old
+    new_from_old = None
+    if 'id' in request.GET:
+        new_from_old = request.GET['id']
     # NUOVA SIMULAZIONE
-    if id_simulazione == 'new':
+    if id_simulazione == 'new' and new_from_old == None:
         pass
+    # New_from_old
+    elif id_simulazione == 'new' and new_from_old != None:
+        simulazione_selezionata = table_simulazione.objects.get(ID = new_from_old)
+        simulazione_selezionata.new_from_old = True
+        context['simulazione_selezionata'] = simulazione_selezionata
     # MODIFICA SIMULAZIONE
     else:
-        simulazione_da_modificare = table_simulazione.objects.get(ID = id_simulazione)
-
-        context['simulazione_da_modificare'] = simulazione_da_modificare
+        simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
+        simulazione_selezionata.new_from_old = False
+        context['simulazione_selezionata'] = simulazione_selezionata
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
@@ -324,10 +132,9 @@ def salva_simulazione(request):
         capacita_json = json.loads(capacita_json)
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
-    
-
-    # NUOVA SIMULAZIONE
-    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST: # il primo caso si verifica con il salva_bozza mentre il secondo con avvia scheduling
+        
+    # NUOVA SIMULAZIONE o new_from_old
+    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
         id_simulazione_salvata = table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
@@ -337,24 +144,6 @@ def salva_simulazione(request):
             MESE_SIMULAZIONE = mese_da_simulare,
             TIPO_CAPACITA = tipo_capacita_da_modificare
         )
-        # caso di simulazione salvata senza modificare capacità -> non salviamo alcuna capacità
-        if mese_da_simulare != None and tipo_capacita_da_modificare != None:
-            # scrittura sul db nella tabella CAPACITA_MODIFICATE
-            for recapitista, righe_tabella in capacita_json.items():
-                for singola_riga in righe_tabella:
-                    table_capacita_modificate.objects.create(
-                        UNIFIED_DELIVERY_DRIVER = recapitista,
-                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
-                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
-                        CAPACITY = singola_riga['capacita'],
-                        SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[0], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
-                        SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'].split(' ')[-1][:-1], # formato: SUM_WEEKLY_ESTIMATE (mensili: SUM_MONTHLY_ESTIMATE)
-                        REGIONE = singola_riga['regione'],
-                        PROVINCE = singola_riga['provincia'],
-                        PRODUCT_890 = True if '890' in singola_riga['product'] else False,
-                        PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
-                        SIMULAZIONE_ID = id_simulazione_salvata
-                    )
 
     # MODIFICA SIMULAZIONE
     else:
@@ -369,22 +158,41 @@ def salva_simulazione(request):
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
         
-        # caso di simulazione salvata senza modificare capacità -> non salviamo alcuna capacità
-        if mese_da_simulare != None and tipo_capacita_da_modificare != None:
-            lista_old_capacita_modificate = table_capacita_modificate.objects.filter(SIMULAZIONE_ID = request.POST['id_simulazione'])
-            # scrittura sul db nella tabella CAPACITA_MODIFICATE
+
+    # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
+    if mese_da_simulare != None and tipo_capacita_da_modificare != None:
+        lista_old_capacita_modificate = table_capacita_simulate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
+        if lista_old_capacita_modificate:
+            # modifica delle CAPACITA_SIMULATE salvate su db
             lookup = {}
             for recapitista, righe_tabella in capacita_json.items():
                 for row in righe_tabella:
-                    lookup[(recapitista, row["provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
+                    lookup[(recapitista, row["cod_sigla_provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
 
             for singola_capacita in lista_old_capacita_modificate:
-                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.PROVINCE, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.COD_SIGLA_PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
                 if key in lookup:
                     singola_capacita.CAPACITY = lookup[key]    
             
-            table_capacita_modificate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
-        
+            table_capacita_simulate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
+        else:
+            print(capacita_json)
+            # scrittura sul db nella tabella CAPACITA_SIMULATE
+            for recapitista, righe_tabella in capacita_json.items():
+                for singola_riga in righe_tabella:
+                    table_capacita_simulate.objects.create(
+                        UNIFIED_DELIVERY_DRIVER = recapitista,
+                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
+                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
+                        CAPACITY = singola_riga['capacita'],
+                        SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'],
+                        REGIONE = singola_riga['regione'],
+                        COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
+                        PRODUCT_890 = True if '890' in singola_riga['product'] else False,
+                        PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
+                        SIMULAZIONE_ID = id_simulazione_salvata
+                    )
+
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
     elif request.POST['stato'] == 'Schedulata-Inlavorazione':
@@ -395,7 +203,7 @@ def rimuovi_simulazione(request, id_simulazione):
     try:
         simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
         try:
-            lista_capacita_modificata_da_rimuovere = table_capacita_modificate.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID)
+            lista_capacita_modificata_da_rimuovere = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID)
             for singola_capacita in lista_capacita_modificata_da_rimuovere:
                 singola_capacita.delete()
         except:
@@ -412,7 +220,9 @@ def carica_dati_db(request):
     ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
     df_declared_capacity = pd.read_csv('static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
     df_sender_limit = pd.read_csv('static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
-    df_cap_prov_reg = pd.read_csv('static/data/test.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('static/data/lookup_regione_provincia_cap.csv', dtype=str, keep_default_na=False)
+    df_paper_delivery = pd.read_csv('./static/data/db_paper_delivery.csv', dtype=str, keep_default_na=False)
+
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
                             user = DATABASES['default']['USER'],
@@ -445,6 +255,17 @@ def carica_dati_db(request):
             values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['Pop_cap'][i], df_cap_prov_reg['Prop_pop_cap'][i])
             cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","COD_SIGLA_PROVINCIA","POP_CAP","PERCENTUALE_POP_CAP") VALUES (%s, %s, %s, %s, %s, %s)',
                         values_capprovreg)
+    
+    cur.execute('select count(*) from public."RESULTS"')
+    count_results = cur.fetchone()
+    if count_results[0] == 0:
+        for i in range(0 ,len(df_paper_delivery)):
+            values_paper_delivery = (df_paper_delivery['pk'][i], df_paper_delivery['sk'][i], df_paper_delivery['attempt'][i], df_paper_delivery['cap'][i], 
+                                     df_paper_delivery['createdAt'][i], df_paper_delivery['iun'][i],df_paper_delivery['notificationSentAt'][i], df_paper_delivery['prepareRequestDate'][i],
+                                     df_paper_delivery['priority'][i], df_paper_delivery['productType'][i],df_paper_delivery['province'][i], df_paper_delivery['requestId'][i],
+                                     df_paper_delivery['senderPaId'][i], df_paper_delivery['tenderId'][i],df_paper_delivery["unifiedDeliveryDriver"][i],df_paper_delivery['week_delivery'][i], df_paper_delivery['ID_SIMULAZIONE'][i],)
+            cur.execute('INSERT INTO public."RESULTS" ("PK","SK","ATTEMPT","CAP","CREATED_AT","IUN","NOTIFICATION_SENT_AT","PREPARE_REQUEST_DATE","PRIORITY","PRODUCT_TYPE","PROVINCE","REQUEST_ID","SENDER_PA_ID","TENDER_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY","SIMULAZIONE_ID") VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s)',
+                        values_paper_delivery)
 
     conn.commit()
     conn.close()
@@ -461,7 +282,7 @@ def svuota_tabelle_db(request):
     conn.autocommit = True
     cur = conn.cursor()
 
-    tabelle_da_eliminare = ['CAPACITA_MODIFICATE','DECLARED_CAPACITY','SENDER_LIMIT','CAP_PROV_REG','SIMULAZIONE']
+    tabelle_da_eliminare = ['CAPACITA_SIMULATE','DECLARED_CAPACITY','SENDER_LIMIT','CAP_PROV_REG','SIMULAZIONE']
 
     # svuotiamo le tabelle
     for singola_tabella in tabelle_da_eliminare:
@@ -489,13 +310,19 @@ def svuota_db(request):
 # AJAX
 def ajax_get_capacita_from_mese_and_tipo(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
+    # calcolo del primo lunedì del mese successivo al mese selezionato dall'utente per la simulazione
+    anno, mese = map(int, mese_da_simulare.split('-'))
+    primo_lunedi_mese_successivo = date(anno, mese, 1) + relativedelta(months=+1)
+    offset = (0 - primo_lunedi_mese_successivo.weekday()) % 7 # RICORDA: con weekday(), 0=lunedì, 6=domenica
+    primo_lunedi_mese_successivo = str(primo_lunedi_mese_successivo + timedelta(days=offset))
+
     tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
     id_simulazione = request.GET['id_simulazione']
     get_modified_capacity = request.GET['get_modified_capacity']
     if request.accepts:
         if id_simulazione == '' or get_modified_capacity=='false':
             # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]).values())
+            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).values())
             nuova_simulazione = True
         else:
             # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input)
@@ -506,15 +333,16 @@ def ajax_get_capacita_from_mese_and_tipo(request):
         for item in lista_capacita_grezze:
             recapitista = item['UNIFIED_DELIVERY_DRIVER']
             regione = item['REGIONE']
-            provincia = item['PROVINCE']
+            cod_sigla_provincia = item['COD_SIGLA_PROVINCIA']
+            provincia = item['PROVINCIA']
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
             if nuova_simulazione:
-                if tipo_capacita_selezionata=='Solo BAU':
+                if tipo_capacita_selezionata=='BAU':
                     capacity = item['CAPACITY']
-                elif tipo_capacita_selezionata=='Solo picco':
+                elif tipo_capacita_selezionata=='Picco':
                     capacity = item['PEAK_CAPACITY']
-                elif tipo_capacita_selezionata == 'BAU e picco combinate':
+                elif tipo_capacita_selezionata == 'Combinata':
                     # REGOLA: quando i volumi sono inferiori alla BAU setta BAU mentre se i volumi sono superiori alla BAU o al picco setta picco.
                     if post_weekly_estimate < item['CAPACITY']:
                         capacity = item['CAPACITY']
@@ -537,19 +365,25 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                 product = product[:-1]
             
             if recapitista not in lista_capacita_finali:
-                lista_capacita_finali[recapitista] = []
+                lista_capacita_finali[recapitista] = {}
+            if regione+provincia+product not in lista_capacita_finali[recapitista]:
+                lista_capacita_finali[recapitista][regione+provincia+product] = []
             
-            lista_capacita_finali[recapitista].append({
-                'regione': regione,
-                'provincia': provincia,
-                'post_weekly_estimate': post_weekly_estimate,
-                'post_monthly_estimate': post_monthly_estimate,
-                'product': product,
-                'activation_date_from': activation_date_from,
-                'activation_date_to': activation_date_to,
-                'capacity': capacity,
-                'original_capacity': original_capacity
-            })    
+            lista_capacita_finali[recapitista][regione+provincia+product].append(
+                {
+                    'regione': regione,
+                    'provincia': provincia,
+                    'cod_sigla_provincia': cod_sigla_provincia,
+                    'post_weekly_estimate': post_weekly_estimate,
+                    'post_monthly_estimate': post_monthly_estimate,
+                    'product': product,
+                    'activation_date_from': activation_date_from,
+                    'activation_date_to': activation_date_to,
+                    'capacity': capacity,
+                    'original_capacity': original_capacity
+                }
+            )
+
     '''
     STRUTTURA lista_capacita_finali:
     
@@ -557,48 +391,19 @@ def ajax_get_capacita_from_mese_and_tipo(request):
     return JsonResponse({'context': lista_capacita_finali})
 
 
+def get_province(request):
+    regione = request.GET.get('regione')
+    if regione:
+        lista_province = list(table_cap_prov_reg.objects.filter(REGIONE=regione).values_list('PROVINCIA', flat=True).distinct().order_by('PROVINCIA'))
+        return JsonResponse(lista_province, safe=False)
+    return JsonResponse([], safe=False)
 
-
-def debug_paths(request):
-    """Pagina temporanea per debug dei path"""
-    debug_info = []
-    
-    # Path importanti da verificare
-    paths_to_check = [
-       ('.', Path('.').resolve()),
-        ('__file__', Path(__file__).resolve()),
-        ('BASE_DIR', Path(__file__).resolve().parent.parent),
-        ('STATIC_DIR', Path(__file__).resolve().parent.parent / 'static'),
-        ('cwd', Path.cwd()),
-        ('./static/data/', Path('./static/data/').resolve()),
-        ('../static/data/', Path('../static/data/').resolve()),
-    ]
-    
-    for name, path in paths_to_check:
-        exists = path.exists()
-        debug_info.append(f"{name}: {path} → Esiste: {exists}")
-        if exists and path.is_dir():
-            try:
-                files = list(path.glob('*'))
-                debug_info.append(f"  Contenuti: {[f.name for f in files[:5]]}")
-            except:
-                debug_info.append(f"  [Errore nel leggere contenuti]")
-    
-    # Verifica specifica del file CSV
-    csv_paths = [
-        './static/data/db_declared_capacity.csv',
-        '../static/data/db_declared_capacity.csv', 
-        'static/data/db_declared_capacity.csv',
-        '/app/static/data/db_declared_capacity.csv',
-        '/WebApp/static/data/db_declared_capacity.csv',
-    ]
-    
-    debug_info.append("\n--- RICERCA FILE CSV ---")
-    for csv_path in csv_paths:
-        path_obj = Path(csv_path)
-        exists = path_obj.exists()
-        debug_info.append(f"CSV Path: {csv_path} → Esiste: {exists}")
-        if exists:
-            debug_info.append(f"  Path assoluto: {path_obj.resolve()}")
-    
-    return HttpResponse('<pre>' + '\n'.join(debug_info) + '</pre>')
+# ERROR PAGES
+def handle_error_400(request, exception):
+    return render(request, 'error_pages/error_400.html')
+def handle_error_403(request, exception):
+    return render(request, 'error_pages/error_403.html')
+def handle_error_404(request, exception):
+    return render(request, 'error_pages/error_404.html')
+def handle_error_500(request, *args, **argv):
+    return render(request, "error_pages/error_500.html", status=500)

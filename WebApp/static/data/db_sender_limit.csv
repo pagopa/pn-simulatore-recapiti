@@ -2,6 +2,7 @@ pk,deliveryDate,weeklyEstimate,monthlyEstimate,originalEstimate,paId,productType
 ente1~AR~RM,2026-01-05,60,257,244,ente1,AR,RM
 ente2~890~MI,2026-01-05,101,389,373,ente2,890,MI
 ente3~890~NA,2026-01-05,124,483,528,ente3,890,NA
+ente3~890~NA,2026-02-02,124,483,528,ente3,890,NA
 ente4~890~TO,2026-01-05,91,343,362,ente4,890,TO
 ente5~AR~FI,2026-01-05,106,460,427,ente5,AR,FI
 ente6~AR~BA,2026-01-05,76,288,297,ente6,AR,BA
