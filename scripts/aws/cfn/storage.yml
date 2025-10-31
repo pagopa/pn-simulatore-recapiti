@@ -125,6 +125,15 @@ Resources:
         DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
         DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
 
+  SimulatorDbIngressForGlueRole:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      SourceSecurityGroupId: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+
 Outputs:
   RdsSimulatorEndpointAddress:
     Description: RDS Cluster Writer Endpoint Address
