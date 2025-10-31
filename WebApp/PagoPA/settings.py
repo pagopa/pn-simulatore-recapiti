@@ -38,10 +38,11 @@ if env_hosts:
 else:
     ALLOWED_HOSTS = []
 
-CSRF_TRUSTED_ORIGINS = []
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8080','https://localhost:8080']
 for singolo_host in ALLOWED_HOSTS:
     CSRF_TRUSTED_ORIGINS.append('http://'+str(singolo_host))
     CSRF_TRUSTED_ORIGINS.append('https://'+str(singolo_host))
+
 
 CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SECURE = False
