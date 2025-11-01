@@ -118,7 +118,8 @@ with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding
 # layout
 app_risultati.layout = html.Div([
     dcc.Location(id="url", refresh=False), # serve a catturare l'url
-    html.H3(id="titolo-simulazione"),
+    html.H2(id="titolo-simulazione",
+            style={"text-align":"center"}),
     html.H3(
         "Simulazione Pianificazione Postalizzazioni per Ente",
         style={"text-align":"center"}),
@@ -258,8 +259,11 @@ app_risultati.layout = html.Div([
     Input("url", "pathname")
 )
 def aggiorna_da_url(pathname):
+    from .models import table_simulazione
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    titolo = "risultati simulazione: "+str(id_simulazione)
+    tab_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values()
+    df_tab_simulazione = pd.DataFrame(tab_simulazione)
+    titolo = "Risultati Simulazione: "+str(df_tab_simulazione['NOME'].values[0])
     return titolo
 
 
