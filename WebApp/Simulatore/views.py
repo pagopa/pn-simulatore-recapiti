@@ -271,6 +271,7 @@ def carica_dati_db(request):
     conn.close()
     return redirect("status")
 
+
 def svuota_tabelle_db(request):
     ####### PAGINA PROVVISORIA CHE SVUOTA TUTTE LE TABELLE DEL DB SENZA ELIMINARLE #######
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],

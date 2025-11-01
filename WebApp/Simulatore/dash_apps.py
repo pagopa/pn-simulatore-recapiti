@@ -160,8 +160,8 @@ app_risultati.layout = html.Div([
 
                 id="regione-filter",
 
-                options=[{"label": r, "value": r} for r in sorted(df_regioni_recap["Regione"].unique())],
-                value=list(sorted(df_regioni_recap["Regione"].unique())),
+                options=[],
+                value=[],
                 multi=True,
                 placeholder="Seleziona una o più regioni..."
             ),
@@ -175,8 +175,8 @@ app_risultati.layout = html.Div([
 
                 id="recap-filter",
 
-                options=[{"label": r, "value": r} for r in sorted(recapitisti)] + [{'label': 'Select all', 'value': 'all_values'}],
-                value=list(sorted(recapitisti)),
+                options=[],
+                value=[],
                 multi=True,
                 placeholder="Seleziona un recapitista..."
             )
@@ -261,10 +261,23 @@ app_risultati.layout = html.Div([
 def aggiorna_da_url(pathname):
     from .models import table_simulazione
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    tab_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values()
-    df_tab_simulazione = pd.DataFrame(tab_simulazione)
-    titolo = "Risultati Simulazione: "+str(df_tab_simulazione['NOME'].values[0])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
     return titolo
+
+
+@app_risultati.callback(
+    Output("ente-filter", "options"),
+    Output("ente-filter", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_ente(pathname):
+    from .models import view_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
+    value = list(sorted(list(set(lista_enti))))
+    return options, value
 
 
 @app_risultati.callback(
@@ -275,63 +288,120 @@ def aggiorna_da_url(pathname):
 def update_chart_ente(ente_sel, pathname):
     from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    filtered_enti_2 = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
-    df_filtered_enti_2 = pd.DataFrame(filtered_enti_2)
+    filtered_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
+    df_filtered_enti = pd.DataFrame(filtered_enti)
     
     # se non selezionato nulla → grafico vuoto
     if not ente_sel:
         return px.line(title="Nessuna selezione effettuata")
 
-    df_filtered_enti_2 = df_filtered_enti_2[df_filtered_enti_2["SENDER_PA_ID"].isin(ente_sel)]
+    df_filtered_enti = df_filtered_enti[df_filtered_enti["SENDER_PA_ID"].isin(ente_sel)]
 
     fig_ente = px.line(
-        df_filtered_enti_2,
+        df_filtered_enti,
         x="SETTIMANA_DELIVERY",
         y="COUNT_REQUEST",
         color='SENDER_PA_ID',
         markers=True
     )
-    fig_ente.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+
+    fig_ente.update_layout(
+        legend=dict(
+            title=dict(
+                text="ID Ente"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
 
     return fig_ente
 
-
 @app_risultati.callback(
-    Output("ente-filter", "options"),
-    Output("ente-filter", "value"),
+    Output("regione-filter", "options"),
+    Output("regione-filter", "value"),
     Input("url", "pathname")
 )
-def populate_dropdown(pathname):
-    from .models import view_output_grafico_ente
+def populate_dropdown_ente(pathname):
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    lista_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
-    options = [{"label": r, "value": r} for r in sorted(lista_enti)]
-    value = list(sorted(lista_enti))
+    lista_regioni = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
+    value = list(sorted(list(set(lista_regioni))))
     return options, value
 
+@app_risultati.callback(
+    Output("recap-filter", "options"),
+    Output("recap-filter", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_ente(pathname):
+    from .models import view_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
+    value = list(sorted(list(set(lista_recap))))
+    return options, value
 
 @app_risultati.callback(
     Output("area-plot", "figure"),
     Input("regione-filter", "value"),
-    Input("recap-filter", "value")
+    Input("recap-filter", "value"),
+    Input("url", "pathname")
 )
-def update_chart_regioni_recap(regioni_sel, recap_sel):
+def update_chart_regioni_recap(regioni_sel, recap_sel, pathname):
+    from .models import view_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    regioni_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
+    
     # se non selezionato nulla → grafico vuoto
     if not regioni_sel or not recap_sel:
         return px.area(title="Nessuna selezione effettuata")
-
-    filtered_regioni_recap = df_regioni_recap[df_regioni_recap["Regione"].isin(regioni_sel) & df_regioni_recap["Recapitista"].isin(recap_sel)]
-    filtered_regioni_recap["Provincia - Recapitista"] = filtered_regioni_recap["Provincia"] + " - " + filtered_regioni_recap["Recapitista"]
+    
+    df_regioni_recap = pd.DataFrame(regioni_recap)
+    
+    filtered_regioni_recap = df_regioni_recap[df_regioni_recap["REGIONE"].isin(regioni_sel) & df_regioni_recap["UNIFIED_DELIVERY_DRIVER"].isin(recap_sel)]
+    filtered_regioni_recap["Provincia_Recapitista"] = filtered_regioni_recap["PROVINCE"] + " - " + filtered_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
 
     fig_reg_recap = px.area(
         filtered_regioni_recap,
-        x="Settimana",
-        y="Postalizzazioni",
-        color="Provincia - Recapitista",
-        line_group="Provincia - Recapitista",
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color="Provincia_Recapitista",
+        line_group="Provincia_Recapitista",
         markers=True
     )
-    fig_reg_recap.update_layout(legend=dict(x=1.02, y=1, bgcolor="rgba(0,0,0,0)"))
+    fig_reg_recap.update_layout(
+        legend=dict(
+            title=dict(
+                text="Provincia - Recapitista"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
     return fig_reg_recap
  
 @app_risultati.callback(
