@@ -8,6 +8,7 @@ import pandas as pd
 import os
 from PagoPA.settings import *
 import json
+import datetime
 
 
 app_risultati = DjangoDash('dash_risultati')
@@ -215,41 +216,41 @@ app_risultati.layout = html.Div([
 
         dcc.Graph(id="map-plot")
 
-    ]),
+    ])#,
 
-    html.Div([
+    # html.Div([
 
-        dash_table.DataTable(
-            id='datatable-region',
-            data=[],
-            columns=[],
-            #style_as_list_view=True,
-            style_cell={
-                'padding': '5px',
-                'textAlign': 'center',
-            },
-            # style_header={
-            #     'backgroundColor': "#585858",
-            #     'color': 'white',
-            #     'fontWeight': 'bold',
+    #     dash_table.DataTable(
+    #         id='datatable-region',
+    #         data=[],
+    #         columns=[],
+    #         #style_as_list_view=True,
+    #         style_cell={
+    #             'padding': '5px',
+    #             'textAlign': 'center',
+    #         },
+    #         # style_header={
+    #         #     'backgroundColor': "#585858",
+    #         #     'color': 'white',
+    #         #     'fontWeight': 'bold',
 
-            # },
-            #sort_action="native",
-            style_data_conditional=[{
-            'if': {
-                'state': 'active'  # 'active' | 'selected'
-                },
-            'backgroundColor': 'rgba(0, 116, 217, 0.3)',
-            'border': '1px solid rgb(0, 116, 217)'
-            }],
-            #sort_mode='multi',
-            selected_rows=[],
-            page_action='native',
-            page_current= 0,
-            page_size= 20,
-        )
+    #         # },
+    #         #sort_action="native",
+    #         style_data_conditional=[{
+    #         'if': {
+    #             'state': 'active'  # 'active' | 'selected'
+    #             },
+    #         'backgroundColor': 'rgba(0, 116, 217, 0.3)',
+    #         'border': '1px solid rgb(0, 116, 217)'
+    #         }],
+    #         #sort_mode='multi',
+    #         selected_rows=[],
+    #         page_action='native',
+    #         page_current= 0,
+    #         page_size= 20,
+    #     )
 
-    ])
+    # ])
 ])
 
 @app_risultati.callback(
@@ -286,15 +287,13 @@ def populate_dropdown_ente(pathname):
 def update_chart_ente(ente_sel, pathname):
     from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    filtered_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
+    filtered_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
     df_filtered_enti = pd.DataFrame(filtered_enti)
     
     # se non selezionato nulla → grafico vuoto
     if not ente_sel:
         return px.line(title="Nessuna selezione effettuata")
-
-    df_filtered_enti = df_filtered_enti[df_filtered_enti["SENDER_PA_ID"].isin(ente_sel)]
-
+    
     fig_ente = px.line(
         df_filtered_enti,
         x="SETTIMANA_DELIVERY",
@@ -323,7 +322,6 @@ def update_chart_ente(ente_sel, pathname):
             )
         )
     )
-
     return fig_ente
 
 @app_risultati.callback(
@@ -336,7 +334,7 @@ def populate_dropdown_regione(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     lista_regioni = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
-    value = list(sorted(list(set(lista_regioni))))
+    value = sorted(list(set(lista_regioni)))[0]
     return options, value
 
 @app_risultati.callback(
@@ -347,9 +345,13 @@ def populate_dropdown_regione(pathname):
 def populate_dropdown_recap(pathname):
     from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
+    #df_lista_reg_recap = pd.DataFrame(list(view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
+    #first_region= sorted(df_lista_reg_recap["REGIONE"].unique())[0]
     lista_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    #options = [{"label": r, "value": r} for r in sorted(list(df_lista_reg_recap["UNIFIED_DELIVERY_DRIVER"].unique()))]
+    #value = sorted(list(df_lista_reg_recap.loc[df_lista_reg_recap["REGIONE"] == first_region, "UNIFIED_DELIVERY_DRIVER"].unique()))
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
-    value = list(sorted(list(set(lista_recap))))
+    value = sorted(list(set(lista_recap)))
     return options, value
 
 @app_risultati.callback(
@@ -361,23 +363,21 @@ def populate_dropdown_recap(pathname):
 def update_chart_regioni_recap(regioni_sel, recap_sel, pathname):
     from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    regioni_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
-    
+    if isinstance(regioni_sel, str):
+        regioni_sel = [regioni_sel]
+
+    regioni_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
     # se non selezionato nulla → grafico vuoto
     if not regioni_sel or not recap_sel:
         return px.area(title="Nessuna selezione effettuata")
-    
     df_regioni_recap = pd.DataFrame(regioni_recap)
-    
-    filtered_regioni_recap = df_regioni_recap[df_regioni_recap["REGIONE"].isin(regioni_sel) & df_regioni_recap["UNIFIED_DELIVERY_DRIVER"].isin(recap_sel)]
-    filtered_regioni_recap["Provincia_Recapitista"] = filtered_regioni_recap["PROVINCE"] + " - " + filtered_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
-
+    # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
     fig_reg_recap = px.area(
-        filtered_regioni_recap,
+        df_regioni_recap,
         x="SETTIMANA_DELIVERY",
         y="COUNT_REQUEST",
-        color="Provincia_Recapitista",
-        line_group="Provincia_Recapitista",
+        color="PROVINCIA_RECAPITISTA",
+        line_group="PROVINCIA_RECAPITISTA",
         markers=True
     )
     fig_reg_recap.update_layout(
@@ -424,40 +424,38 @@ def populate_dropdown_only_recap(pathname):
 def update_map_recap(recap_only_sel, pathname):
     from .models import view_output_grafico_mappa_picchi
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    mappa_picchi = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
-
+    mappa_picchi = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
     df_mappa_picchi = pd.DataFrame(mappa_picchi)
 
-    filtered_df_picchi = df_mappa_picchi[df_mappa_picchi["UNIFIED_DELIVERY_DRIVER"] == recap_only_sel]
-    #df_picchi = pd.DataFrame(dati_picchi, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
-    df_picchi_tot = filtered_df_picchi.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCE']).agg(
-        total_picco=('FLAG_PICCO', 'sum')
-    )
+    # #df_picchi = pd.DataFrame(dati_picchi, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
+    # df_picchi_tot = df_mappa_picchi.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCE']).agg(
+    #     total_picco=('FLAG_PICCO', 'sum')
+    # )
 
-    df_picchi_tot = df_picchi_tot.reset_index()
+    # df_picchi_tot = df_picchi_tot.reset_index()
 
-    df_picchi_tot.loc[df_picchi_tot['total_picco'] > 0, 'total_picco'] = 1
+    # df_picchi_tot.loc[df_picchi_tot['total_picco'] > 0, 'total_picco'] = 1
 
-    df_picchi = df_picchi_tot.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','total_picco']).agg(
-        prov_count=('PROVINCE', 'count')
-    )
-    df_picchi = df_picchi.reset_index()
-    df_picchi['prop']= df_picchi['total_picco']/df_picchi['prov_count']
+    # df_picchi = df_picchi_tot.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','total_picco']).agg(
+    #     prov_count=('PROVINCE', 'count')
+    # )
+    # df_picchi = df_picchi.reset_index()
+    # df_picchi['prop']= df_picchi['total_picco']/df_picchi['prov_count']
 
-    # Definisco due soglie (puoi cambiarle come preferisci)
-    soglia1 = 0.0001
-    soglia2 = 0.5
+    # # Definisco due soglie (puoi cambiarle come preferisci)
+    # soglia1 = 0.0001
+    # soglia2 = 0.5
 
-    # Creo una nuova colonna "fascia"
-    def classifica_prop(x):
-        if x < soglia1:
-            return "No picchi"
-        elif x < soglia2:
-            return "<50% picchi"
-        else:
-            return ">=50% picchi"
+    # # Creo una nuova colonna "fascia"
+    # def classifica_prop(x):
+    #     if x < soglia1:
+    #         return "No picchi"
+    #     elif x < soglia2:
+    #         return "<50% picchi"
+    #     else:
+    #         return ">=50% picchi"
 
-    df_picchi["fascia"] = df_picchi["prop"].apply(classifica_prop)
+    # df_picchi["fascia"] = df_picchi["prop"].apply(classifica_prop)
 
     # Assegno 3 colori fissi
     colori = {
@@ -466,7 +464,7 @@ def update_map_recap(recap_only_sel, pathname):
         ">=50% picchi": "red"
     }
 
-    df_picchi = df_picchi.reset_index()
+    # df_picchi = df_picchi.reset_index()
 
     ## mappa testo->numero per le fasce (adatta se hai altre categorie)
     fascia_to_num = {"No picchi": 0, "<50% picchi": 1, ">=50% picchi": 2}
@@ -478,15 +476,13 @@ def update_map_recap(recap_only_sel, pathname):
         [0.3334, colori["<50% picchi"]], [0.6666, colori["<50% picchi"]],
         [0.6667, colori[">=50% picchi"]], [1.0, colori[">=50% picchi"]],
     ]
-    
-    df_picchi["z"] = df_picchi["fascia"].map(fascia_to_num)
-
+    df_mappa_picchi["z"] = df_mappa_picchi["FASCIA_PICCO"].map(fascia_to_num)
     fig_picchi = go.Figure()
     fig_picchi = fig_picchi.add_trace(
         go.Choroplethmapbox(
             geojson=geojson,
-            locations=df_picchi["REGIONE"],
-            z=df_picchi["z"],
+            locations=df_mappa_picchi["REGIONE"],
+            z=df_mappa_picchi["z"],
             featureidkey="properties.reg_name",
             colorscale=colorscale,
             zmin=0, zmax=2,
@@ -495,7 +491,7 @@ def update_map_recap(recap_only_sel, pathname):
             name=recap_only_sel,
             #visible=recap_sel,   # mostra solo il primo inizialmente
             showscale=False,
-            customdata=df_picchi[["fascia"]].values,
+            customdata=df_mappa_picchi[["FASCIA_PICCO"]].values,
             hovertemplate="<b>%{location}</b><br>Recapitista: " + recap_only_sel + "<br>Fascia: %{customdata[0]}<extra></extra>"
         )
     )
@@ -508,6 +504,7 @@ def update_map_recap(recap_only_sel, pathname):
         margin={"r":100,"t":100,"l":100,"b":100},
         #title="Assegnazioni per Recapitista (fasce)"
     )
+
     return fig_picchi
 
 @app_risultati.callback(
@@ -518,27 +515,25 @@ def update_map_recap(recap_only_sel, pathname):
 )
 def update_table_recap(recap_only_sel,pathname):
 
-    from .models import view_output_grafico_mappa_picchi
+    from .models import view_output_tabella_picchi
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    mappa_picchi = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
+    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
+    df_tab_picchi = pd.DataFrame(tab_picchi)
 
-    df_mappa_picchi = pd.DataFrame(mappa_picchi)
-
-    filtered_df_picchi = df_mappa_picchi[df_mappa_picchi["UNIFIED_DELIVERY_DRIVER"] == recap_only_sel]
+    # filtered_df_picchi = df_mappa_picchi[df_mappa_picchi["UNIFIED_DELIVERY_DRIVER"] == recap_only_sel]
     #df_picchi = pd.DataFrame(dati_picchi, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
-    df_picchi_tot = filtered_df_picchi.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCE']).agg(
-        total_picco=('FLAG_PICCO', 'sum')
-    )
+    # df_picchi_tot = filtered_df_picchi.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCE']).agg(
+    #     total_picco=('FLAG_PICCO', 'sum')
+    # )
 
-    df_picchi_tot = df_picchi_tot.reset_index()
-
-    df_picchi_tot.loc[df_picchi_tot['total_picco'] > 0, 'total_picco'] = 1
-    df_picchi_tot['total_picco'] = df_picchi_tot['total_picco'].map({0: 'Assente', 1: 'Presente'})
-    df_picchi_tot = df_picchi_tot.rename(columns={"UNIFIED_DELIVERY_DRIVER": "Recapitista", "REGIONE": "Regione" , "PROVINCE": "Provincia", "total_picco": "Picco"})
-    data = df_picchi_tot.to_dict("records")
-    columns =  [{'name': i, 'id': i} for i in df_picchi_tot.columns]
+    # df_picchi_tot = df_picchi_tot.reset_index()
+    # df_picchi_tot.loc[df_picchi_tot['total_picco'] > 0, 'total_picco'] = 1
+    df_tab_picchi['TOT_PICCO'] = df_tab_picchi['TOT_PICCO'].map({0: 'Assente', 1: 'Presente'})
+    df_tab_picchi.drop(columns=["id","SIMULAZIONE_ID"], axis=1, inplace=True)
+    df_tab_picchi = df_tab_picchi.rename(columns={"UNIFIED_DELIVERY_DRIVER": "Recapitista", "REGIONE": "Regione" , "PROVINCE": "Provincia", "TOT_PICCO": "Picco"})
+    data = df_tab_picchi.to_dict("records")
+    columns =  [{'name': i, 'id': i} for i in df_tab_picchi.columns]
     return data, columns
-
 
 
 app_confronto = DjangoDash('dash_confronto_risultati')
