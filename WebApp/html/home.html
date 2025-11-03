@@ -78,14 +78,14 @@
 
                         <!-- Elimina scheduling --> 
                         <span>
-                            <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#" data-bs-toggle="modal" data-bs-target="#exampleModal{{ forloop.counter }}"><i class="fa-solid fa-trash"></i></a></td>
+                            <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#" data-bs-toggle="modal" data-bs-target="#modalRemove{{ forloop.counter }}"><i class="fa-solid fa-trash"></i></a></td>
                         </span>
                         <!--MODAL PER IL BOTTONE DI RIMOZIONE DELLA SIMULAZIONE SCHEDULATA-->
-                        <div class="modal fade" id="exampleModal{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                        <div class="modal fade" id="modalRemove{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="modalRemoveLabel" aria-hidden="true">
                             <div class="modal-dialog" role="document">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                    <h5 class="modal-title" id="exampleModalLabel"></h5>
+                                    <h5 class="modal-title" id="modalRemoveLabel"></h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
@@ -105,16 +105,37 @@
 
                     {% elif simulazione.STATO == 'Lavorata' %}
 
-                        {% if simulazione.NOME != 'Automatizzata' %}
+                        {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
                             <!-- Confronto con automatizzata --> 
                             <span>
-                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
                             </span>
 
                             <!-- Confronto con altra simulazione --> 
                             <span>
-                                <a type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" href="{% url 'confronto_risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></a>
+                                <button type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" onclick="simulazioni_da_confrontare_ajax('{{simulazione.ID}}','{{simulazione.MESE_SIMULAZIONE}}')" href="#" data-bs-toggle="modal" data-bs-target="#modalConfrontoRisultati{{ forloop.counter }}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></button>
                             </span>
+                            <!--MODAL PER IL BOTTONE DI CONFRONTO CON ALTRA SIMULAZIONE-->
+                            <div class="modal fade" id="modalConfrontoRisultati{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="modalConfrontoRisultatiLabel{{ forloop.counter }}" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                        <h5 class="modal-title" id="modalConfrontoRisultatiLabel{{ forloop.counter }}"></h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                        <p>Scegli la simulazione da confrontare:</p>
+                                        <span class="d-none" id="value_id1"></span>
+                                        <!-- Capacità recuperate da db -->
+                                        <div class="text-center" id="spinner"></div>
+                                        <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_get_simulazioni_da_confrontare' %}></span>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn btn-primary btn-confronto" href="#">Confronta</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         {% endif %}
 
                         <!-- Visualizza risultati --> 
@@ -296,4 +317,55 @@
 		},
 	});
 </script>
+
+<!-- jQuery/Ajax per accordion output_capacity_setting -->
+<script>
+    function simulazioni_da_confrontare_ajax(id_simulazione,mese_simulazione) {
+        var content = document.getElementById(`simulazioni_recuperate_da_db_${id_simulazione}`);
+        var content_id_simulazione = document.getElementById('value_id1');
+        // puliamo lo spazio dove andremo ad iniettare il codice html
+        content.innerHTML='';
+        var spinner = document.getElementById('spinner');
+        spinner.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+        var content_simulazioni = '';
+        $.ajax({
+            url: $(`.simulazioni_recuperate_da_db_${id_simulazione}`).data('url'),
+            type: 'GET',
+            data: {'id_simulazione':id_simulazione, 'mese_simulazione':mese_simulazione},
+            success: function(resp){
+                content_simulazioni += `
+                        <select class="form-select" id="simulazione_selezionata_per_confronto_${id_simulazione}">
+                            <option selected disabled class="text-center" value="">--- Seleziona una simulazione ---</option>
+                `;
+                resp.context.forEach(function(simulazione) {
+                    content_simulazioni += `
+                        <option value="${simulazione.ID}">${simulazione.NOME}</option>
+                    `;
+                });
+                content_simulazioni += `</select>`;
+                content.innerHTML = content_simulazioni;
+                content_id_simulazione.innerHTML=id_simulazione;
+            },
+            error: function(resp){
+                spinner.innerHTML='';
+            },
+            complete: function(resp){
+                spinner.innerHTML='';
+            }
+        });
+    }
+</script>
+
+<!-- funzione per ricondurre alla pagina confronto_risultati cliccando su "Confronta" nella modale -->
+<script>
+    $(document).on('click', '.btn-confronto', function() {
+        const id1 = document.getElementById('value_id1').textContent;
+        const id2 = $(`#simulazione_selezionata_per_confronto_${id1}`).val();
+        const url = `/confronto_risultati/${id1}/${id2}/`;
+        if (id1!=null && id2!=null){
+            window.location.href = url;
+        }
+    });
+</script>
+
 {% endblock %}

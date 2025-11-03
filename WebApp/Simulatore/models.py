@@ -191,25 +191,37 @@ class view_output_modified_capacity_setting(pg.View):
     sql = """
         SELECT
             ROW_NUMBER() OVER () AS id,
-            public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER", 
-            public."output_capacity_setting"."ACTIVATION_DATE_FROM", 
-            public."output_capacity_setting"."ACTIVATION_DATE_TO", 
-            public."output_capacity_setting"."CAPACITY" AS "ORIGINAL_CAPACITY", 
+            public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER",         
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_FROM"
+                ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+            END AS "ACTIVATION_DATE_FROM",
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"::date = public."output_capacity_setting"."ACTIVATION_DATE_TO"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_TO"
+                ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"
+            END AS "ACTIVATION_DATE_TO",
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."CAPACITY"
+                ELSE 0
+            END AS "ORIGINAL_CAPACITY",
             public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
-            public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE", 
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE"
+                ELSE 0
+            END AS "SUM_WEEKLY_ESTIMATE",
             public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
-            public."output_capacity_setting"."REGIONE", 
-            public."output_capacity_setting"."COD_SIGLA_PROVINCIA",
+            public."CAPACITA_SIMULATE"."REGIONE", 
+            public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
             public."output_capacity_setting"."PROVINCIA",
-            public."output_capacity_setting"."PRODUCT_890",
-            public."output_capacity_setting"."PRODUCT_AR",
+            public."CAPACITA_SIMULATE"."PRODUCT_890",
+            public."CAPACITA_SIMULATE"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",
             public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
         FROM public."CAPACITA_SIMULATE" 
         LEFT JOIN public."output_capacity_setting"
             ON public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
-                AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
                 AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
+                AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
                 AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
                 AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
     """

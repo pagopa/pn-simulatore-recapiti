@@ -41,7 +41,7 @@ def homepage(request):
 def risultati(request, id_simulazione):
     return render(request, "Simulatore/dashboard_risultati.html")
 
-def confronto_risultati(request, id_simulazione):
+def confronto_risultati(request, id1, id2):
     return render(request, "Simulatore/dashboard_confronto_risultati.html")
 
 
@@ -97,6 +97,7 @@ def nuova_simulazione(request, id_simulazione):
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
+    tipo_simulazione = 'Manuale'
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
@@ -142,7 +143,8 @@ def salva_simulazione(request):
             TRIGGER = tipo_trigger,
             TIMESTAMP_ESECUZIONE = timestamp_esecuzione,
             MESE_SIMULAZIONE = mese_da_simulare,
-            TIPO_CAPACITA = tipo_capacita_da_modificare
+            TIPO_CAPACITA = tipo_capacita_da_modificare,
+            TIPO_SIMULAZIONE = tipo_simulazione
         )
 
     # MODIFICA SIMULAZIONE
@@ -155,6 +157,7 @@ def salva_simulazione(request):
         simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
         simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
         simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
+        simulazione_da_modificare.TIPO_SIMULAZIONE = tipo_simulazione
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
         
@@ -176,7 +179,6 @@ def salva_simulazione(request):
             
             table_capacita_simulate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
         else:
-            print(capacita_json)
             # scrittura sul db nella tabella CAPACITA_SIMULATE
             for recapitista, righe_tabella in capacita_json.items():
                 for singola_riga in righe_tabella:
@@ -366,10 +368,10 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             
             if recapitista not in lista_capacita_finali:
                 lista_capacita_finali[recapitista] = {}
-            if regione+provincia+product not in lista_capacita_finali[recapitista]:
-                lista_capacita_finali[recapitista][regione+provincia+product] = []
+            if regione+'_'+cod_sigla_provincia+'_'+product not in lista_capacita_finali[recapitista]:
+                lista_capacita_finali[recapitista][regione+'_'+cod_sigla_provincia+'_'+product] = []
             
-            lista_capacita_finali[recapitista][regione+provincia+product].append(
+            lista_capacita_finali[recapitista][regione+'_'+cod_sigla_provincia+'_'+product].append(
                 {
                     'regione': regione,
                     'provincia': provincia,
@@ -389,6 +391,16 @@ def ajax_get_capacita_from_mese_and_tipo(request):
     
     '''
     return JsonResponse({'context': lista_capacita_finali})
+
+
+
+def ajax_get_simulazioni_da_confrontare(request):
+    id_simulazione = request.GET['id_simulazione']
+    mese_simulazione = request.GET['mese_simulazione']
+    # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
+    lista_simulazioni_da_confrontare = list(table_simulazione.objects.filter(STATO='Lavorata',MESE_SIMULAZIONE=mese_simulazione,TIPO_SIMULAZIONE='Manuale').exclude(ID=id_simulazione).values())
+    return JsonResponse({'context': lista_simulazioni_da_confrontare})  
+
 
 
 def get_province(request):

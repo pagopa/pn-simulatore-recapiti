@@ -497,14 +497,14 @@
                                     <div class="accordion-body table-responsive">
                     `;
                     var counter_livello_2 = 0;
-                    // scorriamo regione+provincia+product per ogni recapitista
-                    for (var singola_regione_provincia_product in resp.context[recapitista]){
+                    // scorriamo regione+'_'+cod_sigla_provincia+'_'+product per ogni recapitista
+                    for (var singola_regione_codsiglaprovincia_product in resp.context[recapitista]){
                         content_capacita += `
-                            <div class="accordion" data-group="${singola_regione_provincia_product}">
+                            <div class="accordion" data-group="${singola_regione_codsiglaprovincia_product}">
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
                                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
-                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_provincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_provincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_provincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.context[recapitista][singola_regione_provincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
+                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
                                         </button>
                                     </h2>
                                     <div id="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" class="accordion-collapse collapse">
@@ -529,7 +529,7 @@
                                                 <tbody class="table-group-divider text-center">
                                     `;
                         // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
-                        resp.context[recapitista][singola_regione_provincia_product].forEach(function(singola_capacity) {
+                        resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
                             content_capacita += `
                                                     <tr>
                                                         <td>${singola_capacity.regione}</td>
