@@ -55,6 +55,7 @@ class table_declared_capacity(models.Model):
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     PK = models.CharField(max_length=100, null=True)
+    PRODUCTION_CAPACITY = models.IntegerField(null=True)
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'DECLARED_CAPACITY'
@@ -95,6 +96,7 @@ class view_output_capacity_setting(pg.View):
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     CAPACITY = models.IntegerField(null=True)
     PEAK_CAPACITY = models.IntegerField(null=True)
+    PRODUCTION_CAPACITY = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
@@ -128,6 +130,7 @@ class view_output_capacity_setting(pg.View):
 			public."DECLARED_CAPACITY"."ACTIVATION_DATE_TO", 
 	        public."DECLARED_CAPACITY"."CAPACITY", 
             public."DECLARED_CAPACITY"."PEAK_CAPACITY",
+            public."DECLARED_CAPACITY"."PRODUCTION_CAPACITY",
 	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_WEEKLY_ESTIMATE", 
 	        "SUM_SENDERLIMIT_BY_MONTH"."SUM_MONTHLY_ESTIMATE", 
 	        "PROV_REG"."REGIONE", 
@@ -153,6 +156,7 @@ class view_output_capacity_setting(pg.View):
 		"ACTIVATION_DATE_TO",
 		"CAPACITY",
         "PEAK_CAPACITY",
+        "PRODUCTION_CAPACITY",
 		SUM("SUM_WEEKLY_ESTIMATE") AS "SUM_WEEKLY_ESTIMATE",
 		SUM("SUM_MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE",
 		"REGIONE",
@@ -162,7 +166,7 @@ class view_output_capacity_setting(pg.View):
 		"PRODUCT_AR",
 		"MONTH_DELIVERY"
 	FROM "FILTERED_CAPACITY_BY_PRODUCT"
-	GROUP BY "UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","MONTH_DELIVERY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","PEAK_CAPACITY","REGIONE","PROVINCIA","PRODUCT_890","PRODUCT_AR"
+	GROUP BY "UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","MONTH_DELIVERY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","PEAK_CAPACITY","PRODUCTION_CAPACITY","REGIONE","PROVINCIA","PRODUCT_890","PRODUCT_AR"
     ORDER BY "REGIONE" ASC,"PROVINCIA" ASC
     """
 
