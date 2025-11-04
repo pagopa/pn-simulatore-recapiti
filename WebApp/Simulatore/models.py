@@ -29,6 +29,7 @@ class table_capacita_simulate(models.Model):
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     CAPACITY = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
