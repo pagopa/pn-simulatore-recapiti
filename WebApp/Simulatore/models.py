@@ -55,6 +55,7 @@ class table_declared_capacity(models.Model):
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     PK = models.CharField(max_length=100, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'DECLARED_CAPACITY'
 
@@ -69,6 +70,7 @@ class table_sender_limit(models.Model):
     PA_ID = models.CharField(max_length=80, null=True)
     PRODUCT_TYPE = models.CharField(max_length=3, null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'SENDER_LIMIT'
 

@@ -365,7 +365,6 @@ def update_chart_regioni_recap(regioni_sel, recap_sel, pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     if isinstance(regioni_sel, str):
         regioni_sel = [regioni_sel]
-
     regioni_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
     # se non selezionato nulla → grafico vuoto
     if not regioni_sel or not recap_sel:
@@ -619,10 +618,10 @@ app_confronto.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.H4(id="titolo-simulazione-1",style={"text-align":"center"})
+            html.H4(id="secondo-titolo-simulazione-1",style={"text-align":"center"})
         ], className="col-sm"),
         html.Div([
-            html.H4(id="titolo-simulazione-2",style={"text-align":"center"})
+            html.H4(id="secondo-titolo-simulazione-2",style={"text-align":"center"})
         ], className="col-sm")
     ], className='row text-center'),
 
@@ -717,10 +716,10 @@ app_confronto.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.H4(id="titolo-simulazione-1",style={"text-align":"center"})
+            html.H4(id="terzo-titolo-simulazione-1",style={"text-align":"center"})
         ], className="col-sm"),
         html.Div([
-            html.H4(id="titolo-simulazione-2",style={"text-align":"center"})
+            html.H4(id="terzo-titolo-simulazione-2",style={"text-align":"center"})
         ], className="col-sm")
     ], className='row text-center'),
 
@@ -987,6 +986,29 @@ def update_chart_ente_2(ente_sel, pathname):
 
 
 @app_confronto.callback(
+    Output("secondo-titolo-simulazione-1", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+@app_confronto.callback(
+    Output("secondo-titolo-simulazione-2", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+
+@app_confronto.callback(
     Output("regione-filter-1", "options"),
     Output("regione-filter-1", "value"),
     Input("url", "pathname")
@@ -1145,6 +1167,29 @@ def update_chart_regioni_recap_2(regioni_sel, recap_sel, pathname):
  
 
 @app_confronto.callback(
+    Output("terzo-titolo-simulazione-1", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+@app_confronto.callback(
+    Output("terzo-titolo-simulazione-2", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+
+@app_confronto.callback(
     Output("recap-only-filter-1", "options"),
     Output("recap-only-filter-1", "value"),
     Input("url", "pathname")
@@ -1239,7 +1284,6 @@ def update_table_recap_1(recap_only_sel, pathname):
     from .models import view_output_tabella_picchi
     id_simulazione = int(pathname.strip("/").split("/")[-2])
     tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
-    print("tab sim 1: ",tab_picchi)
     df_tab_picchi = pd.DataFrame(tab_picchi)
 
     df_tab_picchi["TOT_PICCO"] = df_tab_picchi["TOT_PICCO"].map({0: 'Assente', 1: 'Presente'})
@@ -1318,7 +1362,6 @@ def update_table_recap_2(recap_only_sel, pathname):
     from .models import view_output_tabella_picchi
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
-    print("tab sim 2: ",tab_picchi)
     df_tab_picchi = pd.DataFrame(tab_picchi)
 
     df_tab_picchi["TOT_PICCO"] = df_tab_picchi["TOT_PICCO"].map({0: 'Assente', 1: 'Presente'})
