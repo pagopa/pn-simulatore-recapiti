@@ -6,7 +6,6 @@ class NaiveDateTimeField(models.DateTimeField):
     def db_type(self, connection):
         return 'timestamp without time zone'
 
-# necessario per impostare sul db il tipo float e non double per FloatField
 
 class table_simulazione(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -30,6 +29,7 @@ class table_capacita_simulate(models.Model):
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     CAPACITY = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
@@ -55,6 +55,7 @@ class table_declared_capacity(models.Model):
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     PK = models.CharField(max_length=100, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'DECLARED_CAPACITY'
 
@@ -69,6 +70,7 @@ class table_sender_limit(models.Model):
     PA_ID = models.CharField(max_length=80, null=True)
     PRODUCT_TYPE = models.CharField(max_length=3, null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'SENDER_LIMIT'
 
@@ -191,25 +193,37 @@ class view_output_modified_capacity_setting(pg.View):
     sql = """
         SELECT
             ROW_NUMBER() OVER () AS id,
-            public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER", 
-            public."output_capacity_setting"."ACTIVATION_DATE_FROM", 
-            public."output_capacity_setting"."ACTIVATION_DATE_TO", 
-            public."output_capacity_setting"."CAPACITY" AS "ORIGINAL_CAPACITY", 
+            public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER",         
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_FROM"
+                ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+            END AS "ACTIVATION_DATE_FROM",
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"::date = public."output_capacity_setting"."ACTIVATION_DATE_TO"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_TO"
+                ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"
+            END AS "ACTIVATION_DATE_TO",
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."CAPACITY"
+                ELSE 0
+            END AS "ORIGINAL_CAPACITY",
             public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
-            public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE", 
+            CASE 
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE"
+                ELSE 0
+            END AS "SUM_WEEKLY_ESTIMATE",
             public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
-            public."output_capacity_setting"."REGIONE", 
-            public."output_capacity_setting"."COD_SIGLA_PROVINCIA",
+            public."CAPACITA_SIMULATE"."REGIONE", 
+            public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
             public."output_capacity_setting"."PROVINCIA",
-            public."output_capacity_setting"."PRODUCT_890",
-            public."output_capacity_setting"."PRODUCT_AR",
+            public."CAPACITA_SIMULATE"."PRODUCT_890",
+            public."CAPACITA_SIMULATE"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",
             public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
         FROM public."CAPACITA_SIMULATE" 
         LEFT JOIN public."output_capacity_setting"
             ON public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
-                AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
                 AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
+                AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
                 AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
                 AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
     """
@@ -275,6 +289,7 @@ class view_output_grafico_reg_recap(pg.View):
     REGIONE = models.CharField(max_length=50, null=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
     SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
     COUNT_REQUEST = models.IntegerField(null=True)
 
     sql = """
@@ -285,6 +300,7 @@ class view_output_grafico_reg_recap(pg.View):
             public."CAP_PROV_REG"."REGIONE",
             public."RESULTS"."UNIFIED_DELIVERY_DRIVER",
             public."RESULTS"."SETTIMANA_DELIVERY",
+            CONCAT("RESULTS"."PROVINCE", ' - ', public."RESULTS"."UNIFIED_DELIVERY_DRIVER") AS "PROVINCIA_RECAPITISTA",
             COUNT(DISTINCT public."RESULTS"."REQUEST_ID") AS "COUNT_REQUEST"
         FROM public."RESULTS"
         LEFT JOIN public."CAP_PROV_REG"
@@ -297,35 +313,82 @@ class view_output_grafico_reg_recap(pg.View):
         managed = False
 
 
-# VISTA output_grafico_mappa_picchi
-class view_output_grafico_mappa_picchi(pg.View):
+# VISTA output_tabella_picchi
+class view_output_tabella_picchi(pg.View):
     id = models.AutoField(primary_key=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
-    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
-    FLAG_PICCO = models.IntegerField(null=True)
+    TOT_PICCO = models.IntegerField(null=True)
 
     sql = """
-        SELECT
+        WITH "flag_picco_prov_recap" AS(
+            SELECT
+                public."output_grafico_reg_recap"."SIMULAZIONE_ID", 
+                public."output_grafico_reg_recap"."PROVINCE",
+                public."output_grafico_reg_recap"."REGIONE",
+                public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER",
+                public."output_grafico_reg_recap"."SETTIMANA_DELIVERY",
+                CASE 
+                    WHEN public."output_grafico_reg_recap"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
+                        THEN 1
+                        ELSE 0
+                END AS "FLAG_PICCO"
+            FROM public."output_grafico_reg_recap"
+            LEFT JOIN public."CAPACITA_SIMULATE"
+                ON public."output_grafico_reg_recap"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+                AND public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
+                AND public."output_grafico_reg_recap"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
+                AND public."output_grafico_reg_recap"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+        )
+        SELECT 
             ROW_NUMBER() OVER () AS id,
-            public."output_grafico_reg_recap"."SIMULAZIONE_ID", 
-            public."output_grafico_reg_recap"."PROVINCE",
-            public."output_grafico_reg_recap"."REGIONE",
-            public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER",
-            public."output_grafico_reg_recap"."SETTIMANA_DELIVERY",
+            "SIMULAZIONE_ID","PROVINCE","REGIONE", "UNIFIED_DELIVERY_DRIVER", 
             CASE 
-                WHEN public."output_grafico_reg_recap"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
+                WHEN SUM("FLAG_PICCO") > 0 
                     THEN 1
-                    ELSE 0
-            END AS "FLAG_PICCO"
-        FROM public."output_grafico_reg_recap"
-        LEFT JOIN public."CAPACITA_SIMULATE"
-            ON public."output_grafico_reg_recap"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
-            AND public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
-            AND public."output_grafico_reg_recap"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
-            AND public."output_grafico_reg_recap"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+                ELSE 0 
+            END AS "TOT_PICCO"
+        FROM "flag_picco_prov_recap"
+        GROUP BY ("SIMULAZIONE_ID","PROVINCE","REGIONE", "UNIFIED_DELIVERY_DRIVER")
+    """
+
+    class Meta:
+        db_table = 'output_tabella_picchi'
+        managed = False
+
+
+# VISTA output_grafico_mappa_picchi
+class view_output_grafico_mappa_picchi(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    PROP_PICCO = models.DecimalField(max_digits=6, decimal_places=4, null=True)
+    FASCIA_PICCO = models.CharField(max_length=50, null=True)
+
+    sql = """
+        WITH "count_prov_recap" AS (
+            SELECT 
+                "SIMULAZIONE_ID","REGIONE", "UNIFIED_DELIVERY_DRIVER",
+                SUM("TOT_PICCO") AS "TOT_PICCO_REG",
+                COUNT(DISTINCT "PROVINCE") AS "COUNT_PROV"
+            FROM public."output_tabella_picchi"
+            GROUP BY ("SIMULAZIONE_ID","REGIONE", "UNIFIED_DELIVERY_DRIVER")
+        )
+        SELECT 
+            ROW_NUMBER() OVER () AS id,
+            *,
+            DIV("TOT_PICCO_REG", "COUNT_PROV") AS "PROP_PICCO",
+            CASE 
+                WHEN DIV("TOT_PICCO_REG", "COUNT_PROV") < 0.0001
+                    THEN 'No picchi'
+                WHEN DIV("TOT_PICCO_REG", "COUNT_PROV") < 0.5
+                    THEN '<50% picchi'
+                ELSE '>=50% picchi'
+            END AS "FASCIA_PICCO"
+        FROM "count_prov_recap"
     """
 
     class Meta:
