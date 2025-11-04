@@ -65,6 +65,10 @@ Parameters:
     Type: String
     Description: 'Security group ID for the web application'
 
+  EcsDefaultSecurityGroup:
+    Type: String
+    Description: 'Default security group required by infrastructure'
+
   Version:
     Type: String
     Description: 'keep track of used projects commitIds'
@@ -226,9 +230,9 @@ Resources:
         Subnets: !Ref VPNServicesSubnetsIds
         VpcId: !Ref VPNVpcId
         AlbSecurityGroup: !Ref VPNWebappSecurityGroupId
-        EcsDefaultSecurityGroup: !Ref EcsSimulatorDefaultSecurityGroup
         LoadBalancerListenerArn: !Ref VPNApplicationLoadBalancerListenerArn
         LoadbalancerRulePriority: !Ref MicroserviceNumber
+        EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
         EcsLogGroup: !Ref EcsLogGroup
         LogAlarmStrategyV1: !Ref LogAlarmStrategy
         TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
@@ -253,13 +257,6 @@ Resources:
           Value: pn-simulatore-recapiti-EcsSimulatorDefault-sg
         - Key: Environment
           Value: !Ref EnvironmentType
-
-  EcsSimulatorIngressRule:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref EcsSimulatorDefaultSecurityGroup
-      IpProtocol: '-1'
-      SourceSecurityGroupId: !Ref EcsSimulatorDefaultSecurityGroup
 
   SimulatorMicroserviceTaskManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
