@@ -1,5 +1,4 @@
 from django.shortcuts import render, redirect
-
 import plotly.graph_objects as go
 import json
 import plotly.utils as putils
@@ -8,23 +7,17 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-
 from datetime import datetime, timedelta
-
 from datetime import date
 from dateutil.relativedelta import relativedelta
-
 from .models import *
 from django.db.models import Q
-
 from django.db.models.functions import TruncMonth
+from django.http import JsonResponse
+import psycopg2
+import boto3
 
 import locale
-
-from django.http import JsonResponse
-
-import psycopg2
-
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
@@ -309,6 +302,44 @@ def svuota_db(request):
     conn.commit()
     conn.close()
     return redirect("status")
+
+
+def crea_istanza_eventbridge_scheduler():
+    ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
+    region = "eu-south-1"
+    role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
+    step_function_arn = "arn:aws:states:eu-south-1:830192246553:stateMachine:pn-simulatore-recapiti-StateMachine01"
+
+    # parametri da passare
+    payload = {
+        "parametro1": 'valore1',
+        "parametro2": 'valore2'
+    }
+
+    schedule_time = (datetime.now() + timedelta(minutes=70)).replace(microsecond=0).isoformat() + "Z"
+
+    schedule_name = f"pn-simulatore-recapiti-TestStartStepFunction-20251104"
+
+    client = boto3.client("scheduler", region_name=region)
+
+    # creazione scheduler one-shot che avvia la Step Function
+    response = client.create_schedule(
+        Name=schedule_name,
+        ScheduleExpression=f"at({schedule_time})",
+        FlexibleTimeWindow={"Mode": "OFF"},
+        Target={
+            "Arn": step_function_arn,
+            "RoleArn": role_arn,
+            "Input": json.dumps(payload),
+        },
+        ActionAfterCompletion="DELETE"
+    )
+
+
+    return redirect("status")
+
+
+
 
 # AJAX
 def ajax_get_capacita_from_mese_and_tipo(request):
