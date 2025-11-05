@@ -305,6 +305,8 @@ def svuota_db(request):
 
 
 def crea_istanza_eventbridge_scheduler(request):
+    import logging
+    logger = logging.getLogger(__name__)
     ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
     region = "eu-south-1"
     role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
@@ -322,18 +324,25 @@ def crea_istanza_eventbridge_scheduler(request):
 
     client = boto3.client("scheduler", region_name=region)
 
-    # creazione scheduler one-shot che avvia la Step Function
-    response = client.create_schedule(
-        Name=schedule_name,
-        ScheduleExpression=f"at({schedule_time})",
-        FlexibleTimeWindow={"Mode": "OFF"},
-        Target={
-            "Arn": step_function_arn,
-            "RoleArn": role_arn,
-            "Input": json.dumps(payload),
-        },
-        ActionAfterCompletion="DELETE"
-    )
+    try:
+        logger.info("Creazione schedule con payload=%s e timestamp=%s", payload, schedule_time)
+        # creazione scheduler one-shot che avvia la Step Function
+        response = client.create_schedule(
+            Name=schedule_name,
+            ScheduleExpression=f"at({schedule_time})",
+            FlexibleTimeWindow={"Mode": "OFF"},
+            Target={
+                "Arn": step_function_arn,
+                "RoleArn": role_arn,
+                "Input": json.dumps(payload),
+            },
+            ActionAfterCompletion="DELETE"
+        )
+        logger.info("Schedule creata con successo: %s", response)
+    except Exception:
+        logger.exception("Errore nella creazione dello schedule")
+        raise
+
 
 
     return redirect("status")
