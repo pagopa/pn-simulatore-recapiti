@@ -304,7 +304,7 @@ def svuota_db(request):
     return redirect("status")
 
 
-def crea_istanza_eventbridge_scheduler():
+def crea_istanza_eventbridge_scheduler(request):
     ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
     region = "eu-south-1"
     role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
