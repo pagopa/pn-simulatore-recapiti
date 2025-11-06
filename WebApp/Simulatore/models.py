@@ -119,6 +119,27 @@ class table_cap_prov_reg(models.Model):
     class Meta:
         db_table = 'CAP_PROV_REG'
 
+class table_output_grafico_ente(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    COUNT_REQUEST = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_GRAFICO_ENTE'
+
+
+class table_output_grafico_reg_recap(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
+    COUNT_REQUEST = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_GRAFICO_REG_RECAP'
 
 # VISTA output_capacity_setting
 class view_output_capacity_setting(pg.View):
@@ -267,30 +288,6 @@ class view_output_modified_capacity_setting(pg.View):
     class Meta:
         db_table = 'output_modified_capacity_setting'
         managed = False
-
-
-
-class table_output_grafico_ente(models.Model):
-    id = models.AutoField(primary_key=True)
-    SIMULAZIONE_ID = models.IntegerField(null=True)
-    SENDER_PA_ID = models.CharField(max_length=80, null=True)
-    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
-    COUNT_REQUEST = models.IntegerField(null=True)
-    class Meta:
-        db_table = 'OUTPUT_GRAFICO_ENTE'
-
-
-class table_output_grafico_reg_recap(models.Model):
-    id = models.AutoField(primary_key=True)
-    SIMULAZIONE_ID = models.IntegerField(null=True)
-    PROVINCE = models.CharField(max_length=5, null=True)
-    REGIONE = models.CharField(max_length=50, null=True)
-    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
-    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
-    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
-    COUNT_REQUEST = models.IntegerField(null=True)
-    class Meta:
-        db_table = 'OUTPUT_GRAFICO_REG_RECAP'
 
 
 # VISTA output_tabella_picchi
