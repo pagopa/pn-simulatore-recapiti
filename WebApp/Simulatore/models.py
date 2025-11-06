@@ -307,22 +307,22 @@ class view_output_tabella_picchi(pg.View):
     sql = """
         WITH "flag_picco_prov_recap" AS(
             SELECT
-                public."output_grafico_reg_recap"."SIMULAZIONE_ID", 
-                public."output_grafico_reg_recap"."PROVINCE",
-                public."output_grafico_reg_recap"."REGIONE",
-                public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER",
-                public."output_grafico_reg_recap"."SETTIMANA_DELIVERY",
+                public."OUTPUT_GRAFICO_REG_RECAP"."SIMULAZIONE_ID", 
+                public."OUTPUT_GRAFICO_REG_RECAP"."PROVINCE",
+                public."OUTPUT_GRAFICO_REG_RECAP"."REGIONE",
+                public."OUTPUT_GRAFICO_REG_RECAP"."UNIFIED_DELIVERY_DRIVER",
+                public."OUTPUT_GRAFICO_REG_RECAP"."SETTIMANA_DELIVERY",
                 CASE 
-                    WHEN public."output_grafico_reg_recap"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
+                    WHEN public."OUTPUT_GRAFICO_REG_RECAP"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
                         THEN 1
                         ELSE 0
                 END AS "FLAG_PICCO"
-            FROM public."output_grafico_reg_recap"
+            FROM public."OUTPUT_GRAFICO_REG_RECAP"
             LEFT JOIN public."CAPACITA_SIMULATE"
-                ON public."output_grafico_reg_recap"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
-                AND public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
-                AND public."output_grafico_reg_recap"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
-                AND public."output_grafico_reg_recap"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+                ON public."OUTPUT_GRAFICO_REG_RECAP"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
         )
         SELECT 
             ROW_NUMBER() OVER () AS id,
