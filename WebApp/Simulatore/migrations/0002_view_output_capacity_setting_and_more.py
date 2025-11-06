@@ -36,21 +36,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='view_output_grafico_mappa_picchi',
-            fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('SIMULAZIONE_ID', models.IntegerField(null=True)),
-                ('REGIONE', models.CharField(max_length=50, null=True)),
-                ('UNIFIED_DELIVERY_DRIVER', models.CharField(max_length=80, null=True)),
-                ('PROP_PICCO', models.DecimalField(decimal_places=4, max_digits=6, null=True)),
-                ('FASCIA_PICCO', models.CharField(max_length=50, null=True)),
-            ],
-            options={
-                'db_table': 'output_grafico_mappa_picchi',
-                'managed': False,
-            },
-        ),
-        migrations.CreateModel(
             name='view_output_modified_capacity_setting',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
@@ -86,6 +71,21 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'output_tabella_picchi',
+                'managed': False,
+            },
+        ),
+        migrations.CreateModel(
+            name='view_output_grafico_mappa_picchi',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False)),
+                ('SIMULAZIONE_ID', models.IntegerField(null=True)),
+                ('REGIONE', models.CharField(max_length=50, null=True)),
+                ('UNIFIED_DELIVERY_DRIVER', models.CharField(max_length=80, null=True)),
+                ('PROP_PICCO', models.DecimalField(decimal_places=4, max_digits=6, null=True)),
+                ('FASCIA_PICCO', models.CharField(max_length=50, null=True)),
+            ],
+            options={
+                'db_table': 'output_grafico_mappa_picchi',
                 'managed': False,
             },
         ),
