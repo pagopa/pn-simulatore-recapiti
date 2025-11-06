@@ -141,7 +141,7 @@ class table_output_grafico_reg_recap(models.Model):
     class Meta:
         db_table = 'OUTPUT_GRAFICO_REG_RECAP'
 
-'''
+
 # VISTA output_capacity_setting
 class view_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)
@@ -372,4 +372,3 @@ class view_output_grafico_mappa_picchi(pg.View):
     class Meta:
         db_table = 'output_grafico_mappa_picchi'
         managed = False
-'''
