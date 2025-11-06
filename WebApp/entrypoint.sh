@@ -4,6 +4,7 @@
 set -e
 
 echo "START DJANGO DB MIGRATE"
+python WebApp/manage.py migrate --fake
 python WebApp/manage.py migrate --noinput
 echo "END DJANGO DB MIGRATE"
 
