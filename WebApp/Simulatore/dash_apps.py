@@ -643,7 +643,8 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona una o più regioni..."
                     ),
-                ], style={"width": "48%", "display": "inline-block"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm"),
 
                 html.Div([
 
@@ -658,8 +659,10 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona un recapitista..."
                     )
-                ], style={"width": "48%", "display": "inline-block", "float": "right"})
-            ], style={"margin-bottom": "10px"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm")
+            ], style={"margin-bottom": "10px"}
+            , className='row text-center'),
             
 
             html.Div([
@@ -685,7 +688,8 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona una o più regioni..."
                     ),
-                ], style={"width": "48%", "display": "inline-block"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm"),
 
                 html.Div([
 
@@ -700,8 +704,10 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona un recapitista..."
                     )
-                ], style={"width": "48%", "display": "inline-block", "float": "right"})
-            ], style={"margin-bottom": "10px"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm")
+            ], style={"margin-bottom": "10px"}
+            , className='row text-center'),
 
             html.Div([
 
