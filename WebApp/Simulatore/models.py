@@ -270,7 +270,7 @@ class view_output_modified_capacity_setting(pg.View):
 
 
 
-class table_output_grafico_ente(pg.View):
+class table_output_grafico_ente(models.Model):
     id = models.AutoField(primary_key=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
     SENDER_PA_ID = models.CharField(max_length=80, null=True)
@@ -278,10 +278,9 @@ class table_output_grafico_ente(pg.View):
     COUNT_REQUEST = models.IntegerField(null=True)
     class Meta:
         db_table = 'OUTPUT_GRAFICO_ENTE'
-        managed = False
 
 
-class table_output_grafico_reg_recap(pg.View):
+class table_output_grafico_reg_recap(models.Model):
     id = models.AutoField(primary_key=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
@@ -292,7 +291,6 @@ class table_output_grafico_reg_recap(pg.View):
     COUNT_REQUEST = models.IntegerField(null=True)
     class Meta:
         db_table = 'OUTPUT_GRAFICO_REG_RECAP'
-        managed = False
 
 
 # VISTA output_tabella_picchi
