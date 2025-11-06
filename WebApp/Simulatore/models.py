@@ -119,6 +119,7 @@ class table_cap_prov_reg(models.Model):
     class Meta:
         db_table = 'CAP_PROV_REG'
 
+'''
 class table_output_grafico_ente(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
@@ -126,7 +127,7 @@ class table_output_grafico_ente(models.Model):
     SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
     COUNT_REQUEST = models.IntegerField(null=True)
     class Meta:
-        db_table = 'OUTPUT_GRAFICO_ENTI'
+        db_table = 'OUTPUT_GRAFICO_ENTE'
 
 
 class table_output_grafico_reg_recap(models.Model):
@@ -139,9 +140,9 @@ class table_output_grafico_reg_recap(models.Model):
     PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
     COUNT_REQUEST = models.IntegerField(null=True)
     class Meta:
-        db_table = 'OUTPUT_GRAFICO_REGIONE_RECAPITISTA'
+        db_table = 'OUTPUT_GRAFICO_REG_RECAP'
 
-'''
+
 # VISTA output_capacity_setting
 class view_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)
@@ -303,22 +304,22 @@ class view_output_tabella_picchi(pg.View):
     sql = """
         WITH "flag_picco_prov_recap" AS(
             SELECT
-                public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."SIMULAZIONE_ID", 
-                public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."PROVINCE",
-                public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."REGIONE",
-                public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."UNIFIED_DELIVERY_DRIVER",
-                public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."SETTIMANA_DELIVERY",
+                public."OUTPUT_GRAFICO_REG_RECAP"."SIMULAZIONE_ID", 
+                public."OUTPUT_GRAFICO_REG_RECAP"."PROVINCE",
+                public."OUTPUT_GRAFICO_REG_RECAP"."REGIONE",
+                public."OUTPUT_GRAFICO_REG_RECAP"."UNIFIED_DELIVERY_DRIVER",
+                public."OUTPUT_GRAFICO_REG_RECAP"."SETTIMANA_DELIVERY",
                 CASE 
-                    WHEN public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
+                    WHEN public."OUTPUT_GRAFICO_REG_RECAP"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
                         THEN 1
                         ELSE 0
                 END AS "FLAG_PICCO"
-            FROM public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"
+            FROM public."OUTPUT_GRAFICO_REG_RECAP"
             LEFT JOIN public."CAPACITA_SIMULATE"
-                ON public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
-                AND public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
-                AND public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
-                AND public."OUTPUT_GRAFICO_REGIONE_RECAPITISTA"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+                ON public."OUTPUT_GRAFICO_REG_RECAP"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
         )
         SELECT 
             ROW_NUMBER() OVER () AS id,
