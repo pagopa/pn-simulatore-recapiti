@@ -60,6 +60,25 @@ class table_declared_capacity(models.Model):
     class Meta:
         db_table = 'DECLARED_CAPACITY'
 
+class table_declared_capacity_delta(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    CAPACITY = models.IntegerField(null=True)
+    GEOKEY = models.CharField(max_length=5, null=True)
+    TENDER_ID_GEOKEY = models.CharField(max_length=11, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
+    PRODUCT_RS = models.BooleanField(null=True)
+    TENDER_ID = models.CharField(max_length=8, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    CREATED_AT = NaiveDateTimeField(null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
+    PK = models.CharField(max_length=100, null=True)
+    PRODUCTION_CAPACITY = models.IntegerField(null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    class Meta:
+        db_table = 'DECLARED_CAPACITY_DELTA'
 
 class table_sender_limit(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -75,6 +94,19 @@ class table_sender_limit(models.Model):
     class Meta:
         db_table = 'SENDER_LIMIT'
 
+class table_sender_limit_delta(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    PK = models.CharField(max_length=80, null=True)
+    DELIVERY_DATE = models.DateField(null=True)
+    WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    ORIGINAL_ESTIMATE = models.IntegerField(null=True)
+    PA_ID = models.CharField(max_length=80, null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    class Meta:
+        db_table = 'SENDER_LIMIT_DELTA'
 
 class table_cap_prov_reg(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -237,56 +269,19 @@ class view_output_modified_capacity_setting(pg.View):
         managed = False
 
 
-class table_results(models.Model):
-    ID = models.AutoField(primary_key=True, unique=True)
-    PK = models.CharField(max_length=80, null=True)
-    SK = models.CharField(max_length=80, null=True)
-    ATTEMPT = models.IntegerField(null=True)
-    CAP = models.CharField(max_length=5, null=True)
-    CREATED_AT = NaiveDateTimeField(null=True)
-    IUN = models.CharField(max_length=80, null=True)
-    NOTIFICATION_SENT_AT = NaiveDateTimeField(null=True)
-    PREPARE_REQUEST_DATE = NaiveDateTimeField(null=True)
-    PRIORITY = models.IntegerField(null=True)
-    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
-    PROVINCE = models.CharField(max_length=5, null=True)
-    REQUEST_ID = models.CharField(max_length=200, null=True)
-    SENDER_PA_ID = models.CharField(max_length=80, null=True)
-    TENDER_ID = models.CharField(max_length=8, null=True)
-    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
-    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
-    SIMULAZIONE_ID = models.IntegerField(null=True)
-    class Meta:
-        db_table = 'RESULTS'
 
-
-# VISTA output_grafico_ente
-class view_output_grafico_ente(pg.View):
+class table_output_grafico_ente(pg.View):
     id = models.AutoField(primary_key=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
     SENDER_PA_ID = models.CharField(max_length=80, null=True)
     SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
     COUNT_REQUEST = models.IntegerField(null=True)
-
-    sql = """
-        SELECT
-            ROW_NUMBER() OVER () AS id,
-            "SIMULAZIONE_ID", 
-            "SENDER_PA_ID", 
-            "SETTIMANA_DELIVERY",
-            COUNT(DISTINCT "REQUEST_ID") AS "COUNT_REQUEST"
-        FROM public."RESULTS"
-        GROUP BY ("SIMULAZIONE_ID","SENDER_PA_ID","SETTIMANA_DELIVERY")
-    """
-
     class Meta:
-        db_table = 'output_grafico_ente'
+        db_table = 'OUTPUT_GRAFICO_ENTE'
         managed = False
 
 
-
-# VISTA output_grafico_reg_recap
-class view_output_grafico_reg_recap(pg.View):
+class table_output_grafico_reg_recap(pg.View):
     id = models.AutoField(primary_key=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
@@ -295,25 +290,8 @@ class view_output_grafico_reg_recap(pg.View):
     SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
     PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
     COUNT_REQUEST = models.IntegerField(null=True)
-
-    sql = """
-        SELECT
-            ROW_NUMBER() OVER () AS id,
-            public."RESULTS"."SIMULAZIONE_ID", 
-            public."RESULTS"."PROVINCE",
-            public."CAP_PROV_REG"."REGIONE",
-            public."RESULTS"."UNIFIED_DELIVERY_DRIVER",
-            public."RESULTS"."SETTIMANA_DELIVERY",
-            CONCAT("RESULTS"."PROVINCE", ' - ', public."RESULTS"."UNIFIED_DELIVERY_DRIVER") AS "PROVINCIA_RECAPITISTA",
-            COUNT(DISTINCT public."RESULTS"."REQUEST_ID") AS "COUNT_REQUEST"
-        FROM public."RESULTS"
-        LEFT JOIN public."CAP_PROV_REG"
-            ON public."RESULTS"."PROVINCE" = public."CAP_PROV_REG"."COD_SIGLA_PROVINCIA"
-        GROUP BY (public."RESULTS"."SIMULAZIONE_ID",public."RESULTS"."PROVINCE",public."CAP_PROV_REG"."REGIONE",public."RESULTS"."UNIFIED_DELIVERY_DRIVER",public."RESULTS"."SETTIMANA_DELIVERY")
-    """
-
     class Meta:
-        db_table = 'output_grafico_reg_recap'
+        db_table = 'OUTPUT_GRAFICO_REG_RECAP'
         managed = False
 
 
