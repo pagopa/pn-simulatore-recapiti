@@ -119,7 +119,7 @@ class table_cap_prov_reg(models.Model):
     class Meta:
         db_table = 'CAP_PROV_REG'
 
-'''
+
 class table_output_grafico_ente(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
@@ -142,7 +142,7 @@ class table_output_grafico_reg_recap(models.Model):
     class Meta:
         db_table = 'OUTPUT_GRAFICO_REG_RECAP'
 
-
+'''
 # VISTA output_capacity_setting
 class view_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)
