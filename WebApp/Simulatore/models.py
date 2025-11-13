@@ -60,6 +60,25 @@ class table_declared_capacity(models.Model):
     class Meta:
         db_table = 'DECLARED_CAPACITY'
 
+class table_declared_capacity_delta(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    CAPACITY = models.IntegerField(null=True)
+    GEOKEY = models.CharField(max_length=5, null=True)
+    TENDER_ID_GEOKEY = models.CharField(max_length=11, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
+    PRODUCT_RS = models.BooleanField(null=True)
+    TENDER_ID = models.CharField(max_length=8, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    CREATED_AT = NaiveDateTimeField(null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
+    PK = models.CharField(max_length=100, null=True)
+    PRODUCTION_CAPACITY = models.IntegerField(null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    class Meta:
+        db_table = 'DECLARED_CAPACITY_DELTA'
 
 class table_sender_limit(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -75,6 +94,19 @@ class table_sender_limit(models.Model):
     class Meta:
         db_table = 'SENDER_LIMIT'
 
+class table_sender_limit_delta(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    PK = models.CharField(max_length=80, null=True)
+    DELIVERY_DATE = models.DateField(null=True)
+    WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    ORIGINAL_ESTIMATE = models.IntegerField(null=True)
+    PA_ID = models.CharField(max_length=80, null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    class Meta:
+        db_table = 'SENDER_LIMIT_DELTA'
 
 class table_cap_prov_reg(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -86,6 +118,29 @@ class table_cap_prov_reg(models.Model):
     PERCENTUALE_POP_CAP = models.DecimalField(max_digits=11, decimal_places=9, null=True)
     class Meta:
         db_table = 'CAP_PROV_REG'
+
+
+class table_output_grafico_ente(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    COUNT_REQUEST = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_GRAFICO_ENTE'
+
+
+class table_output_grafico_reg_recap(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
+    COUNT_REQUEST = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_GRAFICO_REG_RECAP'
 
 
 # VISTA output_capacity_setting
@@ -237,86 +292,6 @@ class view_output_modified_capacity_setting(pg.View):
         managed = False
 
 
-class table_results(models.Model):
-    ID = models.AutoField(primary_key=True, unique=True)
-    PK = models.CharField(max_length=80, null=True)
-    SK = models.CharField(max_length=80, null=True)
-    ATTEMPT = models.IntegerField(null=True)
-    CAP = models.CharField(max_length=5, null=True)
-    CREATED_AT = NaiveDateTimeField(null=True)
-    IUN = models.CharField(max_length=80, null=True)
-    NOTIFICATION_SENT_AT = NaiveDateTimeField(null=True)
-    PREPARE_REQUEST_DATE = NaiveDateTimeField(null=True)
-    PRIORITY = models.IntegerField(null=True)
-    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
-    PROVINCE = models.CharField(max_length=5, null=True)
-    REQUEST_ID = models.CharField(max_length=200, null=True)
-    SENDER_PA_ID = models.CharField(max_length=80, null=True)
-    TENDER_ID = models.CharField(max_length=8, null=True)
-    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
-    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
-    SIMULAZIONE_ID = models.IntegerField(null=True)
-    class Meta:
-        db_table = 'RESULTS'
-
-
-# VISTA output_grafico_ente
-class view_output_grafico_ente(pg.View):
-    id = models.AutoField(primary_key=True)
-    SIMULAZIONE_ID = models.IntegerField(null=True)
-    SENDER_PA_ID = models.CharField(max_length=80, null=True)
-    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
-    COUNT_REQUEST = models.IntegerField(null=True)
-
-    sql = """
-        SELECT
-            ROW_NUMBER() OVER () AS id,
-            "SIMULAZIONE_ID", 
-            "SENDER_PA_ID", 
-            "SETTIMANA_DELIVERY",
-            COUNT(DISTINCT "REQUEST_ID") AS "COUNT_REQUEST"
-        FROM public."RESULTS"
-        GROUP BY ("SIMULAZIONE_ID","SENDER_PA_ID","SETTIMANA_DELIVERY")
-    """
-
-    class Meta:
-        db_table = 'output_grafico_ente'
-        managed = False
-
-
-
-# VISTA output_grafico_reg_recap
-class view_output_grafico_reg_recap(pg.View):
-    id = models.AutoField(primary_key=True)
-    SIMULAZIONE_ID = models.IntegerField(null=True)
-    PROVINCE = models.CharField(max_length=5, null=True)
-    REGIONE = models.CharField(max_length=50, null=True)
-    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
-    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
-    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
-    COUNT_REQUEST = models.IntegerField(null=True)
-
-    sql = """
-        SELECT
-            ROW_NUMBER() OVER () AS id,
-            public."RESULTS"."SIMULAZIONE_ID", 
-            public."RESULTS"."PROVINCE",
-            public."CAP_PROV_REG"."REGIONE",
-            public."RESULTS"."UNIFIED_DELIVERY_DRIVER",
-            public."RESULTS"."SETTIMANA_DELIVERY",
-            CONCAT("RESULTS"."PROVINCE", ' - ', public."RESULTS"."UNIFIED_DELIVERY_DRIVER") AS "PROVINCIA_RECAPITISTA",
-            COUNT(DISTINCT public."RESULTS"."REQUEST_ID") AS "COUNT_REQUEST"
-        FROM public."RESULTS"
-        LEFT JOIN public."CAP_PROV_REG"
-            ON public."RESULTS"."PROVINCE" = public."CAP_PROV_REG"."COD_SIGLA_PROVINCIA"
-        GROUP BY (public."RESULTS"."SIMULAZIONE_ID",public."RESULTS"."PROVINCE",public."CAP_PROV_REG"."REGIONE",public."RESULTS"."UNIFIED_DELIVERY_DRIVER",public."RESULTS"."SETTIMANA_DELIVERY")
-    """
-
-    class Meta:
-        db_table = 'output_grafico_reg_recap'
-        managed = False
-
-
 # VISTA output_tabella_picchi
 class view_output_tabella_picchi(pg.View):
     id = models.AutoField(primary_key=True)
@@ -329,22 +304,22 @@ class view_output_tabella_picchi(pg.View):
     sql = """
         WITH "flag_picco_prov_recap" AS(
             SELECT
-                public."output_grafico_reg_recap"."SIMULAZIONE_ID", 
-                public."output_grafico_reg_recap"."PROVINCE",
-                public."output_grafico_reg_recap"."REGIONE",
-                public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER",
-                public."output_grafico_reg_recap"."SETTIMANA_DELIVERY",
+                public."OUTPUT_GRAFICO_REG_RECAP"."SIMULAZIONE_ID", 
+                public."OUTPUT_GRAFICO_REG_RECAP"."PROVINCE",
+                public."OUTPUT_GRAFICO_REG_RECAP"."REGIONE",
+                public."OUTPUT_GRAFICO_REG_RECAP"."UNIFIED_DELIVERY_DRIVER",
+                public."OUTPUT_GRAFICO_REG_RECAP"."SETTIMANA_DELIVERY",
                 CASE 
-                    WHEN public."output_grafico_reg_recap"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
+                    WHEN public."OUTPUT_GRAFICO_REG_RECAP"."COUNT_REQUEST" >= public."CAPACITA_SIMULATE"."CAPACITY"
                         THEN 1
                         ELSE 0
                 END AS "FLAG_PICCO"
-            FROM public."output_grafico_reg_recap"
+            FROM public."OUTPUT_GRAFICO_REG_RECAP"
             LEFT JOIN public."CAPACITA_SIMULATE"
-                ON public."output_grafico_reg_recap"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
-                AND public."output_grafico_reg_recap"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
-                AND public."output_grafico_reg_recap"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
-                AND public."output_grafico_reg_recap"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+                ON public."OUTPUT_GRAFICO_REG_RECAP"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."PROVINCE" = public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA"
+                AND public."OUTPUT_GRAFICO_REG_RECAP"."SETTIMANA_DELIVERY" =  public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
         )
         SELECT 
             ROW_NUMBER() OVER () AS id,

@@ -1,5 +1,4 @@
 from django.shortcuts import render, redirect
-
 import plotly.graph_objects as go
 import json
 import plotly.utils as putils
@@ -8,23 +7,15 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-
 from datetime import datetime, timedelta
-
 from datetime import date
 from dateutil.relativedelta import relativedelta
-
 from .models import *
 from django.db.models import Q
-
 from django.db.models.functions import TruncMonth
-
-import locale
-
 from django.http import JsonResponse
-
 import psycopg2
-
+import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
@@ -223,7 +214,6 @@ def carica_dati_db(request):
     df_declared_capacity = pd.read_csv('static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
     df_sender_limit = pd.read_csv('static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
     df_cap_prov_reg = pd.read_csv('static/data/lookup_regione_provincia_cap.csv', dtype=str, keep_default_na=False)
-    df_paper_delivery = pd.read_csv('./static/data/db_paper_delivery.csv', dtype=str, keep_default_na=False)
 
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
@@ -257,18 +247,7 @@ def carica_dati_db(request):
             values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['Pop_cap'][i], df_cap_prov_reg['Prop_pop_cap'][i])
             cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","COD_SIGLA_PROVINCIA","POP_CAP","PERCENTUALE_POP_CAP") VALUES (%s, %s, %s, %s, %s, %s)',
                         values_capprovreg)
-    
-    cur.execute('select count(*) from public."RESULTS"')
-    count_results = cur.fetchone()
-    if count_results[0] == 0:
-        for i in range(0 ,len(df_paper_delivery)):
-            values_paper_delivery = (df_paper_delivery['pk'][i], df_paper_delivery['sk'][i], df_paper_delivery['attempt'][i], df_paper_delivery['cap'][i], 
-                                     df_paper_delivery['createdAt'][i], df_paper_delivery['iun'][i],df_paper_delivery['notificationSentAt'][i], df_paper_delivery['prepareRequestDate'][i],
-                                     df_paper_delivery['priority'][i], df_paper_delivery['productType'][i],df_paper_delivery['province'][i], df_paper_delivery['requestId'][i],
-                                     df_paper_delivery['senderPaId'][i], df_paper_delivery['tenderId'][i],df_paper_delivery["unifiedDeliveryDriver"][i],df_paper_delivery['week_delivery'][i], df_paper_delivery['ID_SIMULAZIONE'][i],)
-            cur.execute('INSERT INTO public."RESULTS" ("PK","SK","ATTEMPT","CAP","CREATED_AT","IUN","NOTIFICATION_SENT_AT","PREPARE_REQUEST_DATE","PRIORITY","PRODUCT_TYPE","PROVINCE","REQUEST_ID","SENDER_PA_ID","TENDER_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY","SIMULAZIONE_ID") VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s)',
-                        values_paper_delivery)
-
+            
     conn.commit()
     conn.close()
     return redirect("status")
