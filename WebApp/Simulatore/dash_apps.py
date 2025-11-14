@@ -271,9 +271,9 @@ def aggiorna_da_url(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_ente(pathname):
-    from .models import table_output_grafico_ente
+    from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    lista_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
     value = list(sorted(list(set(lista_enti))))
     return options, value
@@ -285,9 +285,9 @@ def populate_dropdown_ente(pathname):
     Input("url", "pathname")
 )
 def update_chart_ente(ente_sel, pathname):
-    from .models import table_output_grafico_ente
+    from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
+    filtered_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
     df_filtered_enti = pd.DataFrame(filtered_enti)
     
     # se non selezionato nulla → grafico vuoto
@@ -330,9 +330,9 @@ def update_chart_ente(ente_sel, pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_regione(pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    lista_regioni = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
+    lista_regioni = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
     value = sorted(list(set(lista_regioni)))[0]
     return options, value
@@ -343,11 +343,11 @@ def populate_dropdown_regione(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_recap(pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    #df_lista_reg_recap = pd.DataFrame(list(table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
+    #df_lista_reg_recap = pd.DataFrame(list(view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
     #first_region= sorted(df_lista_reg_recap["REGIONE"].unique())[0]
-    lista_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    lista_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
     #options = [{"label": r, "value": r} for r in sorted(list(df_lista_reg_recap["UNIFIED_DELIVERY_DRIVER"].unique()))]
     #value = sorted(list(df_lista_reg_recap.loc[df_lista_reg_recap["REGIONE"] == first_region, "UNIFIED_DELIVERY_DRIVER"].unique()))
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
@@ -361,11 +361,11 @@ def populate_dropdown_recap(pathname):
     Input("url", "pathname")
 )
 def update_chart_regioni_recap(regioni_sel, recap_sel, pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     if isinstance(regioni_sel, str):
         regioni_sel = [regioni_sel]
-    regioni_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
+    regioni_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
     # se non selezionato nulla → grafico vuoto
     if not regioni_sel or not recap_sel:
         return px.area(title="Nessuna selezione effettuata")
@@ -642,7 +642,8 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona una o più regioni..."
                     ),
-                ], style={"width": "48%", "display": "inline-block"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm"),
 
                 html.Div([
 
@@ -657,8 +658,10 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona un recapitista..."
                     )
-                ], style={"width": "48%", "display": "inline-block", "float": "right"})
-            ], style={"margin-bottom": "10px"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm")
+            ], style={"margin-bottom": "10px"}
+            , className='row text-center'),
             
 
             html.Div([
@@ -684,7 +687,8 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona una o più regioni..."
                     ),
-                ], style={"width": "48%", "display": "inline-block"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm"),
 
                 html.Div([
 
@@ -699,8 +703,10 @@ app_confronto.layout = html.Div([
                         multi=True,
                         placeholder="Seleziona un recapitista..."
                     )
-                ], style={"width": "48%", "display": "inline-block", "float": "right"})
-            ], style={"margin-bottom": "10px"}),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm")
+            ], style={"margin-bottom": "10px"}
+            , className='row text-center'),
 
             html.Div([
 
@@ -875,9 +881,9 @@ def aggiorna_da_url(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_ente_1(pathname):
-    from .models import table_output_grafico_ente
+    from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-2])
-    lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    lista_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
     value = list(sorted(list(set(lista_enti))))
     return options, value
@@ -888,9 +894,9 @@ def populate_dropdown_ente_1(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_ente_2(pathname):
-    from .models import table_output_grafico_ente
+    from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    lista_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
     value = list(sorted(list(set(lista_enti))))
     return options, value
@@ -902,9 +908,9 @@ def populate_dropdown_ente_2(pathname):
     Input("url", "pathname")
 )
 def update_chart_ente_1(ente_sel, pathname):
-    from .models import table_output_grafico_ente
+    from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-2])
-    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
+    filtered_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
     df_filtered_enti = pd.DataFrame(filtered_enti)
     # se non selezionato nulla → grafico vuoto
     if not ente_sel:
@@ -946,9 +952,9 @@ def update_chart_ente_1(ente_sel, pathname):
     Input("url", "pathname")
 )
 def update_chart_ente_2(ente_sel, pathname):
-    from .models import table_output_grafico_ente
+    from .models import view_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
+    filtered_enti = view_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
     df_filtered_enti = pd.DataFrame(filtered_enti)
     # se non selezionato nulla → grafico vuoto
     if not ente_sel:
@@ -1014,9 +1020,9 @@ def aggiorna_da_url(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_regione_1(pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-2])
-    lista_regioni = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
+    lista_regioni = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
     value = sorted(list(set(lista_regioni)))[0]
     return options, value
@@ -1027,11 +1033,11 @@ def populate_dropdown_regione_1(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_recap_1(pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-2])
-    #df_lista_reg_recap = pd.DataFrame(list(table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
+    #df_lista_reg_recap = pd.DataFrame(list(view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
     #first_region= sorted(df_lista_reg_recap["REGIONE"].unique())[0]
-    lista_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    lista_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
     #options = [{"label": r, "value": r} for r in sorted(list(df_lista_reg_recap["UNIFIED_DELIVERY_DRIVER"].unique()))]
     #value = sorted(list(df_lista_reg_recap.loc[df_lista_reg_recap["REGIONE"] == first_region, "UNIFIED_DELIVERY_DRIVER"].unique()))
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
@@ -1044,9 +1050,9 @@ def populate_dropdown_recap_1(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_regione_2(pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    lista_regioni = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
+    lista_regioni = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
     value = sorted(list(set(lista_regioni)))[0]
     return options, value
@@ -1057,11 +1063,11 @@ def populate_dropdown_regione_2(pathname):
     Input("url", "pathname")
 )
 def populate_dropdown_recap_2(pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    #df_lista_reg_recap = pd.DataFrame(list(table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
+    #df_lista_reg_recap = pd.DataFrame(list(view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
     #first_region= sorted(df_lista_reg_recap["REGIONE"].unique())[0]
-    lista_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    lista_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
     #options = [{"label": r, "value": r} for r in sorted(list(df_lista_reg_recap["UNIFIED_DELIVERY_DRIVER"].unique()))]
     #value = sorted(list(df_lista_reg_recap.loc[df_lista_reg_recap["REGIONE"] == first_region, "UNIFIED_DELIVERY_DRIVER"].unique()))
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
@@ -1075,12 +1081,12 @@ def populate_dropdown_recap_2(pathname):
     Input("url", "pathname")
 )
 def update_chart_regioni_recap_1(regioni_sel, recap_sel, pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-2])
     if isinstance(regioni_sel, str):
         regioni_sel = [regioni_sel]
 
-    regioni_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
+    regioni_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
     # se non selezionato nulla → grafico vuoto
     if not regioni_sel or not recap_sel:
         return px.area(title="Nessuna selezione effettuata")
@@ -1124,12 +1130,12 @@ def update_chart_regioni_recap_1(regioni_sel, recap_sel, pathname):
     Input("url", "pathname")
 )
 def update_chart_regioni_recap_2(regioni_sel, recap_sel, pathname):
-    from .models import table_output_grafico_reg_recap
+    from .models import view_output_grafico_reg_recap
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     if isinstance(regioni_sel, str):
         regioni_sel = [regioni_sel]
 
-    regioni_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
+    regioni_recap = view_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
     # se non selezionato nulla → grafico vuoto
     if not regioni_sel or not recap_sel:
         return px.area(title="Nessuna selezione effettuata")

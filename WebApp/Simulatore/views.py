@@ -15,8 +15,7 @@ from django.db.models import Q
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 import psycopg2
-import boto3
-
+from django.db import connection
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -51,18 +50,7 @@ def bozze(request):
 
 def nuova_simulazione(request, id_simulazione):
     # Mese da simulare
-    lista_mesi = [('2026-01', 'Gennaio 2026')]
-    
-    '''
-    data_oggi = date.today()
-    mese_corrente = data_oggi + relativedelta(months=+4) #NOTA: per mese corrente intendiamo mese di oggi +4 mesi in avanti
-    lista_mesi = [] #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
-    for i in range(4):
-        mese_data = mese_corrente + relativedelta(months=+i)
-        codice = mese_data.strftime("%Y-%m")
-        nome = mese_data.strftime("%B %Y").capitalize()
-        lista_mesi.append((codice, nome))
-    '''
+    lista_mesi = get_mesi_distinct()
 
     lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
 
@@ -216,7 +204,6 @@ def carica_dati_db(request):
     df_declared_capacity = pd.read_csv('static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
     df_sender_limit = pd.read_csv('static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
     df_cap_prov_reg = pd.read_csv('static/data/lookup_regione_provincia_cap.csv', dtype=str, keep_default_na=False)
-    df_paper_delivery = pd.read_csv('./static/data/db_paper_delivery.csv', dtype=str, keep_default_na=False)
 
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
@@ -250,18 +237,7 @@ def carica_dati_db(request):
             values_capprovreg = (df_cap_prov_reg['CAP'][i], df_cap_prov_reg['Regione'][i], df_cap_prov_reg['Provincia'][i], df_cap_prov_reg['CodSiglaProvincia'][i], df_cap_prov_reg['Pop_cap'][i], df_cap_prov_reg['Prop_pop_cap'][i])
             cur.execute('INSERT INTO public."CAP_PROV_REG" ("CAP","REGIONE","PROVINCIA","COD_SIGLA_PROVINCIA","POP_CAP","PERCENTUALE_POP_CAP") VALUES (%s, %s, %s, %s, %s, %s)',
                         values_capprovreg)
-    
-    cur.execute('select count(*) from public."RESULTS"')
-    count_results = cur.fetchone()
-    if count_results[0] == 0:
-        for i in range(0 ,len(df_paper_delivery)):
-            values_paper_delivery = (df_paper_delivery['pk'][i], df_paper_delivery['sk'][i], df_paper_delivery['attempt'][i], df_paper_delivery['cap'][i], 
-                                     df_paper_delivery['createdAt'][i], df_paper_delivery['iun'][i],df_paper_delivery['notificationSentAt'][i], df_paper_delivery['prepareRequestDate'][i],
-                                     df_paper_delivery['priority'][i], df_paper_delivery['productType'][i],df_paper_delivery['province'][i], df_paper_delivery['requestId'][i],
-                                     df_paper_delivery['senderPaId'][i], df_paper_delivery['tenderId'][i],df_paper_delivery["unifiedDeliveryDriver"][i],df_paper_delivery['week_delivery'][i], df_paper_delivery['ID_SIMULAZIONE'][i],)
-            cur.execute('INSERT INTO public."RESULTS" ("PK","SK","ATTEMPT","CAP","CREATED_AT","IUN","NOTIFICATION_SENT_AT","PREPARE_REQUEST_DATE","PRIORITY","PRODUCT_TYPE","PROVINCE","REQUEST_ID","SENDER_PA_ID","TENDER_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY","SIMULAZIONE_ID") VALUES (%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s)',
-                        values_paper_delivery)
-
+            
     conn.commit()
     conn.close()
     return redirect("status")
@@ -302,53 +278,6 @@ def svuota_db(request):
     conn.commit()
     conn.close()
     return redirect("status")
-
-
-def crea_istanza_eventbridge_scheduler(request):
-    import logging
-    logger = logging.getLogger(__name__)
-    ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
-    region = "eu-south-1"
-    role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
-    step_function_arn = "arn:aws:states:eu-south-1:830192246553:stateMachine:pn-simulatore-recapiti-StateMachine01"
-
-    # parametri da passare
-    payload = {
-        "parametro1": 'valore1',
-        "parametro2": 'valore2'
-    }
-
-    schedule_time = (datetime.now() + timedelta(minutes=70)).replace(microsecond=0).isoformat() + "Z"
-
-    schedule_name = f"pn-simulatore-recapiti-TestStartStepFunction-20251104"
-
-    client = boto3.client("scheduler", region_name=region)
-
-    try:
-        logger.info("Creazione schedule con payload=%s e timestamp=%s", payload, schedule_time)
-        # creazione scheduler one-shot che avvia la Step Function
-        response = client.create_schedule(
-            Name=schedule_name,
-            ScheduleExpression=f"at({schedule_time})",
-            FlexibleTimeWindow={"Mode": "OFF"},
-            Target={
-                "Arn": step_function_arn,
-                "RoleArn": role_arn,
-                "Input": json.dumps(payload),
-            },
-            ActionAfterCompletion="DELETE"
-        )
-        logger.info("Schedule creata con successo: %s", response)
-    except Exception:
-        logger.exception("Errore nella creazione dello schedule")
-        raise
-
-
-
-    return redirect("status")
-
-
-
 
 # AJAX
 def ajax_get_capacita_from_mese_and_tipo(request):
@@ -450,6 +379,26 @@ def get_province(request):
         lista_province = list(table_cap_prov_reg.objects.filter(REGIONE=regione).values_list('PROVINCIA', flat=True).distinct().order_by('PROVINCIA'))
         return JsonResponse(lista_province, safe=False)
     return JsonResponse([], safe=False)
+
+
+def get_mesi_distinct():
+    '''
+    Recuperiamo la lista dei mesi che l'utente può scegliere fornendo il formato mostrato nel seguente esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026')]
+    Nota: chiaramente, evitiamo le date passate
+    '''
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'YYYY-MM') as anno_mese
+            FROM public."SENDER_LIMIT"
+            WHERE "DELIVERY_DATE" >= CURRENT_DATE
+            ORDER BY anno_mese
+        """)
+        lista_mesi = []
+        for row in cursor.fetchall():
+            data_formattata = datetime.strptime(row[0], '%Y-%m').date().strftime("%B %Y").capitalize()
+            lista_mesi.append((row[0],data_formattata))
+        return lista_mesi #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
+    
 
 # ERROR PAGES
 def handle_error_400(request, exception):
