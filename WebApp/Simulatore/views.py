@@ -15,6 +15,7 @@ from django.db.models import Q
 from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 import psycopg2
+from django.db import connection
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -49,18 +50,9 @@ def bozze(request):
 
 def nuova_simulazione(request, id_simulazione):
     # Mese da simulare
-    lista_mesi = [('2026-01', 'Gennaio 2026')]
-    
-    '''
-    data_oggi = date.today()
-    mese_corrente = data_oggi + relativedelta(months=+4) #NOTA: per mese corrente intendiamo mese di oggi +4 mesi in avanti
-    lista_mesi = [] #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
-    for i in range(4):
-        mese_data = mese_corrente + relativedelta(months=+i)
-        codice = mese_data.strftime("%Y-%m")
-        nome = mese_data.strftime("%B %Y").capitalize()
-        lista_mesi.append((codice, nome))
-    '''
+   
+    lista_mesi = get_mesi_distinct()
+    print(lista_mesi)
 
     lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
 
@@ -389,6 +381,26 @@ def get_province(request):
         lista_province = list(table_cap_prov_reg.objects.filter(REGIONE=regione).values_list('PROVINCIA', flat=True).distinct().order_by('PROVINCIA'))
         return JsonResponse(lista_province, safe=False)
     return JsonResponse([], safe=False)
+
+
+def get_mesi_distinct():
+    '''
+    Recuperiamo la lista dei mesi che l'utente può scegliere fornendo il formato mostrato nel seguente esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026')]
+    Nota: chiaramente, evitiamo le date passate
+    '''
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'YYYY-MM') as anno_mese
+            FROM public."SENDER_LIMIT"
+            WHERE "DELIVERY_DATE" >= CURRENT_DATE
+            ORDER BY anno_mese
+        """)
+        lista_mesi = []
+        for row in cursor.fetchall():
+            data_formattata = datetime.strptime(row[0], '%Y-%m').date().strftime("%B %Y").capitalize()
+            lista_mesi.append((row[0],data_formattata))
+        return lista_mesi #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
+    
 
 # ERROR PAGES
 def handle_error_400(request, exception):
