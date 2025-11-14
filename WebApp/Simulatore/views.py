@@ -50,9 +50,7 @@ def bozze(request):
 
 def nuova_simulazione(request, id_simulazione):
     # Mese da simulare
-   
     lista_mesi = get_mesi_distinct()
-    print(lista_mesi)
 
     lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
 

@@ -23,6 +23,16 @@
                 <td style="text-align:center;">{{simulazione.NOME}}</td>
                 <td style="text-align:center;">{{simulazione.DESCRIZIONE}}</td>
                 <td style="text-align:left;">
+                    <!-- REGOLE VISUALIZZAZIONI BOTTONI -->
+                        <!--
+                            Bottone risultati per simulazione Manuale:
+                                - azzurro: automatizzata della sua settimana
+                                - blu: sullo stesso mese (sia manuale che automatizzata)
+
+                            Bottone risultati per simulazione automatizzata: 
+                                - azzurro: confronto con automatizzata precedente (la prima non avrà confronti)
+                                - blu: sullo stesso mese (sia manuale che automatizzata)
+                        -->
                     <!-- Visualizza dettagli -->
                     <span class="ms-4">
                         <!-- Button trigger modal -->
@@ -63,11 +73,13 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Nuova simulazione partendo dallo stesso input --> 
-                    <span>
-                        <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href={% url 'nuova_simulazione' 'new' %}?id={{simulazione.ID}}><i class="fa-solid fa-file-circle-plus"></i></a>
-                    </span>
+                    
+                    {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
+                        <!-- Nuova simulazione partendo dallo stesso input --> 
+                        <span>
+                            <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href={% url 'nuova_simulazione' 'new' %}?id={{simulazione.ID}}><i class="fa-solid fa-file-circle-plus"></i></a>
+                        </span>
+                    {% endif %}
 
                     {% if simulazione.STATO == 'Schedulata' %}
 
