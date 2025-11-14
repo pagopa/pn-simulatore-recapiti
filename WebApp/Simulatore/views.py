@@ -390,7 +390,6 @@ def get_mesi_distinct():
         cursor.execute("""
             SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'YYYY-MM') as anno_mese
             FROM public."SENDER_LIMIT"
-            WHERE "DELIVERY_DATE" >= CURRENT_DATE
             ORDER BY anno_mese
         """)
         lista_mesi = []
