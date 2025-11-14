@@ -210,7 +210,6 @@
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
                     <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
-                        <option disabled value="Produzione" {% if simulazione_selezionata.TIPO_CAPACITA == 'Produzione' %}selected{% endif %}>Produzione</option>
                         <option value="BAU" {% if simulazione_selezionata.TIPO_CAPACITA == 'BAU' %}selected{% endif %}>BAU</option>
                         <option value="Picco" {% if simulazione_selezionata.TIPO_CAPACITA == 'Picco' %}selected{% endif %}>Picco</option>
                         <option value="Combinata" {% if simulazione_selezionata.TIPO_CAPACITA == 'Combinata' %}selected{% endif %}>Combinata</option>
