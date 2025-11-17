@@ -456,6 +456,12 @@
         minuteIncrement: 30,
         minDate: new Date(),
         allowInput:true,
+        disable: [
+            function(date) {
+                // disabilitiamo i lunedì (1)
+                return (date.getDay() === 1);
+            }
+        ],
         defaultDate: '{{simulazione_selezionata.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
