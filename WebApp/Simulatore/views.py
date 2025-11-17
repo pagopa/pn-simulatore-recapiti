@@ -114,7 +114,7 @@ def salva_simulazione(request):
         capacita_json = json.loads(capacita_json)
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
-        
+
     # NUOVA SIMULAZIONE o new_from_old
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
         id_simulazione_salvata = table_simulazione.objects.create(
@@ -368,7 +368,7 @@ def ajax_get_simulazioni_da_confrontare(request):
     id_simulazione = request.GET['id_simulazione']
     mese_simulazione = request.GET['mese_simulazione']
     # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-    lista_simulazioni_da_confrontare = list(table_simulazione.objects.filter(STATO='Lavorata',MESE_SIMULAZIONE=mese_simulazione,TIPO_SIMULAZIONE='Manuale').exclude(ID=id_simulazione).values())
+    lista_simulazioni_da_confrontare = list(table_simulazione.objects.filter(STATO='Lavorata',MESE_SIMULAZIONE=mese_simulazione).exclude(ID=id_simulazione).values())
     return JsonResponse({'context': lista_simulazioni_da_confrontare})  
 
 
