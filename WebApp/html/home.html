@@ -26,11 +26,11 @@
                     <!-- REGOLE VISUALIZZAZIONI BOTTONI -->
                         <!--
                             Bottone risultati per simulazione Manuale:
-                                - azzurro: automatizzata della sua settimana
+                                - azzurro: l'ultimo run dell'automatizzata di quel mese
                                 - blu: sullo stesso mese (sia manuale che automatizzata)
 
                             Bottone risultati per simulazione automatizzata: 
-                                - azzurro: confronto con automatizzata precedente (la prima non avrà confronti)
+                                - azzurro: confronto con automatizzata precedente dello stesso mese (la prima non avrà confronti)
                                 - blu: sullo stesso mese (sia manuale che automatizzata)
                         -->
                     <!-- Visualizza dettagli -->
@@ -116,11 +116,12 @@
 
 
                     {% elif simulazione.STATO == 'Lavorata' %}
-
-                        <!-- Confronto con automatizzata --> 
-                        <span>
-                            <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
-                        </span>
+                        {% if simulazione.automatizzata_da_confrontare != None %}
+                            <!-- Confronto con automatizzata --> 
+                            <span>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.ID simulazione.automatizzata_da_confrontare %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                            </span>
+                        {% endif %}
 
                         <!-- Confronto con altra simulazione --> 
                         <span>

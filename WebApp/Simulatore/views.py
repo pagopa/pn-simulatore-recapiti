@@ -21,8 +21,22 @@ locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
 def homepage(request):
-
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
+    # Get ID per confronto con automatizzata
+    for singola_simulazione in lista_simulazioni:
+        singola_simulazione.automatizzata_da_confrontare = None
+        monday_current_week = singola_simulazione.TIMESTAMP_ESECUZIONE.date() - timedelta(days=singola_simulazione.TIMESTAMP_ESECUZIONE.weekday())
+        if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
+            previous_week_monday = monday_current_week - timedelta(days=7)
+            if previous_week_monday.month == monday_current_week.month:
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday).first()
+                if simulazione_recuperata:
+                    singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
+        elif singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
+            if singola_simulazione.TIMESTAMP_ESECUZIONE.month == monday_current_week.month:
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__year=monday_current_week.year,TIMESTAMP_ESECUZIONE__month=monday_current_week.month).order_by("-TIMESTAMP_ESECUZIONE").first()
+                if simulazione_recuperata:
+                    singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
 
     context = {
         'lista_simulazioni': lista_simulazioni
