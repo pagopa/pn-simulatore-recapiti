@@ -16,14 +16,19 @@ from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 import psycopg2
 from django.db import connection
+from django.utils import timezone
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
 def homepage(request):
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
-    # Get ID per confronto con automatizzata
+    
     for singola_simulazione in lista_simulazioni:
+        # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
+        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= timezone.now():
+            singola_simulazione.STATO = 'In lavorazione'
+        # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
         monday_current_week = singola_simulazione.TIMESTAMP_ESECUZIONE.date() - timedelta(days=singola_simulazione.TIMESTAMP_ESECUZIONE.weekday())
         if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
@@ -168,7 +173,7 @@ def salva_simulazione(request):
                     lookup[(recapitista, row["cod_sigla_provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
 
             for singola_capacita in lista_old_capacita_modificate:
-                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.COD_SIGLA_PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.COD_SIGLA_PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM)
                 if key in lookup:
                     singola_capacita.CAPACITY = lookup[key]    
             
@@ -179,8 +184,8 @@ def salva_simulazione(request):
                 for singola_riga in righe_tabella:
                     table_capacita_simulate.objects.create(
                         UNIFIED_DELIVERY_DRIVER = recapitista,
-                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
-                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
+                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
+                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita']+' 23:59:59', '%d/%m/%Y %H:%M:%S'),
                         CAPACITY = singola_riga['capacita'],
                         SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'],
                         REGIONE = singola_riga['regione'],
@@ -217,7 +222,7 @@ def carica_dati_db(request):
     ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
     df_declared_capacity = pd.read_csv('static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
     df_sender_limit = pd.read_csv('static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
-    df_cap_prov_reg = pd.read_csv('static/data/regione_provincia_cap.csv.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('static/data/regione_provincia_cap.csv', dtype=str, keep_default_na=False)
 
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],

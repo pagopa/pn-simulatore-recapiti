@@ -21,6 +21,7 @@ class table_simulazione(models.Model):
         db_table = 'SIMULAZIONE'
         indexes = [
             models.Index(fields=['MESE_SIMULAZIONE'], name='indice_mese_simulazione'),
+            models.Index(fields=['TIMESTAMP_ESECUZIONE'], name='indice_timestamp_esecuzione'),
         ]
 
 class table_capacita_simulate(models.Model):
