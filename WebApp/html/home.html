@@ -330,7 +330,7 @@
 	});
 </script>
 
-<!-- jQuery/Ajax per accordion output_capacity_setting -->
+<!-- jQuery/Ajax per select simulazioni da confrontare -->
 <script>
     function simulazioni_da_confrontare_ajax(id_simulazione,mese_simulazione) {
         var content = document.getElementById(`simulazioni_recuperate_da_db_${id_simulazione}`);
@@ -351,7 +351,7 @@
                 `;
                 resp.context.forEach(function(simulazione) {
                     content_simulazioni += `
-                        <option value="${simulazione.ID}">${simulazione.NOME}</option>
+                        <option value="${simulazione.ID}">${simulazione.NOME} (${simulazione.TIMESTAMP_ESECUZIONE})</option>
                     `;
                 });
                 content_simulazioni += `</select>`;
