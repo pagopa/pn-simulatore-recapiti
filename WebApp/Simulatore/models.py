@@ -36,6 +36,7 @@ class table_capacita_simulate(models.Model):
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
     PRODUCT_890 = models.BooleanField(max_length=5, null=True)
     PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_SIMULATE'
@@ -48,6 +49,23 @@ class table_capacita_simulate(models.Model):
             models.Index(fields=['CAPACITY'], name='indice_capacity'),
             models.Index(fields=['REGIONE'], name='indice_regione'),
         ]
+    
+class table_capacita_simulate_delta(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
+    CAPACITY = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
+    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'CAPACITA_SIMULATE_DELTA'
 
 
 class table_declared_capacity(models.Model):
