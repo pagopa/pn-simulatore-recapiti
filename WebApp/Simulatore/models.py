@@ -20,7 +20,8 @@ class table_simulazione(models.Model):
     class Meta:
         db_table = 'SIMULAZIONE'
         indexes = [
-            models.Index(fields=['STATO'], name='INDICE_STATO')
+            models.Index(fields=['MESE_SIMULAZIONE'], name='indice_mese_simulazione'),
+            models.Index(fields=['TIMESTAMP_ESECUZIONE'], name='indice_timestamp_esecuzione'),
         ]
 
 class table_capacita_simulate(models.Model):
@@ -35,9 +36,36 @@ class table_capacita_simulate(models.Model):
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
     PRODUCT_890 = models.BooleanField(max_length=5, null=True)
     PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_SIMULATE'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id'),
+            models.Index(fields=['ACTIVATION_DATE_FROM'], name='indice_activation_date_from'),
+            models.Index(fields=['ACTIVATION_DATE_TO'], name='indice_activation_date_to'),
+            models.Index(fields=['UNIFIED_DELIVERY_DRIVER'], name='indice_unified_delivery_driver'),
+            models.Index(fields=['COD_SIGLA_PROVINCIA'], name='indice_cod_sigla_provincia'),
+            models.Index(fields=['CAPACITY'], name='indice_capacity'),
+            models.Index(fields=['REGIONE'], name='indice_regione'),
+        ]
+    
+class table_capacita_simulate_delta(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
+    CAPACITY = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
+    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'CAPACITA_SIMULATE_DELTA'
 
 
 class table_declared_capacity(models.Model):
@@ -59,6 +87,14 @@ class table_declared_capacity(models.Model):
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'DECLARED_CAPACITY'
+        indexes = [
+            models.Index(fields=['GEOKEY'], name='indice_geokey'),
+            models.Index(fields=['ACTIVATION_DATE_FROM'], name='indice_activation_date_from_2'),
+            models.Index(fields=['ACTIVATION_DATE_TO'], name='indice_activation_date_to_2'),
+            models.Index(fields=['UNIFIED_DELIVERY_DRIVER'], name='indice_unified_delivery_driv_2'),
+            models.Index(fields=['PK'], name='indice_pk'),
+            models.Index(fields=['LAST_UPDATE_TIMESTAMP'], name='indice_last_update_timestamp'),
+        ]
 
 class table_declared_capacity_delta(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -93,6 +129,12 @@ class table_sender_limit(models.Model):
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     class Meta:
         db_table = 'SENDER_LIMIT'
+        indexes = [
+            models.Index(fields=['DELIVERY_DATE'], name='indice_delivery_date'),
+            models.Index(fields=['PROVINCE'], name='indice_province'),
+            models.Index(fields=['PK'], name='indice_pk_2'),
+            models.Index(fields=['LAST_UPDATE_TIMESTAMP'], name='indice_last_update_timestamp_2')
+        ]
 
 class table_sender_limit_delta(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -118,6 +160,11 @@ class table_cap_prov_reg(models.Model):
     PERCENTUALE_POP_CAP = models.DecimalField(max_digits=11, decimal_places=9, null=True)
     class Meta:
         db_table = 'CAP_PROV_REG'
+        indexes = [
+            models.Index(fields=['REGIONE'], name='indice_regione_2'),
+            models.Index(fields=['PROVINCIA'], name='indice_provincia'),
+            models.Index(fields=['COD_SIGLA_PROVINCIA'], name='indice_cod_sigla_provincia_2')
+        ]
 
 
 class table_output_grafico_ente(models.Model):
@@ -128,6 +175,10 @@ class table_output_grafico_ente(models.Model):
     COUNT_REQUEST = models.IntegerField(null=True)
     class Meta:
         db_table = 'OUTPUT_GRAFICO_ENTE'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_2'),
+            models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id')
+        ]
 
 
 class table_output_grafico_reg_recap(models.Model):
@@ -141,6 +192,14 @@ class table_output_grafico_reg_recap(models.Model):
     COUNT_REQUEST = models.IntegerField(null=True)
     class Meta:
         db_table = 'OUTPUT_GRAFICO_REG_RECAP'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_3'),
+            models.Index(fields=['REGIONE'], name='indice_regione_3'),
+            models.Index(fields=['UNIFIED_DELIVERY_DRIVER'], name='indice_unified_delivery_driv_3'),
+            models.Index(fields=['PROVINCE'], name='indice_province_2'),
+            models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_settimana_delivery'),
+            models.Index(fields=['COUNT_REQUEST'], name='indice_count_request')
+        ]
 
 
 # VISTA output_capacity_setting
@@ -165,8 +224,7 @@ class view_output_capacity_setting(pg.View):
     WITH "SENDERLIMIT_BY_MONTH" AS (
 		SELECT DISTINCT ON ("PA_ID","PRODUCT_TYPE",EXTRACT(MONTH FROM "DELIVERY_DATE"),"PROVINCE")
 			EXTRACT(MONTH FROM "DELIVERY_DATE") AS "MONTH_DELIVERY", "WEEKLY_ESTIMATE", "MONTHLY_ESTIMATE", "PA_ID", "PRODUCT_TYPE", "PROVINCE"
-		FROM public."SENDER_LIMIT" 
-		ORDER BY "PA_ID", "MONTH_DELIVERY"
+		FROM public."SENDER_LIMIT"
 	),
 	"SUM_SENDERLIMIT_BY_MONTH" AS (
 		SELECT "MONTH_DELIVERY", "PRODUCT_TYPE", "PROVINCE", SUM("WEEKLY_ESTIMATE") AS "SUM_WEEKLY_ESTIMATE", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE" 
@@ -176,7 +234,6 @@ class view_output_capacity_setting(pg.View):
 	"PROV_REG" AS (
 		SELECT DISTINCT ON ("COD_SIGLA_PROVINCIA") "PROVINCIA","REGIONE","COD_SIGLA_PROVINCIA"
 		FROM public."CAP_PROV_REG"
-		ORDER BY "COD_SIGLA_PROVINCIA"
 	),
 	"FILTERED_CAPACITY_BY_PRODUCT" AS (
 	    SELECT
@@ -222,7 +279,6 @@ class view_output_capacity_setting(pg.View):
 		"MONTH_DELIVERY"
 	FROM "FILTERED_CAPACITY_BY_PRODUCT"
 	GROUP BY "UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","MONTH_DELIVERY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","PEAK_CAPACITY","PRODUCTION_CAPACITY","REGIONE","PROVINCIA","PRODUCT_890","PRODUCT_AR"
-    ORDER BY "REGIONE" ASC,"PROVINCIA" ASC
     """
 
     class Meta:
@@ -239,6 +295,7 @@ class view_output_modified_capacity_setting(pg.View):
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     ORIGINAL_CAPACITY = models.IntegerField(null=True)
     MODIFIED_CAPACITY = models.IntegerField(null=True)
+    PRODUCTION_CAPACITY = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
@@ -274,6 +331,7 @@ class view_output_modified_capacity_setting(pg.View):
             public."CAPACITA_SIMULATE"."REGIONE", 
             public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
             public."output_capacity_setting"."PROVINCIA",
+            public."output_capacity_setting"."PRODUCTION_CAPACITY",
             public."CAPACITA_SIMULATE"."PRODUCT_890",
             public."CAPACITA_SIMULATE"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",

@@ -159,7 +159,7 @@
                             </select>
                         </td>
                         <td>
-                            <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="number" step="1" min="1" onkeydown="return (event.keyCode!=13);">
+                            <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                         </td>
                         <td>
                             <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="1" title="Rimuovi riga">-</button>
@@ -456,6 +456,12 @@
         minuteIncrement: 30,
         minDate: new Date(),
         allowInput:true,
+        disable: [
+            function(date) {
+                // disabilitiamo i lunedì (1)
+                return (date.getDay() === 1);
+            }
+        ],
         defaultDate: '{{simulazione_selezionata.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
@@ -529,6 +535,11 @@
                                     `;
                         // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
                         resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
+                            if(singola_capacity.production_capacity != null){
+                                production_capacity = singola_capacity.production_capacity;
+                            }else{
+                                production_capacity = '-';
+                            }
                             content_capacita += `
                                                     <tr>
                                                         <td>${singola_capacity.regione}</td>
@@ -537,8 +548,8 @@
                                                         <td>${singola_capacity.post_weekly_estimate}</td>
                                                         <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
                                                         <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
-                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.original_capacity}</label></td>
-                                                        <td>-</td>
+                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.original_capacity}</label></td>
+                                                        <td>${production_capacity}</td>
                                                         <td></td>
                                                         <td></td>
                                                     </tr>
@@ -727,7 +738,7 @@
                         </select>
                     </td>
                     <td>
-                        <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="number" step="1" min="1" onkeydown="return (event.keyCode!=13);">
+                        <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     </td>
                     <td>
                         <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="${rowCount}" title="Rimuovi riga">-</button>
@@ -807,7 +818,7 @@ function aggiungiRiga(button) {
         <td>0</td>
         <td><input type="date" class="form-control text-center input_inizioPeriodoValidita" onkeydown="return (event.keyCode!=13);" min="01/01/2026"></td>
         <td><input type="date" class="form-control text-center input_finePeriodoValidita" onkeydown="return (event.keyCode!=13);"></td>
-        <td><input class="form-control text-center input_capacita" autocomplete="off" type="number" step="1" min="0" value="0" onkeydown="return (event.keyCode!=13);"><label class="m-0 p-0" style="font-size:12px"></td>
+        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="0" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px"></td>
         <td>-</td>
         <td></td> <!-- colonna alert vuota -->
         <td>

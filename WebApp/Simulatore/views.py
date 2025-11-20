@@ -16,13 +16,32 @@ from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 import psycopg2
 from django.db import connection
+from django.utils import timezone
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
 def homepage(request):
-
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
+    
+    for singola_simulazione in lista_simulazioni:
+        # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
+        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= timezone.now():
+            singola_simulazione.STATO = 'In lavorazione'
+        # Get ID per confronto con automatizzata
+        singola_simulazione.automatizzata_da_confrontare = None
+        monday_current_week = singola_simulazione.TIMESTAMP_ESECUZIONE.date() - timedelta(days=singola_simulazione.TIMESTAMP_ESECUZIONE.weekday())
+        if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
+            previous_week_monday = monday_current_week - timedelta(days=7)
+            if previous_week_monday.month == monday_current_week.month:
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday).first()
+                if simulazione_recuperata:
+                    singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
+        elif singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
+            if singola_simulazione.TIMESTAMP_ESECUZIONE.month == monday_current_week.month:
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__year=monday_current_week.year,TIMESTAMP_ESECUZIONE__month=monday_current_week.month).order_by("-TIMESTAMP_ESECUZIONE").first()
+                if simulazione_recuperata:
+                    singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
 
     context = {
         'lista_simulazioni': lista_simulazioni
@@ -114,7 +133,7 @@ def salva_simulazione(request):
         capacita_json = json.loads(capacita_json)
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
-        
+
     # NUOVA SIMULAZIONE o new_from_old
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
         id_simulazione_salvata = table_simulazione.objects.create(
@@ -154,7 +173,7 @@ def salva_simulazione(request):
                     lookup[(recapitista, row["cod_sigla_provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
 
             for singola_capacita in lista_old_capacita_modificate:
-                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.COD_SIGLA_PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM.strftime("%d/%m/%Y"))
+                key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.COD_SIGLA_PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM)
                 if key in lookup:
                     singola_capacita.CAPACITY = lookup[key]    
             
@@ -165,8 +184,8 @@ def salva_simulazione(request):
                 for singola_riga in righe_tabella:
                     table_capacita_simulate.objects.create(
                         UNIFIED_DELIVERY_DRIVER = recapitista,
-                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita'], '%d/%m/%Y'),
-                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita'], '%d/%m/%Y'),
+                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
+                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita']+' 23:59:59', '%d/%m/%Y %H:%M:%S'),
                         CAPACITY = singola_riga['capacita'],
                         SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'],
                         REGIONE = singola_riga['regione'],
@@ -203,7 +222,7 @@ def carica_dati_db(request):
     ####### PAGINA PROVVISORIA DI AGGIUNTA DATI #######
     df_declared_capacity = pd.read_csv('static/data/db_declared_capacity.csv', dtype=str, keep_default_na=False)
     df_sender_limit = pd.read_csv('static/data/db_sender_limit.csv', dtype=str, keep_default_na=False)
-    df_cap_prov_reg = pd.read_csv('static/data/lookup_regione_provincia_cap.csv', dtype=str, keep_default_na=False)
+    df_cap_prov_reg = pd.read_csv('static/data/regione_provincia_cap.csv', dtype=str, keep_default_na=False)
 
 
     conn = psycopg2.connect(database = DATABASES['default']['NAME'],
@@ -293,13 +312,11 @@ def ajax_get_capacita_from_mese_and_tipo(request):
     get_modified_capacity = request.GET['get_modified_capacity']
     if request.accepts:
         if id_simulazione == '' or get_modified_capacity=='false':
-            # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).values())
+            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = True
         else:
             # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input)
-            # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-            lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).values())
+            lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = False
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
@@ -309,6 +326,7 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             provincia = item['PROVINCIA']
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
+            production_capacity = item['PRODUCTION_CAPACITY']
             if nuova_simulazione:
                 if tipo_capacita_selezionata=='BAU':
                     capacity = item['CAPACITY']
@@ -352,6 +370,7 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                     'activation_date_from': activation_date_from,
                     'activation_date_to': activation_date_to,
                     'capacity': capacity,
+                    'production_capacity': production_capacity,
                     'original_capacity': original_capacity
                 }
             )
@@ -367,8 +386,7 @@ def ajax_get_capacita_from_mese_and_tipo(request):
 def ajax_get_simulazioni_da_confrontare(request):
     id_simulazione = request.GET['id_simulazione']
     mese_simulazione = request.GET['mese_simulazione']
-    # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
-    lista_simulazioni_da_confrontare = list(table_simulazione.objects.filter(STATO='Lavorata',MESE_SIMULAZIONE=mese_simulazione,TIPO_SIMULAZIONE='Manuale').exclude(ID=id_simulazione).values())
+    lista_simulazioni_da_confrontare = list(table_simulazione.objects.filter(STATO='Lavorata',MESE_SIMULAZIONE=mese_simulazione).exclude(ID=id_simulazione).values())
     return JsonResponse({'context': lista_simulazioni_da_confrontare})  
 
 
@@ -397,7 +415,51 @@ def get_mesi_distinct():
             data_formattata = datetime.strptime(row[0], '%Y-%m').date().strftime("%B %Y").capitalize()
             lista_mesi.append((row[0],data_formattata))
         return lista_mesi #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
-    
+
+
+
+
+def crea_istanza_eventbridge_scheduler():
+    import boto3
+    ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
+    region = "eu-south-1"
+    role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
+    step_function_arn = "arn:aws:states:eu-south-1:830192246553:stateMachine:pn-simulatore-recapiti-StateMachine01"
+
+    # parametri da passare
+    payload = {
+        "mese_simulazione": "2025-10-06",
+        "id_simulazione_manuale": "",
+        "tipo_simulazione": "Automatizzata",
+        "import_data": 0,
+        "delete_data": 0
+    }
+
+
+    schedule_time = (datetime.now() + timedelta(minutes=70)).replace(microsecond=0).isoformat() + "Z"
+
+    schedule_name = f"pn-simulatore-recapiti-TestStartStepFunction-20251120"
+
+    client = boto3.client("scheduler", region_name=region)
+
+    # creazione scheduler one-shot che avvia la Step Function
+    response = client.create_schedule(
+        Name=schedule_name,
+        ScheduleExpression=f"at({schedule_time})",
+        FlexibleTimeWindow={"Mode": "OFF"},
+        Target={
+            "Arn": step_function_arn,
+            "RoleArn": role_arn,
+            "Input": json.dumps(payload),
+        },
+        ActionAfterCompletion="DELETE"
+    )
+
+
+    return redirect("status")
+
+
+
 
 # ERROR PAGES
 def handle_error_400(request, exception):

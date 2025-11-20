@@ -26,11 +26,11 @@
                     <!-- REGOLE VISUALIZZAZIONI BOTTONI -->
                         <!--
                             Bottone risultati per simulazione Manuale:
-                                - azzurro: automatizzata della sua settimana
+                                - azzurro: l'ultimo run dell'automatizzata di quel mese
                                 - blu: sullo stesso mese (sia manuale che automatizzata)
 
                             Bottone risultati per simulazione automatizzata: 
-                                - azzurro: confronto con automatizzata precedente (la prima non avrà confronti)
+                                - azzurro: confronto con automatizzata precedente dello stesso mese (la prima non avrà confronti)
                                 - blu: sullo stesso mese (sia manuale che automatizzata)
                         -->
                     <!-- Visualizza dettagli -->
@@ -116,39 +116,38 @@
 
 
                     {% elif simulazione.STATO == 'Lavorata' %}
-
-                        {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
+                        {% if simulazione.automatizzata_da_confrontare != None %}
                             <!-- Confronto con automatizzata --> 
                             <span>
-                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="#"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.ID simulazione.automatizzata_da_confrontare %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
                             </span>
+                        {% endif %}
 
-                            <!-- Confronto con altra simulazione --> 
-                            <span>
-                                <button type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" onclick="simulazioni_da_confrontare_ajax('{{simulazione.ID}}','{{simulazione.MESE_SIMULAZIONE}}')" href="#" data-bs-toggle="modal" data-bs-target="#modalConfrontoRisultati{{ forloop.counter }}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></button>
-                            </span>
-                            <!--MODAL PER IL BOTTONE DI CONFRONTO CON ALTRA SIMULAZIONE-->
-                            <div class="modal fade" id="modalConfrontoRisultati{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="modalConfrontoRisultatiLabel{{ forloop.counter }}" aria-hidden="true">
-                                <div class="modal-dialog" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                        <h5 class="modal-title" id="modalConfrontoRisultatiLabel{{ forloop.counter }}"></h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                        <p>Scegli la simulazione da confrontare:</p>
-                                        <span class="d-none" id="value_id1"></span>
-                                        <!-- Capacità recuperate da db -->
-                                        <div class="text-center" id="spinner"></div>
-                                        <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_get_simulazioni_da_confrontare' %}></span>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button class="btn btn-primary btn-confronto" href="#">Confronta</button>
-                                        </div>
+                        <!-- Confronto con altra simulazione --> 
+                        <span>
+                            <button type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" onclick="simulazioni_da_confrontare_ajax('{{simulazione.ID}}','{{simulazione.MESE_SIMULAZIONE}}')" href="#" data-bs-toggle="modal" data-bs-target="#modalConfrontoRisultati{{ forloop.counter }}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></button>
+                        </span>
+                        <!--MODAL PER IL BOTTONE DI CONFRONTO CON ALTRA SIMULAZIONE-->
+                        <div class="modal fade" id="modalConfrontoRisultati{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="modalConfrontoRisultatiLabel{{ forloop.counter }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                    <h5 class="modal-title" id="modalConfrontoRisultatiLabel{{ forloop.counter }}"></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                    <p>Scegli la simulazione da confrontare:</p>
+                                    <span class="d-none" id="value_id1"></span>
+                                    <!-- Capacità recuperate da db -->
+                                    <div class="text-center" id="spinner"></div>
+                                    <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_get_simulazioni_da_confrontare' %}></span>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-primary btn-confronto" href="#">Confronta</button>
                                     </div>
                                 </div>
                             </div>
-                        {% endif %}
+                        </div>
 
                         <!-- Visualizza risultati --> 
                         <span>
@@ -330,7 +329,7 @@
 	});
 </script>
 
-<!-- jQuery/Ajax per accordion output_capacity_setting -->
+<!-- jQuery/Ajax per select simulazioni da confrontare -->
 <script>
     function simulazioni_da_confrontare_ajax(id_simulazione,mese_simulazione) {
         var content = document.getElementById(`simulazioni_recuperate_da_db_${id_simulazione}`);
@@ -351,7 +350,7 @@
                 `;
                 resp.context.forEach(function(simulazione) {
                     content_simulazioni += `
-                        <option value="${simulazione.ID}">${simulazione.NOME}</option>
+                        <option value="${simulazione.ID}">${simulazione.NOME} (${simulazione.TIMESTAMP_ESECUZIONE})</option>
                     `;
                 });
                 content_simulazioni += `</select>`;
