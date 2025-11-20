@@ -295,6 +295,7 @@ class view_output_modified_capacity_setting(pg.View):
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     ORIGINAL_CAPACITY = models.IntegerField(null=True)
     MODIFIED_CAPACITY = models.IntegerField(null=True)
+    PRODUCTION_CAPACITY = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
@@ -330,6 +331,7 @@ class view_output_modified_capacity_setting(pg.View):
             public."CAPACITA_SIMULATE"."REGIONE", 
             public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
             public."output_capacity_setting"."PROVINCIA",
+            public."output_capacity_setting"."PRODUCTION_CAPACITY",
             public."CAPACITA_SIMULATE"."PRODUCT_890",
             public."CAPACITA_SIMULATE"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",

@@ -312,12 +312,10 @@ def ajax_get_capacita_from_mese_and_tipo(request):
     get_modified_capacity = request.GET['get_modified_capacity']
     if request.accepts:
         if id_simulazione == '' or get_modified_capacity=='false':
-            # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
             lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = True
         else:
             # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input)
-            # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
             lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = False
         lista_capacita_finali = {}
@@ -328,6 +326,7 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             provincia = item['PROVINCIA']
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
+            production_capacity = item['PRODUCTION_CAPACITY']
             if nuova_simulazione:
                 if tipo_capacita_selezionata=='BAU':
                     capacity = item['CAPACITY']
@@ -371,6 +370,7 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                     'activation_date_from': activation_date_from,
                     'activation_date_to': activation_date_to,
                     'capacity': capacity,
+                    'production_capacity': production_capacity,
                     'original_capacity': original_capacity
                 }
             )
@@ -386,7 +386,6 @@ def ajax_get_capacita_from_mese_and_tipo(request):
 def ajax_get_simulazioni_da_confrontare(request):
     id_simulazione = request.GET['id_simulazione']
     mese_simulazione = request.GET['mese_simulazione']
-    # mettiamo list() altrimenti ci dà l'errore Object of type QuerySet is not JSON serializable
     lista_simulazioni_da_confrontare = list(table_simulazione.objects.filter(STATO='Lavorata',MESE_SIMULAZIONE=mese_simulazione).exclude(ID=id_simulazione).values())
     return JsonResponse({'context': lista_simulazioni_da_confrontare})  
 

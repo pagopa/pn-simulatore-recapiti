@@ -535,6 +535,11 @@
                                     `;
                         // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
                         resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
+                            if(singola_capacity.production_capacity != null){
+                                production_capacity = singola_capacity.production_capacity;
+                            }else{
+                                production_capacity = '-';
+                            }
                             content_capacita += `
                                                     <tr>
                                                         <td>${singola_capacity.regione}</td>
@@ -544,7 +549,7 @@
                                                         <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
                                                         <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
                                                         <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.original_capacity}</label></td>
-                                                        <td>-</td>
+                                                        <td>${production_capacity}</td>
                                                         <td></td>
                                                         <td></td>
                                                     </tr>
