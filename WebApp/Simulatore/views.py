@@ -421,6 +421,22 @@ def get_mesi_distinct():
 
 def crea_istanza_eventbridge_scheduler(request):
     import boto3
+
+    import socket
+
+    try:
+        # Test connessione a EventBridge Scheduler
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3)
+        result = sock.connect_ex(('scheduler.eu-south-1.amazonaws.com', 443))
+        if result == 0:
+            print("Connessione a EventBridge Scheduler: OK")
+        else:
+            print(f"Connessione a EventBridge Scheduler fallita: {result}")
+        sock.close()
+    except Exception as e:
+        print(f"Errore test connessione: {e}")
+
     ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
     region = "eu-south-1"
     role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
