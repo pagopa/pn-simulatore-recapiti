@@ -419,7 +419,7 @@ def get_mesi_distinct():
 
 
 
-def crea_istanza_eventbridge_scheduler():
+def crea_istanza_eventbridge_scheduler(request):
     import boto3
     ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
     region = "eu-south-1"
