@@ -7,8 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-from datetime import datetime, timedelta
-from datetime import date
+from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from .models import *
 from django.db.models import Q
@@ -182,7 +181,25 @@ def salva_simulazione(request):
         else:
             # scrittura sul db nella tabella CAPACITA_SIMULATE
             for recapitista, righe_tabella in capacita_json.items():
+                regioneprovincia_precedente = None
                 for singola_riga in righe_tabella:
+                    regioneprovincia_corrente = recapitista+singola_riga['cod_sigla_provincia']
+                    if regioneprovincia_precedente != regioneprovincia_corrente and regioneprovincia_precedente != None:
+                        # capacità di default da aggiungere ad ogni recapitista-regione-provincia
+                        table_capacita_simulate.objects.create(
+                            UNIFIED_DELIVERY_DRIVER = recapitista,
+                            ACTIVATION_DATE_FROM = datetime.strptime(activation_date_from_default_capacity+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
+                            ACTIVATION_DATE_TO = None,
+                            CAPACITY = capacity_corrente_prima_settimana,
+                            SUM_WEEKLY_ESTIMATE = 0,
+                            REGIONE = singola_riga['regione'],
+                            COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
+                            PRODUCT_890 = False,
+                            PRODUCT_AR = False,
+                            LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
+                            SIMULAZIONE_ID = id_simulazione_salvata
+                        )
+
                     table_capacita_simulate.objects.create(
                         UNIFIED_DELIVERY_DRIVER = recapitista,
                         ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
@@ -196,6 +213,12 @@ def salva_simulazione(request):
                         LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
                         SIMULAZIONE_ID = id_simulazione_salvata
                     )
+
+                    regioneprovincia_precedente = regioneprovincia_corrente
+                    if regioneprovincia_precedente != regioneprovincia_corrente:
+                        # per default capacity, come capacità prendiamo quella della prima settimana per quel recapitista-regione-provincia e come activation date from prendiamo la seconda settimana del mese successivo
+                        capacity_corrente_prima_settimana = singola_riga['capacita']
+                        activation_date_from_default_capacity = get_second_monday_mese_successivo(singola_riga['inizioPeriodoValidita'])
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
@@ -417,7 +440,30 @@ def get_mesi_distinct():
             data_formattata = datetime.strptime(row[0], '%Y-%m').date().strftime("%B %Y").capitalize()
             lista_mesi.append((row[0],data_formattata))
         return lista_mesi #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
-    
+
+
+def get_second_monday_mese_successivo(data_string):
+    # from string to datetime
+    d = datetime.strptime(data_string, "%Y-%m-%d")
+    # aumentiamo il mese di 1
+    if d.month == 12:
+        anno = d.year + 1
+        mese = 1
+    else:
+        anno = d.year
+        mese = d.month + 1
+    # primo giorno del mese successivo
+    first = date(anno, mese, 1)
+    # giorno della settimana (lunedì=0, ... domenica=6)
+    weekday = first.weekday()
+    # calcoliamo quanto manca al primo lunedì
+    giorni_fino_lunedi = (7 - weekday) % 7
+    # recuperiamo il primo lunedì
+    primo_lunedi = first + timedelta(days=giorni_fino_lunedi)
+    # recuperiamo il secondo lunedì
+    secondo_lunedi = (primo_lunedi + timedelta(days=7)).strftime("%Y-%m-%d")
+    return secondo_lunedi
+
 
 # ERROR PAGES
 def handle_error_400(request, exception):
