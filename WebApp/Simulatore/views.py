@@ -17,6 +17,7 @@ from django.http import JsonResponse
 import psycopg2
 from django.db import connection
 from django.utils import timezone
+from zoneinfo import ZoneInfo
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -192,6 +193,7 @@ def salva_simulazione(request):
                         COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
                         PRODUCT_890 = True if '890' in singola_riga['product'] else False,
                         PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
+                        LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
                         SIMULAZIONE_ID = id_simulazione_salvata
                     )
 
