@@ -430,49 +430,25 @@ def crea_istanza_eventbridge_scheduler(request):
     from datetime import datetime, timedelta
     import json
 
-    region = "eu-south-1"
+    ec2 = boto3.client('ec2', region_name='eu-south-1')
     
-    print("=== TEST CONNETTIVITÀ EVENTBRIDGE SCHEDULER ===")
+    response = ec2.describe_instances(InstanceIds=['i-01c32e684b8964845'])
+    vpc_id = response['Reservations'][0]['Instances'][0]['VpcId']
+    print(f"VPC ID: {vpc_id}")
     
-    try:
-        hostname = f'scheduler.{region}.amazonaws.com'
-        ip = socket.gethostbyname(hostname)
-        print(f"DNS risolto: {hostname} -> {ip}")
+    response = ec2.describe_vpc_endpoints(
+        Filters=[{'Name': 'service-name', 'Values': ['com.amazonaws.eu-south-1.scheduler']}]
+    )
+    
+    if response['VpcEndpoints']:
+        endpoint = response['VpcEndpoints'][0]
+        print(f"VPC Endpoint Subnets: {endpoint['SubnetIds']}")
         
-        if ip.startswith('10.') or ip.startswith('172.') or ip.startswith('192.168.'):
-            print("Si connette al VPC Endpoint (IP privato)")
-        else:
-            print("Si connette a Internet pubblico")
-            
-    except Exception as e:
-        print(f"DNS fallito: {e}")
-        return False
-    
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5)
-        result = sock.connect_ex((ip, 443))
-        sock.close()
-        
-        if result == 0:
-            print("Connessione TCP alla porta 443: OK")
-        else:
-            print(f"Connessione TCP fallita: codice {result}")
-            return False
-            
-    except Exception as e:
-        print(f"Connessione TCP fallita: {e}")
-        return False
-    
-    try:
-        client = boto3.client("scheduler", region_name=region)
-        response = client.list_schedule_groups()
-        print("Test API call: OK")
-        print("\nLa connettività di base funziona!")
-        
-    except Exception as e:
-        print(f"Test API call fallito: {e}")
-        print("\nProblema di connettività di base.")
+        for subnet_id in endpoint['SubnetIds']:
+            subnet_info = ec2.describe_subnets(SubnetIds=[subnet_id])
+            cidr = subnet_info['Subnets'][0]['CidrBlock']
+            az = subnet_info['Subnets'][0]['AvailabilityZone']
+            print(f"  - {subnet_id}: {cidr} ({az})")
 
 
 
