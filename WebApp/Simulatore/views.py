@@ -422,36 +422,6 @@ def get_mesi_distinct():
 def crea_istanza_eventbridge_scheduler(request):
     import boto3
 
-    import socket
-
-    import boto3
-    import socket
-    import requests
-    from datetime import datetime, timedelta
-    import json
-
-    ec2 = boto3.client('ec2', region_name='eu-south-1')
-    
-    response = ec2.describe_instances(InstanceIds=['i-00c32e684b8964845'])
-    vpc_id = response['Reservations'][0]['Instances'][0]['VpcId']
-    print(f"VPC ID: {vpc_id}")
-    
-    response = ec2.describe_vpc_endpoints(
-        Filters=[{'Name': 'service-name', 'Values': ['com.amazonaws.eu-south-1.scheduler']}]
-    )
-    
-    if response['VpcEndpoints']:
-        endpoint = response['VpcEndpoints'][0]
-        print(f"VPC Endpoint Subnets: {endpoint['SubnetIds']}")
-        
-        for subnet_id in endpoint['SubnetIds']:
-            subnet_info = ec2.describe_subnets(SubnetIds=[subnet_id])
-            cidr = subnet_info['Subnets'][0]['CidrBlock']
-            az = subnet_info['Subnets'][0]['AvailabilityZone']
-            print(f"  - {subnet_id}: {cidr} ({az})")
-
-
-
     ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
     region = "eu-south-1"
     role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
