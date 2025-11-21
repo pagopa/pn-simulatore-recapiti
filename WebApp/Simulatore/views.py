@@ -438,7 +438,7 @@ def crea_istanza_eventbridge_scheduler(request):
     }
 
 
-    schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=3)).replace(microsecond=0).isoformat()
+    schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=3)).astimezone(timezone.utc).replace(microsecond=0).isoformat()
 
     schedule_name = f"pn-simulatore-recapiti-TestStartStepFunction-20251120"
 
