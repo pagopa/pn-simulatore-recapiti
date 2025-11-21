@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from .models import *
@@ -16,7 +16,6 @@ from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 import psycopg2
 from django.db import connection
-from django.utils import timezone
 from zoneinfo import ZoneInfo
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
@@ -27,7 +26,7 @@ def homepage(request):
     
     for singola_simulazione in lista_simulazioni:
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= timezone.now():
+        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")):
             singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
