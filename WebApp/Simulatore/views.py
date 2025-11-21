@@ -432,7 +432,7 @@ def crea_istanza_eventbridge_scheduler(request):
 
     ec2 = boto3.client('ec2', region_name='eu-south-1')
     
-    response = ec2.describe_instances(InstanceIds=['i-01c32e684b8964845'])
+    response = ec2.describe_instances(InstanceIds=['i-00c32e684b8964845'])
     vpc_id = response['Reservations'][0]['Instances'][0]['VpcId']
     print(f"VPC ID: {vpc_id}")
     
