@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from .models import *
 from django.db.models import Q
@@ -15,8 +15,8 @@ from django.db.models.functions import TruncMonth
 from django.http import JsonResponse
 import psycopg2
 from django.db import connection
-from django.utils import timezone
 from zoneinfo import ZoneInfo
+import boto3
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -26,7 +26,7 @@ def homepage(request):
     
     for singola_simulazione in lista_simulazioni:
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= timezone.now():
+        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")):
             singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
@@ -102,7 +102,7 @@ def salva_simulazione(request):
     descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
         if request.POST['inlineRadioOptions'] == 'now':
-            timestamp_esecuzione = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp_esecuzione = datetime.now(ZoneInfo("Europe/Rome")).strftime("%Y-%m-%d %H:%M:%S")
             tipo_trigger = 'Now'
         elif request.POST['inlineRadioOptions'] == 'schedule':
             timestamp_esecuzione = request.POST['schedule_datetime']
@@ -136,6 +136,7 @@ def salva_simulazione(request):
 
     # NUOVA SIMULAZIONE o new_from_old
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
+        # salvataggio nuova simulazione sul DB
         id_simulazione_salvata = table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
@@ -146,10 +147,37 @@ def salva_simulazione(request):
             TIPO_CAPACITA = tipo_capacita_da_modificare,
             TIPO_SIMULAZIONE = tipo_simulazione
         )
+        # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
+        settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+        client = boto3.client("scheduler", region_name="eu-south-1")
+        # parametri da passare alla step function
+        payload = {
+            "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+            "id_simulazione_manuale": str(id_simulazione_salvata.ID),
+            "tipo_simulazione": "Manuale"
+        }
+        if tipo_trigger=='Now':
+            schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+        else:
+            schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+        schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione_salvata.ID}"
+        response = client.create_schedule(
+            Name=schedule_name,
+            ScheduleExpression=f"at({schedule_time})",
+            FlexibleTimeWindow={"Mode": "OFF"},
+            Target={
+                "Arn": STEP_FUNCTION_ARN,
+                "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
+                "Input": json.dumps(payload),
+            },
+            ActionAfterCompletion="DELETE"
+        ) 
 
     # MODIFICA SIMULAZIONE
     else:
+        # modifica simulazione sul DB
         simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
+        stato_precedente = simulazione_da_modificare.STATO
         simulazione_da_modificare.NOME = nome_simulazione
         simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
         simulazione_da_modificare.STATO = stato
@@ -160,6 +188,33 @@ def salva_simulazione(request):
         simulazione_da_modificare.TIPO_SIMULAZIONE = tipo_simulazione
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
+
+        if stato_precedente == 'Schedulata':
+            # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
+            settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+            client = boto3.client("scheduler", region_name="eu-south-1")
+            # parametri da passare alla step function
+            payload = {
+                "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+                "id_simulazione_manuale": str(id_simulazione_salvata.ID),
+                "tipo_simulazione": "Manuale"
+            }
+            if tipo_trigger=='Now':
+                schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+            else:
+                schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+            schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione_salvata.ID}"
+            response = client.update_schedule(
+                Name=schedule_name,
+                ScheduleExpression=f"at({schedule_time})",
+                FlexibleTimeWindow={"Mode": "OFF"},
+                Target={
+                    "Arn": STEP_FUNCTION_ARN,
+                    "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
+                    "Input": json.dumps(payload),
+                },
+                ActionAfterCompletion="DELETE"
+            ) 
         
 
     # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
@@ -226,6 +281,14 @@ def salva_simulazione(request):
         return redirect("home")
 
 def rimuovi_simulazione(request, id_simulazione):
+    # rimozione trigger eventbridge scheduler presente 
+    client = boto3.client("scheduler", region_name="eu-south-1")
+    try:
+        schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione}"
+        client.delete_schedule(Name=schedule_name)
+    except:
+        pass
+
     # il try-catch serve per 2 motivi: 1)evitare che .get non trovi nulla dando errore 2)evitare che .delete() non trovi nulla dando errore
     try:
         simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
@@ -464,6 +527,15 @@ def get_second_monday_mese_successivo(data_string):
     secondo_lunedi = (primo_lunedi + timedelta(days=7)).strftime("%Y-%m-%d")
     return secondo_lunedi
 
+def get_first_monday_mese_corrente(data_string):
+    # from string to datetime
+    dt = datetime.strptime(data_string, "%Y-%m-%d")
+    # prendiamo il primo giorno del mese
+    first_day = datetime(dt.year, dt.month, 1)
+    # giorno della settimana (lunedì=0, ... domenica=6)
+    offset = (0 - first_day.weekday()) % 7
+    first_monday = first_day + timedelta(days=offset)
+    return first_monday
 
 # ERROR PAGES
 def handle_error_400(request, exception):
