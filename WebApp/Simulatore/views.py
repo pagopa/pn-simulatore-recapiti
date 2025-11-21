@@ -424,18 +424,57 @@ def crea_istanza_eventbridge_scheduler(request):
 
     import socket
 
+    import boto3
+    import socket
+    import requests
+    from datetime import datetime, timedelta
+    import json
+
+    region = "eu-south-1"
+    
+    print("=== TEST CONNETTIVITÀ EVENTBRIDGE SCHEDULER ===")
+    
     try:
-        # Test connessione a EventBridge Scheduler
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(3)
-        result = sock.connect_ex(('scheduler.eu-south-1.amazonaws.com', 443))
-        if result == 0:
-            print("Connessione a EventBridge Scheduler: OK")
+        hostname = f'scheduler.{region}.amazonaws.com'
+        ip = socket.gethostbyname(hostname)
+        print(f"DNS risolto: {hostname} -> {ip}")
+        
+        if ip.startswith('10.') or ip.startswith('172.') or ip.startswith('192.168.'):
+            print("Si connette al VPC Endpoint (IP privato)")
         else:
-            print(f"Connessione a EventBridge Scheduler fallita: {result}")
-        sock.close()
+            print("Si connette a Internet pubblico")
+            
     except Exception as e:
-        print(f"Errore test connessione: {e}")
+        print(f"DNS fallito: {e}")
+        return False
+    
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5)
+        result = sock.connect_ex((ip, 443))
+        sock.close()
+        
+        if result == 0:
+            print("Connessione TCP alla porta 443: OK")
+        else:
+            print(f"Connessione TCP fallita: codice {result}")
+            return False
+            
+    except Exception as e:
+        print(f"Connessione TCP fallita: {e}")
+        return False
+    
+    try:
+        client = boto3.client("scheduler", region_name=region)
+        response = client.list_schedule_groups()
+        print("Test API call: OK")
+        print("\nLa connettività di base funziona!")
+        
+    except Exception as e:
+        print(f"Test API call fallito: {e}")
+        print("\nProblema di connettività di base.")
+
+
 
     ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
     region = "eu-south-1"
