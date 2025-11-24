@@ -26,7 +26,7 @@ def homepage(request):
     
     for singola_simulazione in lista_simulazioni:
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")):
+        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
             singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
@@ -147,6 +147,7 @@ def salva_simulazione(request):
             TIPO_CAPACITA = tipo_capacita_da_modificare,
             TIPO_SIMULAZIONE = tipo_simulazione
         )
+        
         # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
         settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
         client = boto3.client("scheduler", region_name="eu-south-1")
@@ -172,6 +173,7 @@ def salva_simulazione(request):
             },
             ActionAfterCompletion="DELETE"
         ) 
+        
 
     # MODIFICA SIMULAZIONE
     else:
@@ -188,7 +190,7 @@ def salva_simulazione(request):
         simulazione_da_modificare.TIPO_SIMULAZIONE = tipo_simulazione
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
-
+        
         if stato_precedente == 'Schedulata':
             # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
             settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
@@ -239,13 +241,14 @@ def salva_simulazione(request):
                 regioneprovincia_precedente = None
                 for singola_riga in righe_tabella:
                     regioneprovincia_corrente = recapitista+singola_riga['cod_sigla_provincia']
-                    if regioneprovincia_precedente != regioneprovincia_corrente and regioneprovincia_precedente != None:
+                    if regioneprovincia_precedente != regioneprovincia_corrente:
+                        activation_date_from_default_capacity = get_second_monday_mese_successivo(singola_riga['inizioPeriodoValidita'])
                         # capacità di default da aggiungere ad ogni recapitista-regione-provincia
                         table_capacita_simulate.objects.create(
                             UNIFIED_DELIVERY_DRIVER = recapitista,
                             ACTIVATION_DATE_FROM = datetime.strptime(activation_date_from_default_capacity+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
                             ACTIVATION_DATE_TO = None,
-                            CAPACITY = capacity_corrente_prima_settimana,
+                            CAPACITY = singola_riga['capacita'], # per default capacity, come capacità prendiamo quella della prima settimana per quel recapitista-regione-provincia e come activation date from prendiamo la seconda settimana del mese successivo
                             SUM_WEEKLY_ESTIMATE = 0,
                             REGIONE = singola_riga['regione'],
                             COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
@@ -268,12 +271,8 @@ def salva_simulazione(request):
                         LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
                         SIMULAZIONE_ID = id_simulazione_salvata
                     )
-
+                    
                     regioneprovincia_precedente = regioneprovincia_corrente
-                    if regioneprovincia_precedente != regioneprovincia_corrente:
-                        # per default capacity, come capacità prendiamo quella della prima settimana per quel recapitista-regione-provincia e come activation date from prendiamo la seconda settimana del mese successivo
-                        capacity_corrente_prima_settimana = singola_riga['capacita']
-                        activation_date_from_default_capacity = get_second_monday_mese_successivo(singola_riga['inizioPeriodoValidita'])
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
@@ -462,11 +461,6 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                     'original_capacity': original_capacity
                 }
             )
-
-    '''
-    STRUTTURA lista_capacita_finali:
-    
-    '''
     return JsonResponse({'context': lista_capacita_finali})
 
 
@@ -507,7 +501,7 @@ def get_mesi_distinct():
 
 def get_second_monday_mese_successivo(data_string):
     # from string to datetime
-    d = datetime.strptime(data_string, "%Y-%m-%d")
+    d = datetime.strptime(data_string, "%d/%m/%Y")
     # aumentiamo il mese di 1
     if d.month == 12:
         anno = d.year + 1
@@ -524,7 +518,7 @@ def get_second_monday_mese_successivo(data_string):
     # recuperiamo il primo lunedì
     primo_lunedi = first + timedelta(days=giorni_fino_lunedi)
     # recuperiamo il secondo lunedì
-    secondo_lunedi = (primo_lunedi + timedelta(days=7)).strftime("%Y-%m-%d")
+    secondo_lunedi = (primo_lunedi + timedelta(days=7)).strftime("%d/%m/%Y")
     return secondo_lunedi
 
 def get_first_monday_mese_corrente(data_string):
