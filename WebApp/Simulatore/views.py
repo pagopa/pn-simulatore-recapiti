@@ -149,30 +149,7 @@ def salva_simulazione(request):
         )
         
         # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
-        settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
-        client = boto3.client("scheduler", region_name="eu-south-1")
-        # parametri da passare alla step function
-        payload = {
-            "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
-            "id_simulazione_manuale": str(id_simulazione_salvata.ID),
-            "tipo_simulazione": "Manuale"
-        }
-        if tipo_trigger=='Now':
-            schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
-        else:
-            schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
-        schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione_salvata.ID}"
-        response = client.create_schedule(
-            Name=schedule_name,
-            ScheduleExpression=f"at({schedule_time})",
-            FlexibleTimeWindow={"Mode": "OFF"},
-            Target={
-                "Arn": STEP_FUNCTION_ARN,
-                "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
-                "Input": json.dumps(payload),
-            },
-            ActionAfterCompletion="DELETE"
-        ) 
+        create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
         
 
     # MODIFICA SIMULAZIONE
@@ -194,35 +171,16 @@ def salva_simulazione(request):
         if stato_precedente == 'Schedulata':
             if stato == 'Schedulata':
                 # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
-                settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
-                client = boto3.client("scheduler", region_name="eu-south-1")
-                # parametri da passare alla step function
-                payload = {
-                    "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
-                    "id_simulazione_manuale": str(id_simulazione_salvata.ID),
-                    "tipo_simulazione": "Manuale"
-                }
-                if tipo_trigger=='Now':
-                    schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
-                else:
-                    schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
-                schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione_salvata.ID}"
-                response = client.update_schedule(
-                    Name=schedule_name,
-                    ScheduleExpression=f"at({schedule_time})",
-                    FlexibleTimeWindow={"Mode": "OFF"},
-                    Target={
-                        "Arn": STEP_FUNCTION_ARN,
-                        "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
-                        "Input": json.dumps(payload),
-                    },
-                    ActionAfterCompletion="DELETE"
-                ) 
+                edit_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
 
             elif stato == 'Bozza':
                 # rimozione trigger eventbridge scheduler presente
                 remove_trigger_eventbridge_scheduler(id_simulazione_salvata.ID)
 
+        elif stato_precedente == 'Bozza':
+            if stato == 'Schedulata':
+                # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
+                create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
         
 
     # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
@@ -532,6 +490,60 @@ def get_first_monday_mese_corrente(data_string):
     first_monday = first_day + timedelta(days=offset)
     return str(first_monday.date())
 
+
+
+def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
+    settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+    client = boto3.client("scheduler", region_name="eu-south-1")
+    # parametri da passare alla step function
+    payload = {
+        "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+        "id_simulazione_manuale": str(id_simulazione),
+        "tipo_simulazione": "Manuale"
+    }
+    if tipo_trigger=='Now':
+        schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+    else:
+        schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+    schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione}"
+    response = client.create_schedule(
+        Name=schedule_name,
+        ScheduleExpression=f"at({schedule_time})",
+        FlexibleTimeWindow={"Mode": "OFF"},
+        Target={
+            "Arn": STEP_FUNCTION_ARN,
+            "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
+            "Input": json.dumps(payload),
+        },
+        ActionAfterCompletion="DELETE"
+    ) 
+
+
+def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
+    settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+    client = boto3.client("scheduler", region_name="eu-south-1")
+    # parametri da passare alla step function
+    payload = {
+        "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+        "id_simulazione_manuale": str(id_simulazione),
+        "tipo_simulazione": "Manuale"
+    }
+    if tipo_trigger=='Now':
+        schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+    else:
+        schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+    schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione}"
+    response = client.update_schedule(
+        Name=schedule_name,
+        ScheduleExpression=f"at({schedule_time})",
+        FlexibleTimeWindow={"Mode": "OFF"},
+        Target={
+            "Arn": STEP_FUNCTION_ARN,
+            "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
+            "Input": json.dumps(payload),
+        },
+        ActionAfterCompletion="DELETE"
+    )
 
 def remove_trigger_eventbridge_scheduler(id_simulazione):
     client = boto3.client("scheduler", region_name="eu-south-1")
