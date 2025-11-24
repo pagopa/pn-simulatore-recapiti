@@ -148,8 +148,9 @@ def salva_simulazione(request):
             TIPO_SIMULAZIONE = tipo_simulazione
         )
         
-        # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
-        create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+        if stato != 'Bozza':
+            # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
+            create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
         
 
     # MODIFICA SIMULAZIONE
