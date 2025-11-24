@@ -535,7 +535,7 @@
                                     `;
                         // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
                         resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
-                            if(singola_capacity.production_capacity != null || singola_capacity.production_capacity == 0){
+                            if(singola_capacity.production_capacity != null || singola_capacity.production_capacity != 0){
                                 production_capacity = singola_capacity.production_capacity;
                             }else{
                                 production_capacity = '-';
