@@ -7,8 +7,7 @@ import pandas as pd
 import numpy as np
 import os
 from PagoPA.settings import *
-from datetime import datetime, timedelta, timezone
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from .models import *
 from django.db.models import Q
@@ -17,6 +16,7 @@ from django.http import JsonResponse
 import psycopg2
 from django.db import connection
 from zoneinfo import ZoneInfo
+import boto3
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -26,7 +26,7 @@ def homepage(request):
     
     for singola_simulazione in lista_simulazioni:
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")):
+        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
             singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
@@ -102,7 +102,7 @@ def salva_simulazione(request):
     descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
         if request.POST['inlineRadioOptions'] == 'now':
-            timestamp_esecuzione = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp_esecuzione = datetime.now(ZoneInfo("Europe/Rome")).strftime("%Y-%m-%d %H:%M:%S")
             tipo_trigger = 'Now'
         elif request.POST['inlineRadioOptions'] == 'schedule':
             timestamp_esecuzione = request.POST['schedule_datetime']
@@ -136,6 +136,7 @@ def salva_simulazione(request):
 
     # NUOVA SIMULAZIONE o new_from_old
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
+        # salvataggio nuova simulazione sul DB
         id_simulazione_salvata = table_simulazione.objects.create(
             NOME = nome_simulazione,
             DESCRIZIONE = descrizione_simulazione,
@@ -146,10 +147,39 @@ def salva_simulazione(request):
             TIPO_CAPACITA = tipo_capacita_da_modificare,
             TIPO_SIMULAZIONE = tipo_simulazione
         )
+        
+        # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
+        settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+        client = boto3.client("scheduler", region_name="eu-south-1")
+        # parametri da passare alla step function
+        payload = {
+            "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+            "id_simulazione_manuale": str(id_simulazione_salvata.ID),
+            "tipo_simulazione": "Manuale"
+        }
+        if tipo_trigger=='Now':
+            schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+        else:
+            schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+        schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione_salvata.ID}"
+        response = client.create_schedule(
+            Name=schedule_name,
+            ScheduleExpression=f"at({schedule_time})",
+            FlexibleTimeWindow={"Mode": "OFF"},
+            Target={
+                "Arn": STEP_FUNCTION_ARN,
+                "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
+                "Input": json.dumps(payload),
+            },
+            ActionAfterCompletion="DELETE"
+        ) 
+        
 
     # MODIFICA SIMULAZIONE
     else:
+        # modifica simulazione sul DB
         simulazione_da_modificare = table_simulazione.objects.get(ID = request.POST['id_simulazione'])
+        stato_precedente = simulazione_da_modificare.STATO
         simulazione_da_modificare.NOME = nome_simulazione
         simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
         simulazione_da_modificare.STATO = stato
@@ -160,6 +190,33 @@ def salva_simulazione(request):
         simulazione_da_modificare.TIPO_SIMULAZIONE = tipo_simulazione
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
+        
+        if stato_precedente == 'Schedulata':
+            # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
+            settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+            client = boto3.client("scheduler", region_name="eu-south-1")
+            # parametri da passare alla step function
+            payload = {
+                "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+                "id_simulazione_manuale": str(id_simulazione_salvata.ID),
+                "tipo_simulazione": "Manuale"
+            }
+            if tipo_trigger=='Now':
+                schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=2)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+            else:
+                schedule_time = timestamp_esecuzione.astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
+            schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione_salvata.ID}"
+            response = client.update_schedule(
+                Name=schedule_name,
+                ScheduleExpression=f"at({schedule_time})",
+                FlexibleTimeWindow={"Mode": "OFF"},
+                Target={
+                    "Arn": STEP_FUNCTION_ARN,
+                    "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
+                    "Input": json.dumps(payload),
+                },
+                ActionAfterCompletion="DELETE"
+            ) 
         
 
     # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
@@ -181,7 +238,26 @@ def salva_simulazione(request):
         else:
             # scrittura sul db nella tabella CAPACITA_SIMULATE
             for recapitista, righe_tabella in capacita_json.items():
+                regioneprovincia_precedente = None
                 for singola_riga in righe_tabella:
+                    regioneprovincia_corrente = recapitista+singola_riga['cod_sigla_provincia']
+                    if regioneprovincia_precedente != regioneprovincia_corrente:
+                        activation_date_from_default_capacity = get_second_monday_mese_successivo(singola_riga['inizioPeriodoValidita'])
+                        # capacità di default da aggiungere ad ogni recapitista-regione-provincia
+                        table_capacita_simulate.objects.create(
+                            UNIFIED_DELIVERY_DRIVER = recapitista,
+                            ACTIVATION_DATE_FROM = datetime.strptime(activation_date_from_default_capacity+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
+                            ACTIVATION_DATE_TO = None,
+                            CAPACITY = singola_riga['capacita'], # per default capacity, come capacità prendiamo quella della prima settimana per quel recapitista-regione-provincia e come activation date from prendiamo la seconda settimana del mese successivo
+                            SUM_WEEKLY_ESTIMATE = 0,
+                            REGIONE = singola_riga['regione'],
+                            COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
+                            PRODUCT_890 = False,
+                            PRODUCT_AR = False,
+                            LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
+                            SIMULAZIONE_ID = id_simulazione_salvata
+                        )
+
                     table_capacita_simulate.objects.create(
                         UNIFIED_DELIVERY_DRIVER = recapitista,
                         ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
@@ -192,8 +268,11 @@ def salva_simulazione(request):
                         COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
                         PRODUCT_890 = True if '890' in singola_riga['product'] else False,
                         PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
+                        LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
                         SIMULAZIONE_ID = id_simulazione_salvata
                     )
+                    
+                    regioneprovincia_precedente = regioneprovincia_corrente
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
@@ -201,6 +280,14 @@ def salva_simulazione(request):
         return redirect("home")
 
 def rimuovi_simulazione(request, id_simulazione):
+    # rimozione trigger eventbridge scheduler presente 
+    client = boto3.client("scheduler", region_name="eu-south-1")
+    try:
+        schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione}"
+        client.delete_schedule(Name=schedule_name)
+    except:
+        pass
+
     # il try-catch serve per 2 motivi: 1)evitare che .get non trovi nulla dando errore 2)evitare che .delete() non trovi nulla dando errore
     try:
         simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
@@ -315,8 +402,8 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = True
         else:
-            # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input)
-            lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
+            # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input). Nota: escludiamo gli ACTIVATION_DATE_TO nulli inseriti nella prima fase di creazione della simulazione per capacità di default
+            lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).exclude(ACTIVATION_DATE_TO__isnull=True).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = False
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
@@ -374,11 +461,6 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                     'original_capacity': original_capacity
                 }
             )
-
-    '''
-    STRUTTURA lista_capacita_finali:
-    
-    '''
     return JsonResponse({'context': lista_capacita_finali})
 
 
@@ -417,50 +499,37 @@ def get_mesi_distinct():
         return lista_mesi #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
 
 
+def get_second_monday_mese_successivo(data_string):
+    # from string to datetime
+    d = datetime.strptime(data_string, "%d/%m/%Y")
+    # aumentiamo il mese di 1
+    if d.month == 12:
+        anno = d.year + 1
+        mese = 1
+    else:
+        anno = d.year
+        mese = d.month + 1
+    # primo giorno del mese successivo
+    first = date(anno, mese, 1)
+    # giorno della settimana (lunedì=0, ... domenica=6)
+    weekday = first.weekday()
+    # calcoliamo quanto manca al primo lunedì
+    giorni_fino_lunedi = (7 - weekday) % 7
+    # recuperiamo il primo lunedì
+    primo_lunedi = first + timedelta(days=giorni_fino_lunedi)
+    # recuperiamo il secondo lunedì
+    secondo_lunedi = (primo_lunedi + timedelta(days=7)).strftime("%d/%m/%Y")
+    return secondo_lunedi
 
-
-def crea_istanza_eventbridge_scheduler(request):
-    import boto3
-
-    ####### PAGINA PROVVISORIA PER TEST CREAZIONE ISTANZA EVENTBRIDGE SCHEDULER #######
-    region = "eu-south-1"
-    role_arn = "arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole"
-    step_function_arn = "arn:aws:states:eu-south-1:830192246553:stateMachine:pn-simulatore-recapiti-StateMachine01"
-
-    # parametri da passare
-    payload = {
-        "mese_simulazione": "2025-10-06",
-        "id_simulazione_manuale": "",
-        "tipo_simulazione": "Automatizzata",
-        "import_data": 0,
-        "delete_data": 0
-    }
-
-
-    schedule_time = (datetime.now(ZoneInfo("Europe/Rome")) + timedelta(minutes=3)).astimezone(timezone.utc).replace(tzinfo=None).replace(microsecond=0).isoformat()
-
-    schedule_name = f"pn-simulatore-recapiti-TestStartStepFunction-20251121"
-
-    client = boto3.client("scheduler", region_name=region)
-
-    # creazione scheduler one-shot che avvia la Step Function
-    response = client.create_schedule(
-        Name=schedule_name,
-        ScheduleExpression=f"at({schedule_time})",
-        FlexibleTimeWindow={"Mode": "OFF"},
-        Target={
-            "Arn": step_function_arn,
-            "RoleArn": role_arn,
-            "Input": json.dumps(payload),
-        },
-        ActionAfterCompletion="DELETE"
-    )
-
-
-    return redirect("status")
-
-
-
+def get_first_monday_mese_corrente(data_string):
+    # from string to datetime
+    dt = datetime.strptime(data_string, "%Y-%m-%d")
+    # prendiamo il primo giorno del mese
+    first_day = datetime(dt.year, dt.month, 1)
+    # giorno della settimana (lunedì=0, ... domenica=6)
+    offset = (0 - first_day.weekday()) % 7
+    first_monday = first_day + timedelta(days=offset)
+    return first_monday
 
 # ERROR PAGES
 def handle_error_400(request, exception):

@@ -48,6 +48,7 @@ class table_capacita_simulate(models.Model):
             models.Index(fields=['COD_SIGLA_PROVINCIA'], name='indice_cod_sigla_provincia'),
             models.Index(fields=['CAPACITY'], name='indice_capacity'),
             models.Index(fields=['REGIONE'], name='indice_regione'),
+            models.Index(fields=['LAST_UPDATE_TIMESTAMP'], name='indice_last_update_timestamp_3')
         ]
     
 class table_capacita_simulate_delta(models.Model):

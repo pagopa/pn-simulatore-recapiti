@@ -33,9 +33,6 @@ urlpatterns = [
     path('', include('Simulatore.urls')),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
 
-    # pagina provvisoria per eventbridge scheduler
-    path('crea_istanza_eventbridge_scheduler', crea_istanza_eventbridge_scheduler, name='crea_istanza_eventbridge_scheduler'),
-
     # pagine provvisorie per caricamento e rimozione dati db
     path('carica_dati_db', carica_dati_db, name='carica_dati_db'),
     path('svuota_tabelle_db', svuota_tabelle_db, name='svuota_tabelle_db'),
