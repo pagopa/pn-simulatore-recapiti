@@ -529,7 +529,7 @@ def get_first_monday_mese_corrente(data_string):
     # giorno della settimana (lunedì=0, ... domenica=6)
     offset = (0 - first_day.weekday()) % 7
     first_monday = first_day + timedelta(days=offset)
-    return first_monday
+    return str(first_monday.date())
 
 # ERROR PAGES
 def handle_error_400(request, exception):
