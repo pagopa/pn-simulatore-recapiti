@@ -11,7 +11,7 @@ class table_simulazione(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     NOME = models.CharField(max_length=50, null=True)
     DESCRIZIONE = models.TextField(null=True)
-    STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata]
+    STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata, Bozza]
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
     TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)
     MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)
