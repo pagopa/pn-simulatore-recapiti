@@ -493,20 +493,23 @@ def get_mesi_distinct():
 
 
 
-def get_first_monday_mese_corrente(data_string):
+def get_first_week_parameter_for_step_function(data_string):
     # from string to datetime
-    dt = datetime.strptime(data_string, "%Y-%m-%d")
+    dt = datetime.strptime(data_string, "%Y-%m")
     # prendiamo il primo giorno del mese
     first_day = datetime(dt.year, dt.month, 1)
     # giorno della settimana (lunedì=0, ... domenica=6)
     offset = (0 - first_day.weekday()) % 7
+    # ATTENZIONE: se il primo giorno del mese è lunedì prendiamo come prima settimana utile il secondo lunedì del mese
+    if first_day.weekday()==0:
+        offset += 7
     first_monday = first_day + timedelta(days=offset)
     return str(first_monday.date())
 
 
 
 def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
-    settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+    settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
     client = boto3.client("scheduler", region_name="eu-south-1")
     # parametri da passare alla step function
     payload = {
@@ -533,7 +536,7 @@ def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_
 
 
 def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
-    settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+    settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
     client = boto3.client("scheduler", region_name="eu-south-1")
     # parametri da passare alla step function
     payload = {

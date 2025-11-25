@@ -166,4 +166,4 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # variabili d'ambiente per creazione trigger eventbridge scheduler
 ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN = os.getenv('ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN', 'arn:aws:iam::830192246553:role/pn-simulatore-recapiti-TaskRole')
-STEP_FUNCTION_ARN = os.getenv('STEP_FUNCTION_ARN', 'arn:aws:states:eu-south-1:830192246553:stateMachine:pn-simulatore-recapiti-StateMachine01')
+STEP_FUNCTION_ARN = os.getenv('STEP_FUNCTION_ARN', 'arn:aws:states:eu-south-1:830192246553:stateMachine:pn-simulatore-recapiti-GestioneSimulazione')
