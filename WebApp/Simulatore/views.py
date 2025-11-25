@@ -209,11 +209,13 @@ def salva_simulazione(request):
                 recapregioneprovincia_precedente = None
                 postalizzazioni_settimanali_precedente = None
                 activation_date_from_precedente = None
+                product_precedente = None
                 for singola_riga in righe_tabella:
                     # aggiornamento dati iterazione precedente e corrente
                     recapregioneprovincia_corrente = recapitista+'__'+singola_riga['regione']+'__'+singola_riga['cod_sigla_provincia']
                     postalizzazioni_settimanali_corrente = singola_riga['postalizzazioni_settimanali']
                     activation_date_from_corrente = singola_riga['inizioPeriodoValidita']
+                    product_corrente = True if '890' in singola_riga['product'] else False
                     # cattura capacità reale prima settimana di recapitista-recione-provincia
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente or recapregioneprovincia_precedente == None:
                         capacita_reale_prima_settimana = singola_riga['capacita_reale']
@@ -225,8 +227,8 @@ def salva_simulazione(request):
                         sum_weekly_estimate = postalizzazioni_settimanali_precedente
                         regione = recapregioneprovincia_precedente.split('__')[1]
                         cod_sigla_provincia = recapregioneprovincia_precedente.split('__')[2]
-                        product_890 = False
-                        product_ar = False
+                        product_890 = product_precedente
+                        product_ar = product_precedente
                         simulazione_id = id_simulazione_salvata
                         add_new_capacita_simulata(recapregioneprovincia_precedente.split('__')[0],activation_date_from,activation_date_to,capacity,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
 
@@ -246,6 +248,7 @@ def salva_simulazione(request):
                     recapregioneprovincia_precedente = recapregioneprovincia_corrente
                     postalizzazioni_settimanali_precedente = postalizzazioni_settimanali_corrente
                     activation_date_from_precedente = activation_date_from_corrente
+                    product_precedente = product_corrente
                 
                 # capacità di default -> ultima riga prima di cambiare recapitista
                 activation_date_from = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7)
@@ -254,8 +257,8 @@ def salva_simulazione(request):
                 sum_weekly_estimate = singola_riga['postalizzazioni_settimanali']
                 regione = singola_riga['regione']
                 cod_sigla_provincia = singola_riga['cod_sigla_provincia']
-                product_890 = False
-                product_ar = False
+                product_890 = True if '890' in singola_riga['product'] else False
+                product_ar = True if 'AR' in singola_riga['product'] else False
                 simulazione_id = id_simulazione_salvata
                 add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
 
