@@ -819,6 +819,8 @@ function aggiungiRiga(button) {
     
     // Se esiste una riga precedente, clona i primi 3 valori, altrimenti crea campi vuoti
     const celleUltimaRiga = ultimaRigaOriginale.querySelectorAll('td');
+    let capacita_reale_ultima_riga = celleUltimaRiga[6].textContent.split(" ");
+    capacita_reale_ultima_riga = capacita_reale_ultima_riga[capacita_reale_ultima_riga.length -1]
     
     nuovaRiga.innerHTML = `
         <td>${celleUltimaRiga[0].textContent}</td>
@@ -827,7 +829,7 @@ function aggiungiRiga(button) {
         <td>0</td>
         <td><input type="date" class="form-control text-center input_inizioPeriodoValidita" onkeydown="return (event.keyCode!=13);"></td>
         <td><input type="date" class="form-control text-center input_finePeriodoValidita" onkeydown="return (event.keyCode!=13);"></td>
-        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="0" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px"></td>
+        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${capacita_reale_ultima_riga}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${capacita_reale_ultima_riga}</label></td>
         <td>-</td>
         <td></td> <!-- colonna alert vuota -->
         <td>
