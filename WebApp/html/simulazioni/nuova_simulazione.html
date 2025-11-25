@@ -535,7 +535,7 @@
                                     `;
                         // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
                         resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
-                            if(singola_capacity.production_capacity != null || singola_capacity.production_capacity != 0){
+                            if(singola_capacity.production_capacity != 0){
                                 production_capacity = singola_capacity.production_capacity;
                             }else{
                                 production_capacity = '-';
@@ -548,7 +548,7 @@
                                                         <td>${singola_capacity.post_weekly_estimate}</td>
                                                         <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
                                                         <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
-                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${singola_capacity.original_capacity}</label></td>
+                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: <span class="input_capacita_reale">${singola_capacity.original_capacity}</span></label></td>
                                                         <td>${production_capacity}</td>
                                                         <td></td>
                                                         <td></td>
@@ -629,6 +629,7 @@
         $('.accordion_recapitista').each(function() {
             let gruppo = $(this).data('group');
             data[gruppo] = [];
+            console.log(gruppo);
 
             $(this).find('tbody tr').each(function() {
                 let row = $(this);
@@ -642,7 +643,7 @@
                 } else{
                     valore_finePeriodoValidita = row.find('.input_finePeriodoValidita').val();
                 }
-                
+
                 let item = {
                     regione: row.find('td').eq(0).text().trim(),
                     cod_sigla_provincia: row.find('td').eq(1).text().trim(),
@@ -651,6 +652,7 @@
                     inizioPeriodoValidita: valore_inizioPeriodoValidita,
                     finePeriodoValidita: valore_finePeriodoValidita,
                     capacita: row.find('.input_capacita').val(),
+                    capacita_reale: row.find('.input_capacita_reale').text(),
                 };
                 data[gruppo].push(item);
             });
@@ -804,6 +806,7 @@ function aggiungiRiga(button) {
     // Trova la prima riga esistente per clonare i valori dei primi 3 campi
     const righeOriginali = tbody.querySelectorAll('tr:not(:has(.rimuovi-riga))');
     const ultimaRigaOriginale = righeOriginali[righeOriginali.length - 1];
+    const righeTotali = tbody.querySelectorAll('tr:has(.rimuovi-riga)');
     
     // Crea una nuova riga
     const nuovaRiga = document.createElement('tr');
@@ -816,7 +819,7 @@ function aggiungiRiga(button) {
         <td>${celleUltimaRiga[1].textContent}</td>
         <td>${celleUltimaRiga[2].textContent}</td>
         <td>0</td>
-        <td><input type="date" class="form-control text-center input_inizioPeriodoValidita" onkeydown="return (event.keyCode!=13);" min="01/01/2026"></td>
+        <td><input type="date" class="form-control text-center input_inizioPeriodoValidita" onkeydown="return (event.keyCode!=13);"></td>
         <td><input type="date" class="form-control text-center input_finePeriodoValidita" onkeydown="return (event.keyCode!=13);"></td>
         <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="0" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px"></td>
         <td>-</td>
@@ -834,7 +837,16 @@ function aggiungiRiga(button) {
     bottoneRimuovi.addEventListener('click', function() {
         nuovaRiga.remove();
     });
-    return [celleUltimaRiga[5].textContent,nuovaRiga]; // data fine ultima settimana da impostare come data minima in flatpickr
+
+    var data_fine_ultima_riga;
+    
+    if (righeTotali.length == 0){
+        data_fine_ultima_riga = celleUltimaRiga[5].textContent;
+    } else{
+        data_fine_ultima_riga = righeTotali[righeTotali.length - 1].querySelectorAll('td')[5].querySelector('input').value;
+    }
+
+    return [data_fine_ultima_riga,nuovaRiga]; // data fine ultima settimana da impostare come data minima in flatpickr
 }
 
 // Event listener per il bottone "Aggiungi riga"
@@ -862,30 +874,12 @@ document.addEventListener('click', function(e) {
     function inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga){
         const inputInizio = array_dataminima_nuovariga[1].querySelector('.input_inizioPeriodoValidita');
         const inputFine = array_dataminima_nuovariga[1].querySelector('.input_finePeriodoValidita');
-        const inizioPicker = flatpickr(inputInizio, {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            dateFormat: "d/m/Y",
-            minDate: array_dataminima_nuovariga[0],
-            onChange: function(selectedDates) {
-                const data_inizio = new Date(selectedDates[0]);
-                if (selectedDates.length > 0) {
-                    const data_fine = new Date(data_inizio.setDate(data_inizio.getDate() + 6))
-                    finePicker.set('minDate', data_fine);
-                    finePicker.set('maxDate', data_fine);
-                    finePicker.setDate(data_fine);
-                }
-            },
-            disable: [
-                function(date) {
-                    // abilitiamo solo i lunedì (1)
-                    return !(date.getDay() === 1);
-                }
-            ],
-        });
-
+        // convertiamo in Date (ricordiamo che i mesi partono da 0)
+        const data_split = array_dataminima_nuovariga[0].split('/');
+        const old_DateObj = new Date(data_split[2], data_split[1] - 1, data_split[0]);
+        // aggiungo 1 giorno
+        const defaultDateObj = new Date(old_DateObj);
+        defaultDateObj.setDate(defaultDateObj.getDate() + 1);
         const finePicker = flatpickr(inputFine, {
             // lunedì primo giorno della settimana
             locale: {
@@ -896,6 +890,31 @@ document.addEventListener('click', function(e) {
                 function(date) {
                     // abilitiamo solo le domeniche (0)
                     return !(date.getDay() === 0);
+                }
+            ],
+        });
+        const inizioPicker = flatpickr(inputInizio, {
+            // lunedì primo giorno della settimana
+            locale: {
+                firstDayOfWeek: 1
+            },
+            dateFormat: "d/m/Y",
+            minDate: array_dataminima_nuovariga[0],
+            maxDate: defaultDateObj,
+            defaultDate: defaultDateObj,
+            onReady: function(selectedDates) {
+                if (!selectedDates || selectedDates.length === 0) return;
+                const data_inizio = new Date(selectedDates[0]);
+                const data_fine = new Date(data_inizio);
+                data_fine.setDate(data_fine.getDate() + 6);
+                finePicker.set('minDate', data_fine);
+                finePicker.set('maxDate', data_fine);
+                finePicker.setDate(data_fine);
+            },
+            disable: [
+                function(date) {
+                    // abilitiamo solo i lunedì (1)
+                    return !(date.getDay() === 1);
                 }
             ],
         });
