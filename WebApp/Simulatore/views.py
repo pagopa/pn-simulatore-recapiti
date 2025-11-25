@@ -207,12 +207,14 @@ def salva_simulazione(request):
             for recapitista, righe_tabella in capacita_json.items():
                 # inizializzazione variabili che tengono conto dell'iterazione precedente per default capacity 
                 recapregioneprovincia_precedente = None
+                postalizzazioni_mensili_precedente = None
                 postalizzazioni_settimanali_precedente = None
                 activation_date_from_precedente = None
                 product_precedente = None
                 for singola_riga in righe_tabella:
                     # aggiornamento dati iterazione precedente e corrente
                     recapregioneprovincia_corrente = recapitista+'__'+singola_riga['regione']+'__'+singola_riga['cod_sigla_provincia']
+                    postalizzazioni_mensili_corrente = singola_riga['postalizzazioni_mensili']
                     postalizzazioni_settimanali_corrente = singola_riga['postalizzazioni_settimanali']
                     activation_date_from_corrente = singola_riga['inizioPeriodoValidita']
                     product_corrente = True if '890' in singola_riga['product'] else False
@@ -224,28 +226,31 @@ def salva_simulazione(request):
                         activation_date_from = datetime.strptime(activation_date_from_precedente+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7)
                         activation_date_to = None
                         capacity = capacita_reale_prima_settimana
+                        sum_monthly_estimate = postalizzazioni_mensili_precedente
                         sum_weekly_estimate = postalizzazioni_settimanali_precedente
                         regione = recapregioneprovincia_precedente.split('__')[1]
                         cod_sigla_provincia = recapregioneprovincia_precedente.split('__')[2]
                         product_890 = product_precedente
                         product_ar = product_precedente
                         simulazione_id = id_simulazione_salvata
-                        add_new_capacita_simulata(recapregioneprovincia_precedente.split('__')[0],activation_date_from,activation_date_to,capacity,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
+                        add_new_capacita_simulata(recapregioneprovincia_precedente.split('__')[0],activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
 
                     # capacità modificate dall'utente (NON default)
                     activation_date_from = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S')
                     activation_date_to = datetime.strptime(singola_riga['finePeriodoValidita']+' 23:59:59', '%d/%m/%Y %H:%M:%S')
                     capacity = singola_riga['capacita']
+                    sum_monthly_estimate = singola_riga['postalizzazioni_mensili']
                     sum_weekly_estimate = singola_riga['postalizzazioni_settimanali']
                     regione = singola_riga['regione']
                     cod_sigla_provincia = singola_riga['cod_sigla_provincia']
                     product_890 = True if '890' in singola_riga['product'] else False
                     product_ar = True if 'AR' in singola_riga['product'] else False
                     simulazione_id = id_simulazione_salvata
-                    add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
+                    add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
                     
                     # aggiornamento dati iterazione precedente e corrente
                     recapregioneprovincia_precedente = recapregioneprovincia_corrente
+                    postalizzazioni_mensili_precedente = postalizzazioni_mensili_corrente
                     postalizzazioni_settimanali_precedente = postalizzazioni_settimanali_corrente
                     activation_date_from_precedente = activation_date_from_corrente
                     product_precedente = product_corrente
@@ -254,13 +259,14 @@ def salva_simulazione(request):
                 activation_date_from = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7)
                 activation_date_to = None
                 capacity = capacita_reale_prima_settimana
+                sum_monthly_estimate = singola_riga['postalizzazioni_mensili']
                 sum_weekly_estimate = singola_riga['postalizzazioni_settimanali']
                 regione = singola_riga['regione']
                 cod_sigla_provincia = singola_riga['cod_sigla_provincia']
                 product_890 = True if '890' in singola_riga['product'] else False
                 product_ar = True if 'AR' in singola_riga['product'] else False
                 simulazione_id = id_simulazione_salvata
-                add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
+                add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
 
 
     if request.POST['stato'] == 'Bozza':
@@ -561,12 +567,13 @@ def remove_trigger_eventbridge_scheduler(id_simulazione):
         pass
 
 
-def add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id):
+def add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id):
     table_capacita_simulate.objects.create(
         UNIFIED_DELIVERY_DRIVER = recapitista,
         ACTIVATION_DATE_FROM = activation_date_from,
         ACTIVATION_DATE_TO = activation_date_to,
         CAPACITY = capacity,
+        SUM_MONTHLY_ESTIMATE = sum_monthly_estimate,
         SUM_WEEKLY_ESTIMATE = sum_weekly_estimate,
         REGIONE = regione,
         COD_SIGLA_PROVINCIA = cod_sigla_provincia,

@@ -505,7 +505,7 @@
                     // scorriamo regione+'_'+cod_sigla_provincia+'_'+product per ogni recapitista
                     for (var singola_regione_codsiglaprovincia_product in resp.context[recapitista]){
                         content_capacita += `
-                            <div class="accordion" data-group="${singola_regione_codsiglaprovincia_product}">
+                            <div class="accordion accordion_regprovprod" data-group="${singola_regione_codsiglaprovincia_product}">
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
                                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
@@ -626,35 +626,41 @@
 <script>
     function save_capacita_json() {
         let data = {};
+        // scorriamo tutti gli accordion di livello 1 (cioè ogni recapitista)
         $('.accordion_recapitista').each(function() {
             let gruppo = $(this).data('group');
             data[gruppo] = [];
-            console.log(gruppo);
 
-            $(this).find('tbody tr').each(function() {
-                let row = $(this);
-                if (row.find('td').eq(4).text().trim() != ''){
-                    valore_inizioPeriodoValidita = row.find('td').eq(4).text().trim();
-                } else{
-                    valore_inizioPeriodoValidita = row.find('.input_inizioPeriodoValidita').val();
-                }
-                if (row.find('td').eq(5).text().trim() != ''){
-                    valore_finePeriodoValidita = row.find('td').eq(5).text().trim();
-                } else{
-                    valore_finePeriodoValidita = row.find('.input_finePeriodoValidita').val();
-                }
+            // scorriamo tutti gli accordion di livello 2 (cioè ogni regione-provincia-prodotto)
+            $(this).find('.accordion_regprovprod').each(function() {
+                // intestazione accordion livello 2
+                let n_post_mensili = $(this).find('.accordion-header .accordion-button .somma_postalizzazioni').text().trim();
+                $(this).find('tbody tr').each(function() {
+                    let row = $(this);
+                    if (row.find('td').eq(4).text().trim() != ''){
+                        valore_inizioPeriodoValidita = row.find('td').eq(4).text().trim();
+                    } else{
+                        valore_inizioPeriodoValidita = row.find('.input_inizioPeriodoValidita').val();
+                    }
+                    if (row.find('td').eq(5).text().trim() != ''){
+                        valore_finePeriodoValidita = row.find('td').eq(5).text().trim();
+                    } else{
+                        valore_finePeriodoValidita = row.find('.input_finePeriodoValidita').val();
+                    }
 
-                let item = {
-                    regione: row.find('td').eq(0).text().trim(),
-                    cod_sigla_provincia: row.find('td').eq(1).text().trim(),
-                    product: row.find('td').eq(2).text().trim(),
-                    postalizzazioni_settimanali: row.find('td').eq(3).text().trim(),
-                    inizioPeriodoValidita: valore_inizioPeriodoValidita,
-                    finePeriodoValidita: valore_finePeriodoValidita,
-                    capacita: row.find('.input_capacita').val(),
-                    capacita_reale: row.find('.input_capacita_reale').text(),
-                };
-                data[gruppo].push(item);
+                    let item = {
+                        regione: row.find('td').eq(0).text().trim(),
+                        cod_sigla_provincia: row.find('td').eq(1).text().trim(),
+                        product: row.find('td').eq(2).text().trim(),
+                        postalizzazioni_mensili: n_post_mensili,
+                        postalizzazioni_settimanali: row.find('td').eq(3).text().trim(),
+                        inizioPeriodoValidita: valore_inizioPeriodoValidita,
+                        finePeriodoValidita: valore_finePeriodoValidita,
+                        capacita: row.find('.input_capacita').val(),
+                        capacita_reale: row.find('.input_capacita_reale').text(),
+                    };
+                    data[gruppo].push(item);
+                });
             });
         });
         // riempiamo un input nascosto inserendo il json
@@ -698,8 +704,8 @@
     function alertMensileRosso($table, sommaCapacita) {
         const alert_settimanale_giallo = $table.find('td:nth-child(9) .fa-triangle-exclamation[style*="orange"]').length > 0;
         const accordionHeader = $table.closest('.accordion-collapse').prev('.accordion-header');       
-        const postalizzazioni_mensili = parseInt(accordionHeader.find('.somma_postalizzazioni').text()) || 0;        
-        if (sommaCapacita < postalizzazioni_mensili) {
+        const n_postalizzazioni_mensili = parseInt(accordionHeader.find('.somma_postalizzazioni').text()) || 0;        
+        if (sommaCapacita < n_postalizzazioni_mensili) {
             accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità mensile inferiore al numero di postalizzazioni mensili"></i>');
         } else if (alert_settimanale_giallo == true) {
             accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Una o più capacità settimanali è inferiore al numero di postalizzazioni settimanali"></i>');            
