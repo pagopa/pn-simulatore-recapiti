@@ -169,6 +169,7 @@ def salva_simulazione(request):
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
         
+        
         if stato_precedente == 'Schedulata':
             if stato == 'Schedulata':
                 # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
@@ -186,58 +187,87 @@ def salva_simulazione(request):
 
     # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
-        lista_old_capacita_modificate = table_capacita_simulate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
+        lista_old_capacita_modificate = table_capacita_simulate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata).exclude(ACTIVATION_DATE_TO__isnull=True)
         if lista_old_capacita_modificate:
             # modifica delle CAPACITA_SIMULATE salvate su db
             lookup = {}
             for recapitista, righe_tabella in capacita_json.items():
                 for row in righe_tabella:
-                    lookup[(recapitista, row["cod_sigla_provincia"], row['inizioPeriodoValidita'])] = row["capacita"]
+                    lookup[(recapitista, row["cod_sigla_provincia"], datetime.strptime(row['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S'))] = row["capacita"]
 
             for singola_capacita in lista_old_capacita_modificate:
                 key = (singola_capacita.UNIFIED_DELIVERY_DRIVER, singola_capacita.COD_SIGLA_PROVINCIA, singola_capacita.ACTIVATION_DATE_FROM)
                 if key in lookup:
-                    singola_capacita.CAPACITY = lookup[key]    
+                    singola_capacita.CAPACITY = lookup[key]   
             
             table_capacita_simulate.objects.bulk_update(lista_old_capacita_modificate, ["CAPACITY"])
         else:
+            last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
             # scrittura sul db nella tabella CAPACITA_SIMULATE
             for recapitista, righe_tabella in capacita_json.items():
-                regioneprovincia_precedente = None
+                # inizializzazione variabili che tengono conto dell'iterazione precedente per default capacity 
+                recapregioneprovincia_precedente = None
+                postalizzazioni_mensili_precedente = None
+                postalizzazioni_settimanali_precedente = None
+                activation_date_from_precedente = None
+                product_precedente = None
                 for singola_riga in righe_tabella:
-                    regioneprovincia_corrente = recapitista+singola_riga['cod_sigla_provincia']
-                    if regioneprovincia_precedente != regioneprovincia_corrente:
-                        activation_date_from_default_capacity = get_second_monday_mese_successivo(singola_riga['inizioPeriodoValidita'])
-                        # capacità di default da aggiungere ad ogni recapitista-regione-provincia
-                        table_capacita_simulate.objects.create(
-                            UNIFIED_DELIVERY_DRIVER = recapitista,
-                            ACTIVATION_DATE_FROM = datetime.strptime(activation_date_from_default_capacity+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
-                            ACTIVATION_DATE_TO = None,
-                            CAPACITY = singola_riga['capacita'], # per default capacity, come capacità prendiamo quella della prima settimana per quel recapitista-regione-provincia e come activation date from prendiamo la seconda settimana del mese successivo
-                            SUM_WEEKLY_ESTIMATE = 0,
-                            REGIONE = singola_riga['regione'],
-                            COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
-                            PRODUCT_890 = False,
-                            PRODUCT_AR = False,
-                            LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
-                            SIMULAZIONE_ID = id_simulazione_salvata
-                        )
+                    # aggiornamento dati iterazione precedente e corrente
+                    recapregioneprovincia_corrente = recapitista+'__'+singola_riga['regione']+'__'+singola_riga['cod_sigla_provincia']
+                    postalizzazioni_mensili_corrente = singola_riga['postalizzazioni_mensili']
+                    postalizzazioni_settimanali_corrente = singola_riga['postalizzazioni_settimanali']
+                    activation_date_from_corrente = singola_riga['inizioPeriodoValidita']
+                    product_corrente = True if '890' in singola_riga['product'] else False
+                    # cattura capacità reale prima settimana di recapitista-recione-provincia
+                    if recapregioneprovincia_precedente != recapregioneprovincia_corrente or recapregioneprovincia_precedente == None:
+                        capacita_reale_prima_settimana = singola_riga['capacita_reale']
+                    # capacità di default da aggiungere ad ogni recapitista-regione-provincia a partire dalla settimana successiva all'ultima specificata dall'utente
+                    if recapregioneprovincia_precedente != recapregioneprovincia_corrente and recapregioneprovincia_precedente != None:
+                        activation_date_from = datetime.strptime(activation_date_from_precedente+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7)
+                        activation_date_to = None
+                        capacity = capacita_reale_prima_settimana
+                        sum_monthly_estimate = postalizzazioni_mensili_precedente
+                        sum_weekly_estimate = postalizzazioni_settimanali_precedente
+                        regione = recapregioneprovincia_precedente.split('__')[1]
+                        cod_sigla_provincia = recapregioneprovincia_precedente.split('__')[2]
+                        product_890 = product_precedente
+                        product_ar = product_precedente
+                        simulazione_id = id_simulazione_salvata
+                        add_new_capacita_simulata(recapregioneprovincia_precedente.split('__')[0],activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
 
-                    table_capacita_simulate.objects.create(
-                        UNIFIED_DELIVERY_DRIVER = recapitista,
-                        ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S'),
-                        ACTIVATION_DATE_TO = datetime.strptime(singola_riga['finePeriodoValidita']+' 23:59:59', '%d/%m/%Y %H:%M:%S'),
-                        CAPACITY = singola_riga['capacita'],
-                        SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'],
-                        REGIONE = singola_riga['regione'],
-                        COD_SIGLA_PROVINCIA = singola_riga['cod_sigla_provincia'],
-                        PRODUCT_890 = True if '890' in singola_riga['product'] else False,
-                        PRODUCT_AR = True if 'AR' in singola_riga['product'] else False,
-                        LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
-                        SIMULAZIONE_ID = id_simulazione_salvata
-                    )
+                    # capacità modificate dall'utente (NON default)
+                    activation_date_from = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', '%d/%m/%Y %H:%M:%S')
+                    activation_date_to = datetime.strptime(singola_riga['finePeriodoValidita']+' 23:59:59', '%d/%m/%Y %H:%M:%S')
+                    capacity = singola_riga['capacita']
+                    sum_monthly_estimate = singola_riga['postalizzazioni_mensili']
+                    sum_weekly_estimate = singola_riga['postalizzazioni_settimanali']
+                    regione = singola_riga['regione']
+                    cod_sigla_provincia = singola_riga['cod_sigla_provincia']
+                    product_890 = True if '890' in singola_riga['product'] else False
+                    product_ar = True if 'AR' in singola_riga['product'] else False
+                    simulazione_id = id_simulazione_salvata
+                    add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
                     
-                    regioneprovincia_precedente = regioneprovincia_corrente
+                    # aggiornamento dati iterazione precedente e corrente
+                    recapregioneprovincia_precedente = recapregioneprovincia_corrente
+                    postalizzazioni_mensili_precedente = postalizzazioni_mensili_corrente
+                    postalizzazioni_settimanali_precedente = postalizzazioni_settimanali_corrente
+                    activation_date_from_precedente = activation_date_from_corrente
+                    product_precedente = product_corrente
+                
+                # capacità di default -> ultima riga prima di cambiare recapitista
+                activation_date_from = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7)
+                activation_date_to = None
+                capacity = capacita_reale_prima_settimana
+                sum_monthly_estimate = singola_riga['postalizzazioni_mensili']
+                sum_weekly_estimate = singola_riga['postalizzazioni_settimanali']
+                regione = singola_riga['regione']
+                cod_sigla_provincia = singola_riga['cod_sigla_provincia']
+                product_890 = True if '890' in singola_riga['product'] else False
+                product_ar = True if 'AR' in singola_riga['product'] else False
+                simulazione_id = id_simulazione_salvata
+                add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id)
+
 
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
@@ -373,7 +403,10 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             provincia = item['PROVINCIA']
             post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
-            production_capacity = item['PRODUCTION_CAPACITY']
+            if item['PRODUCTION_CAPACITY'] != None:
+                production_capacity = item['PRODUCTION_CAPACITY']
+            else:
+                production_capacity = 0
             if nuova_simulazione:
                 if tipo_capacita_selezionata=='BAU':
                     capacity = item['CAPACITY']
@@ -442,10 +475,7 @@ def get_province(request):
 
 
 def get_mesi_distinct():
-    '''
-    Recuperiamo la lista dei mesi che l'utente può scegliere fornendo il formato mostrato nel seguente esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026')]
-    Nota: chiaramente, evitiamo le date passate
-    '''
+    #Recuperiamo la lista dei mesi che l'utente può scegliere fornendo il formato mostrato nel seguente esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026')]
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'YYYY-MM') as anno_mese
@@ -459,42 +489,24 @@ def get_mesi_distinct():
         return lista_mesi #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
 
 
-def get_second_monday_mese_successivo(data_string):
-    # from string to datetime
-    d = datetime.strptime(data_string, "%d/%m/%Y")
-    # aumentiamo il mese di 1
-    if d.month == 12:
-        anno = d.year + 1
-        mese = 1
-    else:
-        anno = d.year
-        mese = d.month + 1
-    # primo giorno del mese successivo
-    first = date(anno, mese, 1)
-    # giorno della settimana (lunedì=0, ... domenica=6)
-    weekday = first.weekday()
-    # calcoliamo quanto manca al primo lunedì
-    giorni_fino_lunedi = (7 - weekday) % 7
-    # recuperiamo il primo lunedì
-    primo_lunedi = first + timedelta(days=giorni_fino_lunedi)
-    # recuperiamo il secondo lunedì
-    secondo_lunedi = (primo_lunedi + timedelta(days=7)).strftime("%d/%m/%Y")
-    return secondo_lunedi
 
-def get_first_monday_mese_corrente(data_string):
+def get_first_week_parameter_for_step_function(data_string):
     # from string to datetime
-    dt = datetime.strptime(data_string, "%Y-%m-%d")
+    dt = datetime.strptime(data_string, "%Y-%m")
     # prendiamo il primo giorno del mese
     first_day = datetime(dt.year, dt.month, 1)
     # giorno della settimana (lunedì=0, ... domenica=6)
     offset = (0 - first_day.weekday()) % 7
+    # ATTENZIONE: se il primo giorno del mese è lunedì prendiamo come prima settimana utile il secondo lunedì del mese
+    if first_day.weekday()==0:
+        offset += 7
     first_monday = first_day + timedelta(days=offset)
     return str(first_monday.date())
 
 
 
 def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
-    settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+    settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
     client = boto3.client("scheduler", region_name="eu-south-1")
     # parametri da passare alla step function
     payload = {
@@ -521,7 +533,7 @@ def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_
 
 
 def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
-    settimana_del_mese_simulazione = get_first_monday_mese_corrente(mese_da_simulare+'-01')
+    settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
     client = boto3.client("scheduler", region_name="eu-south-1")
     # parametri da passare alla step function
     payload = {
@@ -553,6 +565,24 @@ def remove_trigger_eventbridge_scheduler(id_simulazione):
         client.delete_schedule(Name=schedule_name)
     except:
         pass
+
+
+def add_new_capacita_simulata(recapitista,activation_date_from,activation_date_to,capacity,sum_monthly_estimate,sum_weekly_estimate,regione,cod_sigla_provincia,product_890,product_ar,last_update_timestamp,simulazione_id):
+    table_capacita_simulate.objects.create(
+        UNIFIED_DELIVERY_DRIVER = recapitista,
+        ACTIVATION_DATE_FROM = activation_date_from,
+        ACTIVATION_DATE_TO = activation_date_to,
+        CAPACITY = capacity,
+        SUM_MONTHLY_ESTIMATE = sum_monthly_estimate,
+        SUM_WEEKLY_ESTIMATE = sum_weekly_estimate,
+        REGIONE = regione,
+        COD_SIGLA_PROVINCIA = cod_sigla_provincia,
+        PRODUCT_890 = product_890,
+        PRODUCT_AR = product_ar,
+        LAST_UPDATE_TIMESTAMP = last_update_timestamp,
+        SIMULAZIONE_ID = simulazione_id
+    )
+
 
 # ERROR PAGES
 def handle_error_400(request, exception):

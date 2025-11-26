@@ -78,13 +78,20 @@
                 targets: 0,
                 columnControl: ['order', ['search']],
                 render: function (data, type, row) {
-                    if (type === 'filter' || type === 'sort') {
+                    if (type === 'sort') {
+                        if (data != ''){
+                            // formato solo per filtro e ordinamento
+                            var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
+                            return date.format('YYYY-MM-DD HH:mm');
+                        } else{
+                            return '';
+                        }
+                    } else if (type === 'filter') {
                         if (data != ''){
                             // formato solo per filtro e ordinamento
                             var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
                             return date.format('YYYY-MM-DD');
-                        }
-                        else{
+                        } else{
                             return '';
                         }
                     }
