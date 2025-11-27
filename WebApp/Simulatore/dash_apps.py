@@ -275,7 +275,7 @@ def populate_dropdown_ente(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
-    value = list(sorted(list(set(lista_enti))))
+    value = list(sorted(list(set(lista_enti))))[:5]
     return options, value
 
 
@@ -287,7 +287,7 @@ def populate_dropdown_ente(pathname):
 def update_chart_ente(ente_sel, pathname):
     from .models import table_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
+    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).order_by("SETTIMANA_DELIVERY").values()
     df_filtered_enti = pd.DataFrame(filtered_enti)
     
     # se non selezionato nulla → grafico vuoto
