@@ -209,11 +209,11 @@
                 columnControl: ['order', ['search']],
                 render: function (data, type, row) {
                     if (type === 'sort') {
-                        // formato solo per filtro e ordinamento
+                        // formato per ordinamento
                         var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
                         return date.format('YYYY-MM-DD HH:mm');
                     } else if (type === 'filter') {
-                        // formato solo per filtro e ordinamento
+                        // formato per filtro
                         var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
                         return date.format('YYYY-MM-DD');
                     }
