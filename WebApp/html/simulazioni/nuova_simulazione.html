@@ -46,7 +46,7 @@
                     <label class="form-label"><b>Mese da simulare</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <select required class="form-select" id="mese_da_simulare" name="mese_da_simulare">
+                    <select required class="form-select" id="mese_da_simulare" name="mese_da_simulare" {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}disabled{% endif %}>
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi %}
                             <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
