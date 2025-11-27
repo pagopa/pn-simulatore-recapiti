@@ -175,7 +175,7 @@ class table_output_grafico_ente(models.Model):
         indexes = [
             models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_2'),
             models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id'),
-            models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_sender_pa_id')
+            models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_settimana_delivery_2')
         ]
 
 
