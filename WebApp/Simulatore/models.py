@@ -44,10 +44,8 @@ class table_capacita_simulate(models.Model):
             models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id'),
             models.Index(fields=['ACTIVATION_DATE_FROM'], name='indice_activation_date_from'),
             models.Index(fields=['ACTIVATION_DATE_TO'], name='indice_activation_date_to'),
-            models.Index(fields=['UNIFIED_DELIVERY_DRIVER'], name='indice_unified_delivery_driver'),
             models.Index(fields=['COD_SIGLA_PROVINCIA'], name='indice_cod_sigla_provincia'),
             models.Index(fields=['CAPACITY'], name='indice_capacity'),
-            models.Index(fields=['REGIONE'], name='indice_regione'),
             models.Index(fields=['LAST_UPDATE_TIMESTAMP'], name='indice_last_update_timestamp_3')
         ]
     
@@ -92,7 +90,6 @@ class table_declared_capacity(models.Model):
             models.Index(fields=['GEOKEY'], name='indice_geokey'),
             models.Index(fields=['ACTIVATION_DATE_FROM'], name='indice_activation_date_from_2'),
             models.Index(fields=['ACTIVATION_DATE_TO'], name='indice_activation_date_to_2'),
-            models.Index(fields=['UNIFIED_DELIVERY_DRIVER'], name='indice_unified_delivery_driv_2'),
             models.Index(fields=['PK'], name='indice_pk'),
             models.Index(fields=['LAST_UPDATE_TIMESTAMP'], name='indice_last_update_timestamp'),
         ]
@@ -162,7 +159,6 @@ class table_cap_prov_reg(models.Model):
     class Meta:
         db_table = 'CAP_PROV_REG'
         indexes = [
-            models.Index(fields=['REGIONE'], name='indice_regione_2'),
             models.Index(fields=['PROVINCIA'], name='indice_provincia'),
             models.Index(fields=['COD_SIGLA_PROVINCIA'], name='indice_cod_sigla_provincia_2')
         ]
@@ -178,7 +174,8 @@ class table_output_grafico_ente(models.Model):
         db_table = 'OUTPUT_GRAFICO_ENTE'
         indexes = [
             models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_2'),
-            models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id')
+            models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id'),
+            models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_sender_pa_id')
         ]
 
 
@@ -195,8 +192,6 @@ class table_output_grafico_reg_recap(models.Model):
         db_table = 'OUTPUT_GRAFICO_REG_RECAP'
         indexes = [
             models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_3'),
-            models.Index(fields=['REGIONE'], name='indice_regione_3'),
-            models.Index(fields=['UNIFIED_DELIVERY_DRIVER'], name='indice_unified_delivery_driv_3'),
             models.Index(fields=['PROVINCE'], name='indice_province_2'),
             models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_settimana_delivery'),
             models.Index(fields=['COUNT_REQUEST'], name='indice_count_request')

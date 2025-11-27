@@ -147,11 +147,11 @@ def salva_simulazione(request):
             TIPO_CAPACITA = tipo_capacita_da_modificare,
             TIPO_SIMULAZIONE = tipo_simulazione
         )
-        '''
+        
         if stato != 'Bozza':
             # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
             create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
-        '''
+        
 
     # MODIFICA SIMULAZIONE
     else:
@@ -169,7 +169,7 @@ def salva_simulazione(request):
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
         
-        '''
+        
         if stato_precedente == 'Schedulata':
             if stato == 'Schedulata':
                 # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
@@ -183,7 +183,7 @@ def salva_simulazione(request):
             if stato == 'Schedulata':
                 # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
                 create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
-        '''
+        
 
     # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
@@ -475,10 +475,7 @@ def get_province(request):
 
 
 def get_mesi_distinct():
-    '''
-    Recuperiamo la lista dei mesi che l'utente può scegliere fornendo il formato mostrato nel seguente esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026')]
-    Nota: chiaramente, evitiamo le date passate
-    '''
+    #Recuperiamo la lista dei mesi che l'utente può scegliere fornendo il formato mostrato nel seguente esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026')]
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'YYYY-MM') as anno_mese
