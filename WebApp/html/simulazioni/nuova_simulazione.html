@@ -817,7 +817,7 @@ function aggiungiRiga(button) {
     // Crea una nuova riga
     const nuovaRiga = document.createElement('tr');
     
-    // Se esiste una riga precedente, clona i primi 3 valori, altrimenti crea campi vuoti
+    // Clona i primi 3 valori
     const celleUltimaRiga = ultimaRigaOriginale.querySelectorAll('td');
     let capacita_reale_ultima_riga = celleUltimaRiga[6].textContent.split(" ");
     capacita_reale_ultima_riga = capacita_reale_ultima_riga[capacita_reale_ultima_riga.length -1]
@@ -844,6 +844,8 @@ function aggiungiRiga(button) {
     const bottoneRimuovi = nuovaRiga.querySelector('.rimuovi-riga');
     bottoneRimuovi.addEventListener('click', function() {
         nuovaRiga.remove();
+        // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
+        $('.input_capacita').trigger('input');
     });
 
     var data_fine_ultima_riga;
@@ -863,15 +865,8 @@ document.addEventListener('click', function(e) {
         e.preventDefault();
         var array_dataminima_nuovariga = aggiungiRiga(e.target);
         inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga);
-    }
-});
-
-// Event listener delegato per i bottoni di rimozione (per gestire elementi dinamici)
-document.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('rimuovi-riga')) {
-        e.preventDefault();
-        const riga = e.target.closest('tr');
-        riga.remove();
+        // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
+        $('.input_capacita').trigger('input');
     }
 });
 </script>
