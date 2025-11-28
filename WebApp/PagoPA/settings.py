@@ -38,23 +38,6 @@ if env_hosts:
 else:
     ALLOWED_HOSTS = []
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost',
-    'https://localhost', 
-    'http://127.0.0.1',
-    'https://127.0.0.1'
-    ]
-for singolo_host in ALLOWED_HOSTS:
-    CSRF_TRUSTED_ORIGINS.append('http://'+str(singolo_host))
-    CSRF_TRUSTED_ORIGINS.append('https://'+str(singolo_host))
-
-
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_SECURE = False
-SECURE_SSL_REDIRECT = False
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
 
 # Application definition
 
@@ -77,7 +60,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    #'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

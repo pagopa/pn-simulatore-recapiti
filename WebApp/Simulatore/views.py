@@ -400,8 +400,20 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             recapitista = item['UNIFIED_DELIVERY_DRIVER']
             regione = item['REGIONE']
             cod_sigla_provincia = item['COD_SIGLA_PROVINCIA']
+            # PRODUCT TYPE: boolean, valori True/False
+            product = ''
+            if item['PRODUCT_890']:
+                product += '890-'
+            if item['PRODUCT_AR']:
+                product += 'AR-'
+            if product!='':
+                product = product[:-1]
+            if recapitista not in lista_capacita_finali:
+                lista_capacita_finali[recapitista] = {}
+            if regione+'_'+cod_sigla_provincia+'_'+product not in lista_capacita_finali[recapitista]:
+                lista_capacita_finali[recapitista][regione+'_'+cod_sigla_provincia+'_'+product] = []
+            
             provincia = item['PROVINCIA']
-            post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
             if item['PRODUCTION_CAPACITY'] != None:
                 production_capacity = item['PRODUCTION_CAPACITY']
@@ -413,11 +425,7 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                 elif tipo_capacita_selezionata=='Picco':
                     capacity = item['PEAK_CAPACITY']
                 elif tipo_capacita_selezionata == 'Combinata':
-                    # REGOLA: quando i volumi sono inferiori alla BAU setta BAU mentre se i volumi sono superiori alla BAU o al picco setta picco.
-                    if post_weekly_estimate < item['CAPACITY']:
-                        capacity = item['CAPACITY']
-                    else:
-                        capacity = item['PEAK_CAPACITY']
+                    capacity = item['CAPACITY'] # successivamente, se i volumi sono superiori alla BAU o al picco settiamo picco per la capacità
                 # qui è solo fittizia; è fondamentale quando non abbiamo una nuova simulazione
                 original_capacity = capacity
             else:
@@ -425,26 +433,12 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                 capacity = item['MODIFIED_CAPACITY']
             activation_date_from = item['ACTIVATION_DATE_FROM']
             activation_date_to = item['ACTIVATION_DATE_TO']
-            # PRODUCT TYPE: boolean, valori True/False
-            product = ''
-            if item['PRODUCT_890']:
-                product += '890-'
-            if item['PRODUCT_AR']:
-                product += 'AR-'
-            if product!='':
-                product = product[:-1]
-            
-            if recapitista not in lista_capacita_finali:
-                lista_capacita_finali[recapitista] = {}
-            if regione+'_'+cod_sigla_provincia+'_'+product not in lista_capacita_finali[recapitista]:
-                lista_capacita_finali[recapitista][regione+'_'+cod_sigla_provincia+'_'+product] = []
             
             lista_capacita_finali[recapitista][regione+'_'+cod_sigla_provincia+'_'+product].append(
                 {
                     'regione': regione,
                     'provincia': provincia,
                     'cod_sigla_provincia': cod_sigla_provincia,
-                    'post_weekly_estimate': post_weekly_estimate,
                     'post_monthly_estimate': post_monthly_estimate,
                     'product': product,
                     'activation_date_from': activation_date_from,
@@ -454,6 +448,16 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                     'original_capacity': original_capacity
                 }
             )
+        # calcoliamo post_weekly_estimate come post_monthly_estimate distribuita sul numero di settimane per ogni recapitista-regione-provincia-prodotto
+        for recapitista,dizionario_reg_prov_prod in lista_capacita_finali.items():
+            for righe_tabella in dizionario_reg_prov_prod.values():
+                for singola_riga in righe_tabella:
+                    singola_riga['post_weekly_estimate'] = int(round(singola_riga['post_monthly_estimate'] / len(righe_tabella), 0))
+                    if tipo_capacita_selezionata == 'Combinata':
+                        # REGOLA: quando i volumi sono inferiori alla BAU setta BAU mentre se i volumi sono superiori alla BAU o al picco setta picco.
+                        if singola_riga['post_weekly_estimate'] >= capacity:
+                            capacity = item['PEAK_CAPACITY']
+
     return JsonResponse({'context': lista_capacita_finali})
 
 
