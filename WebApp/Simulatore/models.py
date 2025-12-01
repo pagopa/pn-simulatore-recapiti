@@ -34,8 +34,8 @@ class table_capacita_simulate(models.Model):
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
-    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
-    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
@@ -59,8 +59,8 @@ class table_capacita_simulate_delta(models.Model):
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
-    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
-    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
     class Meta:
@@ -212,8 +212,8 @@ class view_output_capacity_setting(pg.View):
     REGIONE = models.CharField(max_length=50, null=True)
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
     PROVINCIA = models.CharField(max_length=50, null=True)
-    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
-    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
     MONTH_DELIVERY = models.SmallIntegerField(null=True)
 
     sql = """
@@ -297,8 +297,8 @@ class view_output_modified_capacity_setting(pg.View):
     REGIONE = models.CharField(max_length=50, null=True)
     COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
     PROVINCIA = models.CharField(max_length=50, null=True)
-    PRODUCT_890 = models.BooleanField(max_length=5, null=True)
-    PRODUCT_AR = models.BooleanField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
     MONTH_DELIVERY = models.SmallIntegerField(null=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
 
