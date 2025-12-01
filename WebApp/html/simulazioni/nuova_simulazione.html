@@ -53,6 +53,9 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}
+                    <input type="hidden" name="mese_da_simulare" value="{{ simulazione_selezionata.MESE_SIMULAZIONE }}">
+                {% endif %}
             </div>
             <br>
             <div class="row mb-3 align-items-center">

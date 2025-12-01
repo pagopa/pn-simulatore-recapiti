@@ -17,6 +17,7 @@ import psycopg2
 from django.db import connection
 from zoneinfo import ZoneInfo
 import boto3
+from botocore.config import Config
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -119,7 +120,7 @@ def salva_simulazione(request):
             stato = 'In lavorazione'
         else:
             stato = 'Schedulata'
-    
+    print(request.POST)
     mese_da_simulare = None
     if 'mese_da_simulare' in request.POST:
         mese_da_simulare = request.POST['mese_da_simulare']
@@ -147,11 +148,11 @@ def salva_simulazione(request):
             TIPO_CAPACITA = tipo_capacita_da_modificare,
             TIPO_SIMULAZIONE = tipo_simulazione
         )
-        
+        '''
         if stato != 'Bozza':
             # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
             create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
-        
+        '''
 
     # MODIFICA SIMULAZIONE
     else:
@@ -169,7 +170,7 @@ def salva_simulazione(request):
         simulazione_da_modificare.save()
         id_simulazione_salvata = simulazione_da_modificare
         
-        
+        '''
         if stato_precedente == 'Schedulata':
             if stato == 'Schedulata':
                 # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
@@ -183,7 +184,7 @@ def salva_simulazione(request):
             if stato == 'Schedulata':
                 # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
                 create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
-        
+        '''
 
     # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
@@ -275,9 +276,10 @@ def salva_simulazione(request):
         return redirect("home")
 
 def rimuovi_simulazione(request, id_simulazione):
+    '''
     # rimozione trigger eventbridge scheduler presente
     remove_trigger_eventbridge_scheduler(id_simulazione)
-
+    '''
     # il try-catch serve per 2 motivi: 1)evitare che .get non trovi nulla dando errore 2)evitare che .delete() non trovi nulla dando errore
     try:
         simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
@@ -511,7 +513,8 @@ def get_first_week_parameter_for_step_function(data_string):
 
 def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
     settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
-    client = boto3.client("scheduler", region_name="eu-south-1")
+    config = Config(retries={'mode': 'standard', 'max_attempts': 10})
+    client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
     payload = {
         "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
@@ -538,7 +541,8 @@ def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_
 
 def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
     settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
-    client = boto3.client("scheduler", region_name="eu-south-1")
+    config = Config(retries={'mode': 'standard', 'max_attempts': 10})
+    client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
     payload = {
         "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
@@ -563,7 +567,8 @@ def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_tr
     )
 
 def remove_trigger_eventbridge_scheduler(id_simulazione):
-    client = boto3.client("scheduler", region_name="eu-south-1")
+    config = Config(retries={'mode': 'standard', 'max_attempts': 10})
+    client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     try:
         schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione}"
         client.delete_schedule(Name=schedule_name)

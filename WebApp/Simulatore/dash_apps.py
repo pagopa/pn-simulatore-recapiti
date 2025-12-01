@@ -885,7 +885,7 @@ def populate_dropdown_ente_1(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-2])
     lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
-    value = list(sorted(list(set(lista_enti))))
+    value = list(sorted(list(set(lista_enti))))[:5]
     return options, value
 
 @app_confronto.callback(
@@ -898,7 +898,7 @@ def populate_dropdown_ente_2(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
     options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
-    value = list(sorted(list(set(lista_enti))))
+    value = list(sorted(list(set(lista_enti))))[:5]
     return options, value
 
 
