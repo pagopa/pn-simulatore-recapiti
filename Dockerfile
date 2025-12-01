@@ -12,6 +12,8 @@ COPY . .
 
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
+ENV AWS_RETRY_MODE=standard
+
 EXPOSE 8080
 
 RUN chmod +x WebApp/entrypoint.sh
