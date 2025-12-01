@@ -17,6 +17,7 @@ import psycopg2
 from django.db import connection
 from zoneinfo import ZoneInfo
 import boto3
+from botocore.config import Config
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -511,7 +512,8 @@ def get_first_week_parameter_for_step_function(data_string):
 
 def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
     settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
-    client = boto3.client("scheduler", region_name="eu-south-1")
+    config = Config(retries={'mode': 'standard', 'max_attempts': 10})
+    client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
     payload = {
         "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
@@ -537,7 +539,8 @@ def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_
 
 def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
     settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
-    client = boto3.client("scheduler", region_name="eu-south-1")
+    config = Config(retries={'mode': 'standard', 'max_attempts': 10})
+    client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
     payload = {
         "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
@@ -561,7 +564,8 @@ def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_tr
     )
 
 def remove_trigger_eventbridge_scheduler(id_simulazione):
-    client = boto3.client("scheduler", region_name="eu-south-1")
+    config = Config(retries={'mode': 'standard', 'max_attempts': 10})
+    client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     try:
         schedule_name = f"pn-simulatore-recapiti-SimulazioneManualeId{id_simulazione}"
         client.delete_schedule(Name=schedule_name)
