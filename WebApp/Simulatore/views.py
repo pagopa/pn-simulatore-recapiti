@@ -528,6 +528,7 @@ def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_
     response = client.create_schedule(
         Name=schedule_name,
         ScheduleExpression=f"at({schedule_time})",
+        FlexibleTimeWindow={"Mode": "OFF"},
         Target={
             "Arn": STEP_FUNCTION_ARN,
             "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
@@ -555,6 +556,7 @@ def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_tr
     response = client.update_schedule(
         Name=schedule_name,
         ScheduleExpression=f"at({schedule_time})",
+        FlexibleTimeWindow={"Mode": "OFF"},
         Target={
             "Arn": STEP_FUNCTION_ARN,
             "RoleArn": ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN,
