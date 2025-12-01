@@ -910,7 +910,7 @@ def populate_dropdown_ente_2(pathname):
 def update_chart_ente_1(ente_sel, pathname):
     from .models import table_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-2])
-    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
+    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).order_by("SETTIMANA_DELIVERY").values()
     df_filtered_enti = pd.DataFrame(filtered_enti)
     # se non selezionato nulla → grafico vuoto
     if not ente_sel:
@@ -954,7 +954,7 @@ def update_chart_ente_1(ente_sel, pathname):
 def update_chart_ente_2(ente_sel, pathname):
     from .models import table_output_grafico_ente
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).values()
+    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).order_by("SETTIMANA_DELIVERY").values()
     df_filtered_enti = pd.DataFrame(filtered_enti)
     # se non selezionato nulla → grafico vuoto
     if not ente_sel:
