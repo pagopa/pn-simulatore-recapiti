@@ -32,11 +32,6 @@ urlpatterns = [
     # la dashboard viene generata su http://localhost:8000/django_plotly_dash/app/SimpleExample/ e, poi, viene viene recuperata dalla pagina html http://localhost:8000/dash/
     path('', include('Simulatore.urls')),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
-
-    # pagine provvisorie per caricamento e rimozione dati db
-    path('carica_dati_db', carica_dati_db, name='carica_dati_db'),
-    path('svuota_tabelle_db', svuota_tabelle_db, name='svuota_tabelle_db'),
-    path('svuota_db', svuota_db, name='svuota_db'),
 ]
 
 
