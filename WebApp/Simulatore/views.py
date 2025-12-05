@@ -175,7 +175,7 @@ def salva_simulazione(request):
                 # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
                 create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
 
-    
+
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
         # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
         lista_all_capacita_modificate = table_capacita_simulate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
@@ -191,6 +191,8 @@ def salva_simulazione(request):
             for recapitista, righe_tabella in capacita_json.items():
                 # inizializzazione variabili che tengono conto dell'iterazione precedente per default capacity 
                 recapregioneprovincia_precedente = None
+                capacita_reale_precedente_prima_settimana = None
+                capacita_reale_attuale_prima_settimana = None
                 postalizzazioni_mensili_precedente = None
                 postalizzazioni_settimanali_precedente = None
                 activation_date_from_precedente = None
@@ -207,8 +209,9 @@ def salva_simulazione(request):
                     product_890_corrente = True if '890' in row['product'] else False
                     product_ar_corrente = True if 'AR' in row['product'] else False
                     # cattura capacità reale prima settimana di recapitista-recione-provincia
-                    if recapregioneprovincia_precedente != recapregioneprovincia_corrente or recapregioneprovincia_precedente == None:
-                        capacita_reale_prima_settimana = row['capacita_reale']
+                    if recapregioneprovincia_precedente != recapregioneprovincia_corrente:
+                        capacita_reale_precedente_prima_settimana = capacita_reale_attuale_prima_settimana
+                        capacita_reale_attuale_prima_settimana = singola_riga['capacita_reale']
                     # capacità di default da aggiungere ad ogni recapitista-regione-provincia a partire dalla settimana successiva all'ultima specificata dall'utente
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente and recapregioneprovincia_precedente != None:
                         lista_nuove_capacita_da_salvare.append(
@@ -216,7 +219,7 @@ def salva_simulazione(request):
                                 UNIFIED_DELIVERY_DRIVER = recapregioneprovincia_precedente.split('__')[0],
                                 ACTIVATION_DATE_FROM = datetime.strptime(activation_date_from_precedente+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7),
                                 ACTIVATION_DATE_TO = None,
-                                CAPACITY = capacita_reale_prima_settimana,
+                                CAPACITY = capacita_reale_precedente_prima_settimana,
                                 SUM_MONTHLY_ESTIMATE = postalizzazioni_mensili_precedente,
                                 SUM_WEEKLY_ESTIMATE = postalizzazioni_settimanali_precedente,
                                 REGIONE = recapregioneprovincia_precedente.split('__')[1],
@@ -241,7 +244,7 @@ def salva_simulazione(request):
                         UNIFIED_DELIVERY_DRIVER = recapitista,
                         ACTIVATION_DATE_FROM = datetime.strptime(row['inizioPeriodoValidita']+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7),
                         ACTIVATION_DATE_TO = None,
-                        CAPACITY = capacita_reale_prima_settimana,
+                        CAPACITY = capacita_reale_attuale_prima_settimana,
                         SUM_MONTHLY_ESTIMATE = row['postalizzazioni_mensili'],
                         SUM_WEEKLY_ESTIMATE = row['postalizzazioni_settimanali'],
                         REGIONE = row['regione'],
@@ -291,12 +294,15 @@ def salva_simulazione(request):
             for recapitista, righe_tabella in capacita_json.items():
                 # inizializzazione variabile che tiene conto dell'iterazione precedente per default capacity
                 recapregioneprovincia_precedente = None
+                capacita_reale_precedente_prima_settimana = None
+                capacita_reale_attuale_prima_settimana = None
                 for singola_riga in righe_tabella:
                     # aggiornamento dati iterazione corrente
                     recapregioneprovincia_corrente = recapitista+'__'+singola_riga['regione']+'__'+singola_riga['cod_sigla_provincia']
                     # cattura capacità reale prima settimana di recapitista-recione-provincia
-                    if recapregioneprovincia_precedente != recapregioneprovincia_corrente or len(lista_capacita_da_salvare)!=0:
-                        capacita_reale_prima_settimana = singola_riga['capacita_reale']
+                    if recapregioneprovincia_precedente != recapregioneprovincia_corrente:
+                        capacita_reale_precedente_prima_settimana = capacita_reale_attuale_prima_settimana
+                        capacita_reale_attuale_prima_settimana = singola_riga['capacita_reale']
                     # capacità di default da aggiungere ad ogni recapitista-regione-provincia a partire dalla settimana successiva all'ultima specificata dall'utente
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente and recapregioneprovincia_precedente != None:
                         lista_capacita_da_salvare.append(
@@ -304,7 +310,7 @@ def salva_simulazione(request):
                                 UNIFIED_DELIVERY_DRIVER = recapregioneprovincia_precedente.split('__')[0],
                                 ACTIVATION_DATE_FROM = lista_capacita_da_salvare[-1].ACTIVATION_DATE_FROM + timedelta(days=7),
                                 ACTIVATION_DATE_TO = None,
-                                CAPACITY = capacita_reale_prima_settimana,
+                                CAPACITY = capacita_reale_precedente_prima_settimana,
                                 SUM_MONTHLY_ESTIMATE = lista_capacita_da_salvare[-1].SUM_MONTHLY_ESTIMATE,
                                 SUM_WEEKLY_ESTIMATE = lista_capacita_da_salvare[-1].SUM_WEEKLY_ESTIMATE,
                                 REGIONE = recapregioneprovincia_precedente.split('__')[1],
@@ -342,7 +348,7 @@ def salva_simulazione(request):
                         UNIFIED_DELIVERY_DRIVER = recapitista,
                         ACTIVATION_DATE_FROM = datetime.strptime(singola_riga['inizioPeriodoValidita']+' 00:00:00', "%d/%m/%Y %H:%M:%S") + timedelta(days=7),
                         ACTIVATION_DATE_TO = None,
-                        CAPACITY = capacita_reale_prima_settimana,
+                        CAPACITY = capacita_reale_attuale_prima_settimana,
                         SUM_MONTHLY_ESTIMATE = singola_riga['postalizzazioni_mensili'],
                         SUM_WEEKLY_ESTIMATE = singola_riga['postalizzazioni_settimanali'],
                         REGIONE = singola_riga['regione'],
@@ -394,8 +400,8 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = True
         else:
-            # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input). Nota: escludiamo gli ACTIVATION_DATE_TO nulli inseriti nella prima fase di creazione della simulazione per capacità di default
-            lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).exclude(ACTIVATION_DATE_TO__isnull=True).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
+            # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input). Nota: escludiamo gli ACTIVATION_DATE_TO nulli inseriti nella prima fase di creazione della simulazione per capacità di default. Escludiamo anche PRODUCT_890 e PRODUCT_AR nulli perché riguardano le capacità recuperate a valle del run e capita nel caso di new_simulazione_from_old
+            lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).exclude(ACTIVATION_DATE_TO__isnull=True).exclude(PRODUCT_890__isnull=True).exclude(PRODUCT_AR__isnull=True).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = False
         lista_capacita_finali = {}
         for item in lista_capacita_grezze:
