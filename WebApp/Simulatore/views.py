@@ -15,7 +15,7 @@ locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
 def homepage(request):
-    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza')
+    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
     
     for singola_simulazione in lista_simulazioni:
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
@@ -53,8 +53,7 @@ def calendario(request):
     return render(request, "calendario/calendario.html")
 
 def bozze(request):
-    lista_bozze = table_simulazione.objects.filter(STATO='Bozza')
-
+    lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
     context = {
         'lista_bozze': lista_bozze
     }
