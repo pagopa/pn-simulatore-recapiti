@@ -183,7 +183,22 @@ Parameters:
 
   AllowedHosts:
     Type: String
-    Description: 'Allowed hosts for the microservice separated by comma, example .vpn.dev.notifichedigitali.it'
+
+  # Glue Parameters
+  GlueConnectionName:
+    Type: String
+    Description: 'Glue connection name for Aurora database'
+    Default: 'pn-simulatore-recapiti-glue-network-connection'
+
+  GlueScriptsS3Path:
+    Type: String
+    Description: 'S3 path where Glue scripts are stored'
+    Default: 'scripts/pn-simulatore-recapiti'
+
+  GlueLibsS3Path:
+    Type: String
+    Description: 'S3 path where Glue libs are stored'
+    Default: 'libs/pn-simulatore-recapiti'
 
   CpuValue:
     Type: Number
@@ -269,39 +284,150 @@ Resources:
             Action: secretsmanager:GetSecretValue
             Resource: !Ref SvcSimulatorUserSecretArn
 
-  # PortFatCloudWatchDashboard:   DA VERIFICARE A SEGUITO DEL DEPLOY
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties:
-  #     TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
-  #     Parameters:
-  #       DashboardName: !Sub "${ProjectName}-portfat"
-  #       DynamoDBTableNames: !Join
-  #         - ','
-  #         - - !Ref PortFatDownloadTableName
-  #       RestApiStageArns: !Join
-  #         - ','
-  #         - - !GetAtt PnPortFatAPI.Outputs.RestApiStageArn
-  #       RestApiNames: !Join
-  #         - ','
-  #         - - !GetAtt PnPortFatAPI.Outputs.RestApiName
-  #       AlarmArns: !Join
-  #         - ','
-  #         - - !Ref PortFatRequestActionsQueueAlarmARN
-  #           - !Ref PortFatRequestActionsQueueAgeAlarmARN
-  #           - !Ref PortFatRequestActionsQueueDLQAlarmARN
-  #           - !GetAtt PortFatLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
-  #       LambdaArns: !Join
-  #         - ','
-  #         - - !GetAtt PortFatLambdaFunction.Arn
-  #       QueueArns: !Join
-  #         - ','
-  #         - - !Ref PortFatRequestActionsQueueARN
-  #           - !Ref PortFatRequestActionsQueueDLQARN
-  #       LogGroupsNames: !Join
-  #         - ','
-  #         - - !Ref EcsLogGroup
-  #           - !Ref LambdaLogGroup
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:PutObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${MicroserviceBucketName}/*"
+                  - !Sub "arn:aws:s3:::${MicroserviceBucketName}"
 
-Outputs:
-  Version:
-    Value: !Ref Version
+  # Glue Service Role
+  GlueServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-GlueRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      Policies:
+        - PolicyName: GlueJobPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${MicroserviceBucketName}/*"
+                  - !Sub "arn:aws:s3:::${MicroserviceBucketName}"
+                  - !Sub "arn:aws:s3:::aws-glue-assets-${AWS::AccountId}-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::aws-glue-assets-${AWS::AccountId}-${AWS::Region}"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws-glue/*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeVpcEndpoints
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeVpcs
+                Resource: "*"
+
+  # Lambda Functions
+  MergeSenderLimitDBFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-MergeSenderLimitDB"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}lambdas/MergeSenderLimitDB.zip"
+      Timeout: 900
+      MemorySize: 512
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref VPNWebappSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+
+  # Glue Jobs
+  GenerazioneCsvImportDataJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-GenerazioneCsvImportData"
+      Role: !GetAtt GlueServiceRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/${GlueScriptsS3Path}/GenerazioneCsvImportData.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--extra-py-files": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/${GlueLibsS3Path}/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
+        "--s3_bucket": !Ref MicroserviceBucketName
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Ref GlueConnectionName
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
