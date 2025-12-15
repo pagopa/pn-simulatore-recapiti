@@ -116,7 +116,6 @@ Parameters:
     Type: Number
     Description: 'maximum autoscaling number of tasks'
 
-  # OpenApi Bucket params
   MicroserviceBucketName:
     Type: String
     Default: 'default-microservice-bucket'
