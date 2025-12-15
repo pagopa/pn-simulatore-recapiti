@@ -190,15 +190,13 @@ Parameters:
     Description: 'Glue connection name for Aurora database'
     Default: 'pn-simulatore-recapiti-glue-network-connection'
 
-  GlueScriptsS3Path:
+  CiArtifactBucketName:
     Type: String
-    Description: 'S3 path where Glue scripts are stored'
-    Default: 'scripts/pn-simulatore-recapiti'
+    Description: 'CI Artifact bucket name where Glue scripts are stored'
 
-  GlueLibsS3Path:
+  GlueScriptsVersion:
     Type: String
-    Description: 'S3 path where Glue libs are stored'
-    Default: 'libs/pn-simulatore-recapiti'
+    Description: 'Version/branch name for Glue scripts path'
 
   CpuValue:
     Type: Number
@@ -353,6 +351,8 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:s3:::${MicroserviceBucketName}/*"
                   - !Sub "arn:aws:s3:::${MicroserviceBucketName}"
+                  - !Sub "arn:aws:s3:::${CiArtifactBucketName}/*"
+                  - !Sub "arn:aws:s3:::${CiArtifactBucketName}"
                   - !Sub "arn:aws:s3:::aws-glue-assets-${AWS::AccountId}-${AWS::Region}/*"
                   - !Sub "arn:aws:s3:::aws-glue-assets-${AWS::AccountId}-${AWS::Region}"
               - Effect: Allow
@@ -404,7 +404,7 @@ Resources:
       Role: !GetAtt GlueServiceRole.Arn
       Command:
         Name: glueetl
-        ScriptLocation: !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/${GlueScriptsS3Path}/GenerazioneCsvImportData.py"
+        ScriptLocation: !Sub "s3://${CiArtifactBucketName}/pn-simulatore-recapiti/${GlueScriptsVersion}/static/glue/scripts/GenerazioneCsvImportData.py"
         PythonVersion: "3"
       DefaultArguments:
         "--job-bookmark-option": "job-bookmark-disable"
@@ -416,7 +416,6 @@ Resources:
         "--enable-continuous-cloudwatch-log": "true"
         "--job-language": "python"
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
-        "--extra-py-files": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/${GlueLibsS3Path}/"
         "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
         "--s3_bucket": !Ref MicroserviceBucketName
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
