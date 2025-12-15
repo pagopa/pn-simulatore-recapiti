@@ -85,7 +85,6 @@ Parameters:
     Type: String
     Default: /status
 
-  # Autoscaling parameters
   AutoscalingCheckPeriod:
     Default: 300
     Type: Number
