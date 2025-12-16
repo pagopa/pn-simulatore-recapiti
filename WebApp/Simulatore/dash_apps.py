@@ -516,7 +516,7 @@ def update_table_recap(recap_only_sel,pathname):
 
     from .models import view_output_tabella_picchi
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
+    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).order_by("REGIONE","PROVINCE").values()
     df_tab_picchi = pd.DataFrame(tab_picchi)
 
     # filtered_df_picchi = df_mappa_picchi[df_mappa_picchi["UNIFIED_DELIVERY_DRIVER"] == recap_only_sel]
@@ -1289,7 +1289,7 @@ def update_map_recap_1(recap_only_sel,pathname):
 def update_table_recap_1(recap_only_sel, pathname):
     from .models import view_output_tabella_picchi
     id_simulazione = int(pathname.strip("/").split("/")[-2])
-    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
+    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).order_by("REGIONE","PROVINCE").values()
     df_tab_picchi = pd.DataFrame(tab_picchi)
 
     df_tab_picchi["TOT_PICCO"] = df_tab_picchi["TOT_PICCO"].map({0: 'Assente', 1: 'Presente'})
@@ -1367,7 +1367,7 @@ def update_map_recap_2(recap_only_sel, pathname):
 def update_table_recap_2(recap_only_sel, pathname):
     from .models import view_output_tabella_picchi
     id_simulazione = int(pathname.strip("/").split("/")[-1])
-    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
+    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).order_by("REGIONE","PROVINCE").values()
     df_tab_picchi = pd.DataFrame(tab_picchi)
 
     df_tab_picchi["TOT_PICCO"] = df_tab_picchi["TOT_PICCO"].map({0: 'Assente', 1: 'Presente'})

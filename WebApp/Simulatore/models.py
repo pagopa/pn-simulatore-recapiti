@@ -419,11 +419,11 @@ class view_output_grafico_mappa_picchi(pg.View):
         SELECT 
             ROW_NUMBER() OVER () AS id,
             *,
-            DIV("TOT_PICCO_REG", "COUNT_PROV") AS "PROP_PICCO",
+            "TOT_PICCO_REG" * 1.0 /"COUNT_PROV" AS "PROP_PICCO",
             CASE 
-                WHEN DIV("TOT_PICCO_REG", "COUNT_PROV") < 0.0001
+                WHEN "TOT_PICCO_REG" * 1.0 /"COUNT_PROV" < 0.0001
                     THEN 'No picchi'
-                WHEN DIV("TOT_PICCO_REG", "COUNT_PROV") < 0.5
+                WHEN "TOT_PICCO_REG" * 1.0 /"COUNT_PROV" < 0.5
                     THEN '<50% picchi'
                 ELSE '>=50% picchi'
             END AS "FASCIA_PICCO"
