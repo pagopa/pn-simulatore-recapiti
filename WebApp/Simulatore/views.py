@@ -442,6 +442,8 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                 capacity = item['MODIFIED_CAPACITY']
                 post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             activation_date_from = item['ACTIVATION_DATE_FROM']
+            if activation_date_from.day == 1:
+                continue
             activation_date_to = item['ACTIVATION_DATE_TO']
             
             lista_capacita_finali[recapitista][regione+'_'+cod_sigla_provincia+'_'+product].append(
