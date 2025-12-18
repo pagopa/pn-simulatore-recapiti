@@ -374,7 +374,7 @@ Resources:
   MergeSenderLimitDBFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-MergeSenderLimitDB"
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-LambdaMergeSenderLimitDB"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -398,7 +398,7 @@ Resources:
   GenerazioneCsvImportDataJob:
     Type: AWS::Glue::Job
     Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-GenerazioneCsvImportData"
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneCsvImportData"
       Role: !GetAtt GlueServiceRole.Arn
       Command:
         Name: glueetl
