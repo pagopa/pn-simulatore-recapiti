@@ -402,7 +402,7 @@ Resources:
       Role: !GetAtt GlueServiceRole.Arn
       Command:
         Name: glueetl
-        ScriptLocation: !Sub "s3://${CiArtifactBucketName}/pn-simulatore-recapiti/${GlueScriptsVersion}/static/glue/scripts/GenerazioneCsvImportData.py"
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/GenerazioneCsvImportData.py"
         PythonVersion: "3"
       DefaultArguments:
         "--job-bookmark-option": "job-bookmark-disable"
