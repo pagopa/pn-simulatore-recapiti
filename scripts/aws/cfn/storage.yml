@@ -134,6 +134,15 @@ Resources:
       ToPort: 65535
       SourceSecurityGroupId: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
 
+  SimulatorDataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "pn-simulatore-recapiti-${AWS::AccountId}-${EnvironmentType}"
+      VersioningConfiguration:
+        Status: Enabled
+
 Outputs:
   RdsSimulatorEndpointAddress:
     Description: RDS Cluster Writer Endpoint Address
@@ -168,3 +177,7 @@ Outputs:
   # Log group exports
   EcsLogGroup:
     Value: !GetAtt SimulatorLogGroup.Outputs.LogGroupName
+  # S3 Bucket exports
+  SimulatorDataBucketName:
+    Description: Name of the S3 bucket for simulator data
+    Value: !Ref SimulatorDataBucket
