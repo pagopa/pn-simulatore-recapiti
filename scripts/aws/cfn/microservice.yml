@@ -69,10 +69,6 @@ Parameters:
     Type: String
     Description: 'Default security group required by infrastructure'
 
-  Version:
-    Type: String
-    Description: 'keep track of used projects commitIds'
-
   RdsSimulatorPort:
     Type: Number
     Description: RDS Cluster Port (from storage stack)
@@ -188,6 +184,10 @@ Parameters:
     Description: 'memory amount reserved to the task pod.'
     AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
 
+  PnDelayerLambdaName:
+    Type: String
+    Description: 'Name of the pn-delayer-lambda function to be invoked'
+
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -267,7 +267,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/MergeSenderLimitDB.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
@@ -437,7 +437,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/ConfigurazioneSimulazione.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
@@ -492,7 +492,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/FillCapProvRegFromS3Lookup.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
@@ -537,8 +537,8 @@ Resources:
                   - s3:GetObject
                   - s3:ListBucket
                 Resource:
-                  - "arn:aws:s3:::pn-simulatore-recapiti-hesplora-dev"
-                  - "arn:aws:s3:::pn-simulatore-recapiti-hesplora-dev/*"
+                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
 
   FillCapProvRegFromS3LookupFunctionAlarms:
     Type: AWS::CloudFormation::Stack
@@ -558,7 +558,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaDeleteData.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
 
   LambdaDeleteDataFunctionRole:
@@ -582,7 +582,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
   LambdaDeleteDataFunctionAlarms:
     Type: AWS::CloudFormation::Stack
@@ -602,7 +604,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaGetPaperDeliveryResidui.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
 
   LambdaGetPaperDeliveryResiduiFunctionRole:
@@ -626,7 +628,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
   LambdaGetPaperDeliveryResiduiFunctionAlarms:
     Type: AWS::CloudFormation::Stack
@@ -646,7 +650,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaGetUsedCapacity.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
@@ -689,7 +693,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
   LambdaGetUsedCapacityFunctionAlarms:
     Type: AWS::CloudFormation::Stack
@@ -709,7 +715,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaImportData.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       Environment:
         Variables:
@@ -736,7 +742,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
         - PolicyName: S3Access
           PolicyDocument:
             Version: '2012-10-17'
@@ -770,7 +778,7 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaInsertMockCapacities.zip"
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
@@ -814,7 +822,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: "*"
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
         - PolicyName: S3Access
           PolicyDocument:
             Version: '2012-10-17'
@@ -845,7 +855,7 @@ Resources:
       FunctionName: !Sub '${ProjectName}-LambdaRunAlgorithm'
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       Role: !GetAtt LambdaRunAlgorithmFunctionRole.Arn
       Code:
@@ -890,7 +900,7 @@ Resources:
       FunctionName: !Sub '${ProjectName}-ListaFileImportData'
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       Role: !GetAtt ListaFileImportDataFunctionRole.Arn
       Code:
@@ -941,7 +951,7 @@ Resources:
       FunctionName: !Sub '${ProjectName}-MergeDeclaredCapacityDB'
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Timeout: 900
+      Timeout: 300
       MemorySize: 128
       Role: !GetAtt MergeDeclaredCapacityDBFunctionRole.Arn
       Code:
@@ -1016,7 +1026,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-testDelayerLambda"
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
               - Effect: Allow
                 Action:
                   - s3:GetObject
@@ -1046,8 +1056,11 @@ Resources:
                   - ec2:DescribeSecurityGroups
                   - ec2:DescribeVpcs
                 Resource: "*"
+                Condition:
+                  StringEquals:
+                    ec2:Vpc: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPNVpcId}"
 
-  GenerazioneCsvImportDataJob:
+  GenerazioneCsvImportDataGlueJob:
     Type: AWS::Glue::Job
     Properties:
       Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneCsvImportData"
@@ -1081,7 +1094,7 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
-  RecuperoDeclaredCapacityDeltaJob:
+  RecuperoDeclaredCapacityDeltaGlueJob:
     Type: AWS::Glue::Job
     Properties:
       Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoDeclaredCapacityDelta"
@@ -1114,7 +1127,7 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
-  RecuperoResiduiPaperDeliveryJob:
+  RecuperoResiduiPaperDeliveryGlueJob:
     Type: AWS::Glue::Job
     Properties:
       Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoResiduiPaperDelivery"
@@ -1148,7 +1161,7 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
-  RecuperoRisultatiPaperDeliveryJob:
+  RecuperoRisultatiPaperDeliveryGlueJob:
     Type: AWS::Glue::Job
     Properties:
       Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoRisultatiPaperDelivery"
@@ -1182,7 +1195,7 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
-  RecuperoSenderLimitDeltaJob:
+  RecuperoSenderLimitDeltaGlueJob:
     Type: AWS::Glue::Job
     Properties:
       Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoSenderLimitDelta"
@@ -1215,8 +1228,42 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
+  RecuperoDeclaredCapacityCAPS3GlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoDeclaredCapacityCAP-S3"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoDeclaredCapacityCAP-S3.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
+        "--s3_bucket": !Ref SimulatorDataBucketName
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+      MaxRetries: 0
+      Timeout: 30
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Ref GlueConnectionName
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
   # Step Functions
-  GestioneSimulazioneStateMachineRole:
+  GestioneSimulazioneStateFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-StepFunction-GestioneSimulazione-Role"
@@ -1253,11 +1300,11 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${ProjectName}-${MicroServiceUniqueName}-Glue-*"
 
-  GestioneSimulazioneStateMachine:
+  GestioneSimulazioneStateFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-stepfunction-GestioneSimulazione"
-      RoleArn: !GetAtt GestioneSimulazioneStateMachineRole.Arn
+      RoleArn: !GetAtt GestioneSimulazioneStateFunctionRole.Arn
       Definition:
         StartAt: CONFIGURAZIONE SIMULAZIONE
         States:
@@ -1293,7 +1340,7 @@ Resources:
             Type: Task
             Resource: arn:aws:states:::glue:startJobRun.sync
             Parameters:
-              JobName: !Ref RecuperoDeclaredCapacityDeltaJob
+              JobName: !Ref RecuperoDeclaredCapacityCAPS3GlueJob
               Arguments:
                 '--id_simulazione_manuale.$': $.id_simulazione_manuale
                 '--mese_simulazione.$': $.mese_simulazione
@@ -1639,7 +1686,7 @@ Resources:
             Type: Task
             Resource: arn:aws:states:::glue:startJobRun.sync
             Parameters:
-              JobName: !Ref RecuperoRisultatiPaperDeliveryJob
+              JobName: !Ref RecuperoRisultatiPaperDeliveryGlueJob
               Arguments:
                 '--id_simulazione_automatizzata.$': $.output_lambda_ConfigurazioneSimulazione.Payload.id_simulazione_automatizzata
                 '--id_simulazione_manuale.$': $.id_simulazione_manuale
@@ -1693,7 +1740,7 @@ Resources:
       TracingConfiguration:
         Enabled: false
 
-  RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateMachineRole:
+  RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-StepFunction-RecuperoDati-Role"
@@ -1725,10 +1772,10 @@ Resources:
                   - glue:GetJobRuns
                   - glue:BatchStopJobRun
                 Resource:
-                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoResiduiPaperDeliveryJob}"
-                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoDeclaredCapacityDeltaJob}"
-                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoSenderLimitDeltaJob}"
-                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GenerazioneCsvImportDataJob}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoResiduiPaperDeliveryGlueJob}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoDeclaredCapacityDeltaGlueJob}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoSenderLimitDeltaGlueJob}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GenerazioneCsvImportDataGlueJob}"
               - Effect: Allow
                 Action:
                   - states:StartExecution
@@ -1749,11 +1796,11 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule"
 
-  RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateMachine:
+  RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-stepfunction-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
-      RoleArn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateMachineRole.Arn
+      RoleArn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionRole.Arn
       Definition:
         StartAt: CALCOLO PRIMA SETTIMANA
         States:
@@ -1801,7 +1848,7 @@ Resources:
                           Type: Task
                           Resource: arn:aws:states:::glue:startJobRun.sync
                           Parameters:
-                            JobName: !Ref RecuperoResiduiPaperDeliveryJob
+                            JobName: !Ref RecuperoResiduiPaperDeliveryGlueJob
                             Arguments:
                               '--mese_simulazione.$': $.mese_simulazione
                           End: true
@@ -1821,7 +1868,7 @@ Resources:
                           Type: Task
                           Resource: arn:aws:states:::glue:startJobRun.sync
                           Parameters:
-                            JobName: !Ref RecuperoDeclaredCapacityDeltaJob
+                            JobName: !Ref RecuperoDeclaredCapacityDeltaGlueJob
                             Arguments:
                               '--mese_simulazione.$': $.mese_simulazione
                           Next: MERGE DB
@@ -1862,7 +1909,7 @@ Resources:
                           Type: Task
                           Resource: arn:aws:states:::glue:startJobRun.sync
                           Parameters:
-                            JobName: !Ref RecuperoSenderLimitDeltaJob
+                            JobName: !Ref RecuperoSenderLimitDeltaGlueJob
                             Arguments:
                               '--mese_simulazione.$': $.mese_simulazione
                           Next: MERGE  DB
@@ -1899,7 +1946,7 @@ Resources:
                           Type: Task
                           Resource: arn:aws:states:::glue:startJobRun.sync
                           Parameters:
-                            JobName: !Ref GenerazioneCsvImportDataJob
+                            JobName: !Ref GenerazioneCsvImportDataGlueJob
                             Arguments:
                               '--mese_simulazione.$': $.mese_simulazione
                           End: true
@@ -1956,7 +2003,7 @@ Resources:
                 Action:
                   - states:StartExecution
                 Resource:
-                  - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateMachine.Arn
+                  - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
 
   SimulazioneAutomatizzataSettimanaleEventBridgeRule:
     Type: AWS::Events::Rule
@@ -1966,7 +2013,7 @@ Resources:
       ScheduleExpression: "cron(0 21 ? * MON *)"
       State: ENABLED
       Targets:
-        - Arn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateMachine.Arn
+        - Arn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
           RoleArn: !GetAtt SimulazioneAutomatizzataSettimanaleEventBridgeRole.Arn
           Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
           Input: |
