@@ -1975,11 +1975,9 @@ Resources:
                           Type: Pass
                           End: true
                   End: true
-                  ResultPath: null
             Next: Run GESTIONE SIMULAZIONE
             MaxConcurrency: 1
             ItemsPath: $.output_lambda_CalcoloPrimaSettimana.Payload.date_simulazione
-            ResultPath: null
           Run GESTIONE SIMULAZIONE:
             Type: Choice
             Choices:
