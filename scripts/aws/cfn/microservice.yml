@@ -1335,13 +1335,15 @@ Resources:
                   - logs:ListLogDeliveries
                   - logs:PutResourcePolicy
                   - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
                 Resource: "*"
                 Condition:
                   StringEquals:
                     aws:SourceAccount: !Ref AWS::AccountId
               - Effect: Allow
                 Action:
-                  - logs:DescribeLogGroups
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
                 Resource:
                   - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-GestioneSimulazione:*"
 
@@ -1849,13 +1851,15 @@ Resources:
                   - logs:ListLogDeliveries
                   - logs:PutResourcePolicy
                   - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
                 Resource: "*"
                 Condition:
                   StringEquals:
                     aws:SourceAccount: !Ref AWS::AccountId
               - Effect: Allow
                 Action:
-                  - logs:DescribeLogGroups
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
                 Resource:
                   - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-RecuperoDati:*"
 
