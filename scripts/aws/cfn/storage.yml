@@ -29,10 +29,10 @@ Parameters:
     Default: ''
   VPNVpcId:
     Type: AWS::EC2::VPC::Id
-    Description: PdfRaster VPC id
-  VPNServicesSubnets:
+    Description: VPN VPC id
+  VPNServicesSubnetsIds:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: PdfRaster private subnets
+    Description: VPN private subnets
   VPNVpcCidr:
     Type: String
     Description: Source VPC CIDR block for RDS ingress rule
@@ -109,7 +109,7 @@ Resources:
         VpcId: !Ref VPNVpcId
         PrivateSubnets: !Join
           - ','
-          - !Ref VPNServicesSubnets
+          - !Ref VPNServicesSubnetsIds
         SourceVpcCidr: !Ref VPNVpcCidr
         ClusterIdentifierSuffix: !Ref RdsSimulatorClusterIdentifierSuffix
         DatabaseName: !Ref RdsSimulatorDatabaseName
@@ -124,6 +124,24 @@ Resources:
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
         DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
+
+  SimulatorDbIngressForGlueRole:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      SourceSecurityGroupId: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+
+  SimulatorDataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "pn-simulatore-recapiti-${AWS::AccountId}-${EnvironmentType}"
+      VersioningConfiguration:
+        Status: Enabled
 
 Outputs:
   RdsSimulatorEndpointAddress:
@@ -159,3 +177,7 @@ Outputs:
   # Log group exports
   EcsLogGroup:
     Value: !GetAtt SimulatorLogGroup.Outputs.LogGroupName
+  # S3 Bucket exports
+  SimulatorDataBucketName:
+    Description: Name of the S3 bucket for simulator data
+    Value: !Ref SimulatorDataBucket

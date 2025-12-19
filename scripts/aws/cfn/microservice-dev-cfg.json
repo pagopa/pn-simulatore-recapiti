@@ -2,9 +2,9 @@
   "Parameters" : {
     "ProjectName": "pn",
     "MicroServiceUniqueName": "simulatore-recapiti",
-    "AutoscalingThreshold": "1000",
     "MinTasksNumber": "1",
     "MaxTasksNumber": "1",
+    "PnDelayerLambdaName": "pn-testDelayerLambda",
     "AllowedHosts": "simulator.vpn.dev.notifichedigitali.it,localhost"
   }
 }
