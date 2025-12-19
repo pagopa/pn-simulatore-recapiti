@@ -245,93 +245,69 @@ Resources:
 
   # Glue Jobs Log Groups
   GenerazioneCsvImportDataGlueLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Glue-GenerazioneCsvImportData"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws-glue/jobs'
+      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-GenerazioneCsvImportData"
+      RetentionInDays: !Ref LogRetention
 
   RecuperoDeclaredCapacityDeltaGlueLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Glue-RecuperoDeclaredCapacityDelta"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws-glue/jobs'
+      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoDeclaredCapacityDelta"
+      RetentionInDays: !Ref LogRetention
 
   RecuperoResiduiPaperDeliveryGlueLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Glue-RecuperoResiduiPaperDelivery"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws-glue/jobs'
+      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoResiduiPaperDelivery"
+      RetentionInDays: !Ref LogRetention
 
   RecuperoRisultatiPaperDeliveryGlueLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Glue-RecuperoRisultatiPaperDelivery"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws-glue/jobs'
+      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoRisultatiPaperDelivery"
+      RetentionInDays: !Ref LogRetention
 
   RecuperoSenderLimitDeltaGlueLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Glue-RecuperoSenderLimitDelta"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws-glue/jobs'
+      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoSenderLimitDelta"
+      RetentionInDays: !Ref LogRetention
 
   RecuperoDeclaredCapacityCAPS3GlueLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Glue-RecuperoDeclaredCapacityCAP-S3"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws-glue/jobs'
+      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoDeclaredCapacityCAP-S3"
+      RetentionInDays: !Ref LogRetention
 
   # Step Functions Log Groups
   GestioneSimulazioneStateFunctionLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-stepfunction-GestioneSimulazione"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws/vendedlogs/states'
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-GestioneSimulazione"
+      RetentionInDays: !Ref LogRetention
 
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionLogGroup:
-    Type: AWS::CloudFormation::Stack
+    Type: AWS::Logs::LogGroup
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
-      Parameters:
-        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-stepfunction-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
-        LogGroupRetention: !Ref LogRetention
-        LogGroupPrefix: '/aws/vendedlogs/states'
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
+      RetentionInDays: !Ref LogRetention
 
   SimulatorAuroraDbCluster:
     Type: AWS::CloudFormation::Stack
