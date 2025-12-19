@@ -1343,7 +1343,7 @@ Resources:
                 Action:
                   - logs:DescribeLogGroups
                 Resource:
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-GestioneSimulazione:*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-GestioneSimulazione:*"
 
   GestioneSimulazioneStateFunction:
     Type: AWS::StepFunctions::StateMachine
@@ -1857,7 +1857,7 @@ Resources:
                 Action:
                   - logs:DescribeLogGroups
                 Resource:
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale:*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-RecuperoDati:*"
 
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction:
     Type: AWS::StepFunctions::StateMachine
