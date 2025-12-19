@@ -298,7 +298,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-GestioneSimulazione"
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-sf-GestioneSimulazione"
       RetentionInDays: !Ref LogRetention
 
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionLogGroup:
@@ -306,7 +306,7 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
     Properties:
-      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
+      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-sf-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
       RetentionInDays: !Ref LogRetention
 
   SimulatorAuroraDbCluster:
