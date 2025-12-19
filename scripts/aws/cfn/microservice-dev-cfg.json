@@ -5,7 +5,6 @@
     "MinTasksNumber": "1",
     "MaxTasksNumber": "1",
     "PnDelayerLambdaName": "pn-testDelayerLambda",
-    "LogLevelStepFuction": "INFO",
     "AllowedHosts": "simulator.vpn.dev.notifichedigitali.it,localhost"
   }
 }

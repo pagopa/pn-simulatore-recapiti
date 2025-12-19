@@ -110,10 +110,6 @@ Parameters:
     Type: String
     Default: 'FATAL'
 
-  LogLevelStepFuction:
-    Type: String
-    Default: 'OFF'
-
   # Heath Check parameters
   HealthCheckInterval:
     Description: 'Seconds between two health check'
@@ -1352,14 +1348,14 @@ Resources:
   GestioneSimulazioneStateFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-stepfunction-GestioneSimulazione"
+      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione"
       RoleArn: !GetAtt GestioneSimulazioneStateFunctionRole.Arn
       LoggingConfiguration:
-        Level: !Ref LogLevelStepFuction
+        Level: ERROR
         IncludeExecutionData: true
         Destinations:
           - CloudWatchLogsLogGroup:
-              LogGroupArn: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-GestioneSimulazione:*"
+              LogGroupArn: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-GestioneSimulazione:*"
       Definition:
         StartAt: CONFIGURAZIONE SIMULAZIONE
         States:
@@ -1866,14 +1862,14 @@ Resources:
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-stepfunction-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
+      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDati"
       RoleArn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionRole.Arn
       LoggingConfiguration:
-        Level: !Ref LogLevelStepFuction
+        Level: ERROR
         IncludeExecutionData: true
         Destinations:
           - CloudWatchLogsLogGroup:
-              LogGroupArn: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-stepfunction-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale:*"
+              LogGroupArn: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-RecuperoDati:*"
       Definition:
         StartAt: CALCOLO PRIMA SETTIMANA
         States:
