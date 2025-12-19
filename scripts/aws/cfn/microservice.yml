@@ -255,6 +255,31 @@ Resources:
             Effect: Allow
             Action: secretsmanager:GetSecretValue
             Resource: !Ref SvcSimulatorUserSecretArn
+          - Sid: InvokeStepFunction
+            Effect: Allow
+            Action: states:StartExecution
+            Resource:
+              - !GetAtt GestioneSimulazioneStateFunction.Arn
+              - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+          - Sid: EventBridgeSchedulerAccess
+            Effect: Allow
+            Action:
+              - scheduler:CreateSchedule
+              - scheduler:GetSchedule
+              - scheduler:UpdateSchedule
+              - scheduler:DeleteSchedule
+              - scheduler:ListSchedules
+            Resource: !Sub "arn:aws:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/*/*"
+          - Sid: EventBridgeSchedulerBasicPermissions
+            Effect: Allow
+            Action:
+              - scheduler:ListScheduleGroups
+              - scheduler:GetScheduleGroup
+            Resource: "*"
+          - Sid: PassRolePermission
+            Effect: Allow
+            Action: iam:PassRole
+            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${MicroServiceUniqueName}-TaskRole"
 
   # Lambda Functions
   MergeSenderLimitDBFunction:
