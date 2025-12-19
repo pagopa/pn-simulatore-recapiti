@@ -217,7 +217,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
-        LogGroupName: !Sub "${ProjectName}-LambdaRunAlgorithm"
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-RunAlgorithm"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 
@@ -228,7 +228,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
-        LogGroupName: !Sub "${ProjectName}-ListaFileImportData"
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-ListaFileImportData"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 
@@ -239,7 +239,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
-        LogGroupName: !Sub "${ProjectName}-MergeDeclaredCapacityDB"
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-MergeDeclaredCapacityDB"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 

@@ -883,7 +883,7 @@ Resources:
   RunAlgorithmLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${ProjectName}-LambdaRunAlgorithm'
+      FunctionName: !Sub '${ProjectName}-${MicroServiceUniqueName}-Lambda-RunAlgorithm'
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
       Timeout: 300
@@ -896,7 +896,7 @@ Resources:
   RunAlgorithmLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${ProjectName}-lambda-runalgorithm-role'
+      RoleName: !Sub '${ProjectName}-${MicroServiceUniqueName}-lambda-runalgorithm-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -928,7 +928,7 @@ Resources:
   ListaFileImportDataLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${ProjectName}-ListaFileImportData'
+      FunctionName: !Sub '${ProjectName}-${MicroServiceUniqueName}-Lambda-ListaFileImportData'
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
       Timeout: 300
@@ -944,7 +944,7 @@ Resources:
   ListaFileImportDataLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${ProjectName}-lambda-listafileimportdata-role'
+      RoleName: !Sub '${ProjectName}-${MicroServiceUniqueName}-lambda-listafileimportdata-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -979,7 +979,7 @@ Resources:
   MergeDeclaredCapacityDBLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${ProjectName}-MergeDeclaredCapacityDB'
+      FunctionName: !Sub '${ProjectName}-${MicroServiceUniqueName}-Lambda-MergeDeclaredCapacityDB'
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
       Timeout: 300
@@ -1002,7 +1002,7 @@ Resources:
   MergeDeclaredCapacityDBLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub '${ProjectName}-lambda-mergedeclaredcapacitydb-role'
+      RoleName: !Sub '${ProjectName}-${MicroServiceUniqueName}-lambda-mergedeclaredcapacitydb-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
