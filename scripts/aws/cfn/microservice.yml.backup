@@ -288,13 +288,13 @@ Resources:
             Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${MicroServiceUniqueName}-TaskRole"
 
   # Lambda Functions
-  MergeSenderLimitDBLambda:
+  MergeSenderLimitDBFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-MergeSenderLimitDB"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt MergeSenderLimitDBLambdaRole.Arn
+      Role: !GetAtt MergeSenderLimitDBFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/MergeSenderLimitDB.zip"
@@ -311,7 +311,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
 
-  MergeSenderLimitDBLambdaRole:
+  MergeSenderLimitDBFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-mergesenderlimitdb-role"
@@ -347,15 +347,15 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
 
-  MergeSenderLimitDBLambdaAlarms:
+  MergeSenderLimitDBFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref MergeSenderLimitDBLambda
+        FunctionName: !Ref MergeSenderLimitDBFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  CalcoloPrimaSettimanaLambda:
+  CalcoloPrimaSettimanaFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-CalcoloPrimaSettimana"
@@ -382,21 +382,21 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-  CalcoloPrimaSettimanaLambdaAlarms:
+  CalcoloPrimaSettimanaFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref CalcoloPrimaSettimanaLambda
+        FunctionName: !Ref CalcoloPrimaSettimanaFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  AggiornaSimulazioneDBLambda:
+  AggiornaSimulazioneDBFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-AggiornaSimulazioneDB"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt AggiornaSimulazioneDBLambdaRole.Arn
+      Role: !GetAtt AggiornaSimulazioneDBFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/AggiornaSimulazioneDB.zip"
@@ -414,7 +414,7 @@ Resources:
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           source_bucket: !Ref SimulatorDataBucketName
 
-  AggiornaSimulazioneDBLambdaRole:
+  AggiornaSimulazioneDBFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-aggiornasimulazionedb-role"
@@ -450,21 +450,21 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
 
-  AggiornaSimulazioneDBLambdaAlarms:
+  AggiornaSimulazioneDBFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref AggiornaSimulazioneDBLambda
+        FunctionName: !Ref AggiornaSimulazioneDBFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  ConfigurazioneSimulazioneLambda:
+  ConfigurazioneSimulazioneFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-ConfigurazioneSimulazione"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt ConfigurazioneSimulazioneLambdaRole.Arn
+      Role: !GetAtt ConfigurazioneSimulazioneFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/ConfigurazioneSimulazione.zip"
@@ -481,7 +481,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
 
-  ConfigurazioneSimulazioneLambdaRole:
+  ConfigurazioneSimulazioneFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-configurazionesimulazione-role"
@@ -505,21 +505,21 @@ Resources:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref SvcSimulatorUserSecretArn
 
-  ConfigurazioneSimulazioneLambdaAlarms:
+  ConfigurazioneSimulazioneFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref ConfigurazioneSimulazioneLambda
+        FunctionName: !Ref ConfigurazioneSimulazioneFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  FillCapProvRegFromS3LookupLambda:
+  FillCapProvRegFromS3LookupFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-FillCapProvRegFromS3Lookup"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt FillCapProvRegFromS3LookupLambdaRole.Arn
+      Role: !GetAtt FillCapProvRegFromS3LookupFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/FillCapProvRegFromS3Lookup.zip"
@@ -536,7 +536,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
 
-  FillCapProvRegFromS3LookupLambdaRole:
+  FillCapProvRegFromS3LookupFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-fillcapprovregfroms3lookup-role"
@@ -571,28 +571,28 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
 
-  FillCapProvRegFromS3LookupLambdaAlarms:
+  FillCapProvRegFromS3LookupFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref FillCapProvRegFromS3LookupLambda
+        FunctionName: !Ref FillCapProvRegFromS3LookupFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  DeleteDataLambda:
+  LambdaDeleteDataFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaDeleteData"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt DeleteDataLambdaRole.Arn
+      Role: !GetAtt LambdaDeleteDataFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaDeleteData.zip"
       Timeout: 300
       MemorySize: 128
 
-  DeleteDataLambdaRole:
+  LambdaDeleteDataFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdadeletedata-role"
@@ -617,28 +617,28 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  DeleteDataLambdaAlarms:
+  LambdaDeleteDataFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref DeleteDataLambda
+        FunctionName: !Ref LambdaDeleteDataFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  GetPaperDeliveryResiduiLambda:
+  LambdaGetPaperDeliveryResiduiFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaGetPaperDeliveryResidui"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt GetPaperDeliveryResiduiLambdaRole.Arn
+      Role: !GetAtt LambdaGetPaperDeliveryResiduiFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaGetPaperDeliveryResidui.zip"
       Timeout: 300
       MemorySize: 128
 
-  GetPaperDeliveryResiduiLambdaRole:
+  LambdaGetPaperDeliveryResiduiFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdagetpaperdeliveryresidui-role"
@@ -663,21 +663,21 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  GetPaperDeliveryResiduiLambdaAlarms:
+  LambdaGetPaperDeliveryResiduiFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref GetPaperDeliveryResiduiLambda
+        FunctionName: !Ref LambdaGetPaperDeliveryResiduiFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  GetUsedCapacityLambda:
+  LambdaGetUsedCapacityFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaGetUsedCapacity"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt GetUsedCapacityLambdaRole.Arn
+      Role: !GetAtt LambdaGetUsedCapacityFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaGetUsedCapacity.zip"
@@ -694,7 +694,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
 
-  GetUsedCapacityLambdaRole:
+  LambdaGetUsedCapacityFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdagetusedcapacity-role"
@@ -728,21 +728,21 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  GetUsedCapacityLambdaAlarms:
+  LambdaGetUsedCapacityFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref GetUsedCapacityLambda
+        FunctionName: !Ref LambdaGetUsedCapacityFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  ImportDataLambda:
+  LambdaImportDataFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaImportData"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt ImportDataLambdaRole.Arn
+      Role: !GetAtt LambdaImportDataFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaImportData.zip"
@@ -752,7 +752,7 @@ Resources:
         Variables:
           source_bucket: !Ref SimulatorDataBucketName
 
-  ImportDataLambdaRole:
+  LambdaImportDataFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdaimportdata-role"
@@ -791,21 +791,21 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
 
-  ImportDataLambdaAlarms:
+  LambdaImportDataFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref ImportDataLambda
+        FunctionName: !Ref LambdaImportDataFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
-  InsertMockCapacitiesLambda:
+  LambdaInsertMockCapacitiesFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaInsertMockCapacities"
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt InsertMockCapacitiesLambdaRole.Arn
+      Role: !GetAtt LambdaInsertMockCapacitiesFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaInsertMockCapacities.zip"
@@ -823,7 +823,7 @@ Resources:
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           source_bucket: !Ref SimulatorDataBucketName
 
-  InsertMockCapacitiesLambdaRole:
+  LambdaInsertMockCapacitiesFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdainsertmockcapacities-role"
@@ -871,16 +871,16 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
                   - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
 
-  InsertMockCapacitiesLambdaAlarms:
+  LambdaInsertMockCapacitiesFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
-        FunctionName: !Ref InsertMockCapacitiesLambda
+        FunctionName: !Ref LambdaInsertMockCapacitiesFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Lambda LambdaRunAlgorithm
-  RunAlgorithmLambda:
+  LambdaRunAlgorithmFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${ProjectName}-LambdaRunAlgorithm'
@@ -888,12 +888,12 @@ Resources:
       Handler: lambda_function.lambda_handler
       Timeout: 300
       MemorySize: 128
-      Role: !GetAtt RunAlgorithmLambdaRole.Arn
+      Role: !GetAtt LambdaRunAlgorithmFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/LambdaRunAlgorithm.zip'
 
-  RunAlgorithmLambdaRole:
+  LambdaRunAlgorithmFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub '${ProjectName}-lambda-runalgorithm-role'
@@ -916,16 +916,16 @@ Resources:
                   - lambda:InvokeFunction
                 Resource: '*'
 
-  RunAlgorithmLambdaAlarms:
+  LambdaRunAlgorithmFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
       Parameters:
-        FunctionName: !Ref RunAlgorithmLambda
+        FunctionName: !Ref LambdaRunAlgorithmFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Lambda ListaFileImportData
-  ListaFileImportDataLambda:
+  ListaFileImportDataFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${ProjectName}-ListaFileImportData'
@@ -933,7 +933,7 @@ Resources:
       Handler: lambda_function.lambda_handler
       Timeout: 300
       MemorySize: 128
-      Role: !GetAtt ListaFileImportDataLambdaRole.Arn
+      Role: !GetAtt ListaFileImportDataFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/ListaFileImportData.zip'
@@ -941,7 +941,7 @@ Resources:
         Variables:
           source_bucket: !Ref SimulatorDataBucketName
 
-  ListaFileImportDataLambdaRole:
+  ListaFileImportDataFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub '${ProjectName}-lambda-listafileimportdata-role'
@@ -967,16 +967,16 @@ Resources:
                   - !Sub 'arn:aws:s3:::${SimulatorDataBucketName}'
                   - !Sub 'arn:aws:s3:::${SimulatorDataBucketName}/*'
 
-  ListaFileImportDataLambdaAlarms:
+  ListaFileImportDataFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
       Parameters:
-        FunctionName: !Ref ListaFileImportDataLambda
+        FunctionName: !Ref ListaFileImportDataFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Lambda MergeDeclaredCapacityDB
-  MergeDeclaredCapacityDBLambda:
+  MergeDeclaredCapacityDBFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${ProjectName}-MergeDeclaredCapacityDB'
@@ -984,7 +984,7 @@ Resources:
       Handler: lambda_function.lambda_handler
       Timeout: 300
       MemorySize: 128
-      Role: !GetAtt MergeDeclaredCapacityDBLambdaRole.Arn
+      Role: !GetAtt MergeDeclaredCapacityDBFunctionRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/MergeDeclaredCapacityDB.zip'
@@ -999,7 +999,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
 
-  MergeDeclaredCapacityDBLambdaRole:
+  MergeDeclaredCapacityDBFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub '${ProjectName}-lambda-mergedeclaredcapacitydb-role'
@@ -1023,12 +1023,12 @@ Resources:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref SvcSimulatorUserSecretArn
 
-  MergeDeclaredCapacityDBLambdaAlarms:
+  MergeDeclaredCapacityDBFunctionAlarms:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
       Parameters:
-        FunctionName: !Ref MergeDeclaredCapacityDBLambda
+        FunctionName: !Ref MergeDeclaredCapacityDBFunction
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Glue Jobs - Shared Role
@@ -1314,14 +1314,14 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                 Resource:
-                  - !GetAtt ConfigurazioneSimulazioneLambda.Arn
-                  - !GetAtt CalcoloPrimaSettimanaLambda.Arn
-                  - !GetAtt MergeSenderLimitDBLambda.Arn
-                  - !GetAtt MergeDeclaredCapacityDBLambda.Arn
-                  - !GetAtt ListaFileImportDataLambda.Arn
-                  - !GetAtt ImportDataLambda.Arn
-                  - !GetAtt RunAlgorithmLambda.Arn
-                  - !GetAtt AggiornaSimulazioneDBLambda.Arn
+                  - !GetAtt ConfigurazioneSimulazioneFunction.Arn
+                  - !GetAtt CalcoloPrimaSettimanaFunction.Arn
+                  - !GetAtt MergeSenderLimitDBFunction.Arn
+                  - !GetAtt MergeDeclaredCapacityDBFunction.Arn
+                  - !GetAtt ListaFileImportDataFunction.Arn
+                  - !GetAtt LambdaImportDataFunction.Arn
+                  - !GetAtt LambdaRunAlgorithmFunction.Arn
+                  - !GetAtt AggiornaSimulazioneDBFunction.Arn
               - Effect: Allow
                 Action:
                   - glue:StartJobRun
@@ -1340,9 +1340,6 @@ Resources:
                   - logs:PutResourcePolicy
                   - logs:DescribeResourcePolicies
                 Resource: "*"
-                Condition:
-                  StringEquals:
-                    aws:SourceAccount: !Ref AWS::AccountId
               - Effect: Allow
                 Action:
                   - logs:DescribeLogGroups
@@ -1367,7 +1364,7 @@ Resources:
             Type: Task
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
-              FunctionName: !GetAtt ConfigurazioneSimulazioneLambda.Arn
+              FunctionName: !GetAtt ConfigurazioneSimulazioneFunction.Arn
               Payload.$: $
             Retry:
               - ErrorEquals:
@@ -1405,7 +1402,7 @@ Resources:
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
               Payload.$: $
-              FunctionName: !GetAtt ListaFileImportDataLambda.Arn
+              FunctionName: !GetAtt ListaFileImportDataFunction.Arn
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -1439,7 +1436,7 @@ Resources:
                           Resource: arn:aws:states:::lambda:invoke
                           Parameters:
                             Payload.$: $
-                            FunctionName: !GetAtt ImportDataLambda.Arn
+                            FunctionName: !GetAtt LambdaImportDataFunction.Arn
                           Retry:
                             - ErrorEquals:
                                 - Lambda.ServiceException
@@ -1468,7 +1465,7 @@ Resources:
                           Resource: arn:aws:states:::lambda:invoke
                           Parameters:
                             Payload.$: $
-                            FunctionName: !GetAtt ImportDataLambda.Arn
+                            FunctionName: !GetAtt LambdaImportDataFunction.Arn
                           Retry:
                             - ErrorEquals:
                                 - Lambda.ServiceException
@@ -1497,7 +1494,7 @@ Resources:
                           Resource: arn:aws:states:::lambda:invoke
                           Parameters:
                             Payload.$: $
-                            FunctionName: !GetAtt ImportDataLambda.Arn
+                            FunctionName: !GetAtt LambdaImportDataFunction.Arn
                           Retry:
                             - ErrorEquals:
                                 - Lambda.ServiceException
@@ -1526,7 +1523,7 @@ Resources:
                           Resource: arn:aws:states:::lambda:invoke
                           Parameters:
                             Payload.$: $
-                            FunctionName: !GetAtt ImportDataLambda.Arn
+                            FunctionName: !GetAtt LambdaImportDataFunction.Arn
                           Retry:
                             - ErrorEquals:
                                 - Lambda.ServiceException
@@ -1555,7 +1552,7 @@ Resources:
                           Resource: arn:aws:states:::lambda:invoke
                           Parameters:
                             Payload.$: $
-                            FunctionName: !GetAtt ImportDataLambda.Arn
+                            FunctionName: !GetAtt LambdaImportDataFunction.Arn
                           Retry:
                             - ErrorEquals:
                                 - Lambda.ServiceException
@@ -1575,7 +1572,7 @@ Resources:
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
               Payload.$: $
-              FunctionName: !GetAtt InsertMockCapacitiesLambda.Arn
+              FunctionName: !GetAtt LambdaInsertMockCapacitiesFunction.Arn
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -1627,7 +1624,7 @@ Resources:
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
               Payload.$: $
-              FunctionName: !GetAtt RunAlgorithmLambda.Arn
+              FunctionName: !GetAtt LambdaRunAlgorithmFunction.Arn
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -1685,7 +1682,7 @@ Resources:
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
               Payload.$: $
-              FunctionName: !GetAtt GetPaperDeliveryResiduiLambda.Arn
+              FunctionName: !GetAtt LambdaGetPaperDeliveryResiduiFunction.Arn
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -1719,7 +1716,7 @@ Resources:
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
               Payload.$: $
-              FunctionName: !GetAtt GetUsedCapacityLambda.Arn
+              FunctionName: !GetAtt LambdaGetUsedCapacityFunction.Arn
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -1758,7 +1755,7 @@ Resources:
                   Resource: arn:aws:states:::lambda:invoke
                   Parameters:
                     Payload.$: $
-                    FunctionName: !GetAtt DeleteDataLambda.Arn
+                    FunctionName: !GetAtt LambdaDeleteDataFunction.Arn
                   Retry:
                     - ErrorEquals:
                         - Exception
@@ -1774,7 +1771,7 @@ Resources:
             Resource: arn:aws:states:::lambda:invoke
             Parameters:
               Payload.$: $
-              FunctionName: !GetAtt AggiornaSimulazioneDBLambda.Arn
+              FunctionName: !GetAtt AggiornaSimulazioneDBFunction.Arn
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -1811,9 +1808,9 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                 Resource:
-                  - !GetAtt CalcoloPrimaSettimanaLambda.Arn
-                  - !GetAtt MergeDeclaredCapacityDBLambda.Arn
-                  - !GetAtt MergeSenderLimitDBLambda.Arn
+                  - !GetAtt CalcoloPrimaSettimanaFunction.Arn
+                  - !GetAtt MergeDeclaredCapacityDBFunction.Arn
+                  - !GetAtt MergeSenderLimitDBFunction.Arn
               - Effect: Allow
                 Action:
                   - glue:StartJobRun
@@ -1854,9 +1851,6 @@ Resources:
                   - logs:PutResourcePolicy
                   - logs:DescribeResourcePolicies
                 Resource: "*"
-                Condition:
-                  StringEquals:
-                    aws:SourceAccount: !Ref AWS::AccountId
               - Effect: Allow
                 Action:
                   - logs:DescribeLogGroups
@@ -1883,7 +1877,7 @@ Resources:
             OutputPath: $
             Parameters:
               Payload.$: $
-              FunctionName: !GetAtt CalcoloPrimaSettimanaLambda.Arn
+              FunctionName: !GetAtt CalcoloPrimaSettimanaFunction.Arn
             Retry:
               - ErrorEquals:
                   - Lambda.ServiceException
@@ -1951,7 +1945,7 @@ Resources:
                           Resource: arn:aws:states:::lambda:invoke
                           Parameters:
                             Payload.$: $
-                            FunctionName: !GetAtt MergeDeclaredCapacityDBLambda.Arn
+                            FunctionName: !GetAtt MergeDeclaredCapacityDBFunction.Arn
                           Retry:
                             - ErrorEquals:
                                 - Lambda.ServiceException
@@ -1992,7 +1986,7 @@ Resources:
                           Resource: arn:aws:states:::lambda:invoke
                           Parameters:
                             Payload.$: $
-                            FunctionName: !GetAtt MergeSenderLimitDBLambda.Arn
+                            FunctionName: !GetAtt MergeSenderLimitDBFunction.Arn
                           Retry:
                             - ErrorEquals:
                                 - Lambda.ServiceException
