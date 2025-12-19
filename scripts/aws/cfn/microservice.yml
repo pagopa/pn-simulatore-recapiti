@@ -85,26 +85,6 @@ Parameters:
     Type: String
     Default: /status
 
-  AutoscalingCheckPeriod:
-    Default: 300
-    Type: Number
-    Description: 'minimum autoscaling number of tasks'
-
-  AutoscalingDataPointN:
-    Default: 1
-    Type: Number
-    Description: 'activate when N datapoint on M'
-
-  AutoscalingDataPointM:
-    Default: 1
-    Type: Number
-    Description: 'activate when N datapoint on M'
-
-  AutoscalingThreshold:
-    Default: 1000
-    Type: String
-    Description: 'activate when default is reached'
-
   MinTasksNumber:
     Default: 1
     Type: Number
@@ -191,14 +171,6 @@ Parameters:
     Type: String
     Description: 'Glue connection name for Aurora database'
     Default: 'pn-simulatore-recapiti-glue-network-connection'
-
-  CiArtifactBucketName:
-    Type: String
-    Description: 'CI Artifact bucket name where Glue scripts are stored'
-
-  GlueScriptsVersion:
-    Type: String
-    Description: 'Version/branch name for Glue scripts path'
 
   CpuValue:
     Type: Number
@@ -1280,13 +1252,6 @@ Resources:
                   - glue:BatchStopJobRun
                 Resource:
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${ProjectName}-${MicroServiceUniqueName}-Glue-*"
-              - Effect: Allow
-                Action:
-                  - xray:PutTraceSegments
-                  - xray:PutTelemetryRecords
-                  - xray:GetSamplingRules
-                  - xray:GetSamplingTargets
-                Resource: "*"
 
   GestioneSimulazioneStateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -1726,7 +1691,7 @@ Resources:
             End: true
             ResultPath: null
       TracingConfiguration:
-        Enabled: true
+        Enabled: false
 
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateMachineRole:
     Type: AWS::IAM::Role
@@ -1783,13 +1748,6 @@ Resources:
                   - events:RemoveTargets
                 Resource:
                   - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule"
-              - Effect: Allow
-                Action:
-                  - xray:PutTraceSegments
-                  - xray:PutTelemetryRecords
-                  - xray:GetSamplingRules
-                  - xray:GetSamplingTargets
-                Resource: '*'
 
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -1975,7 +1933,7 @@ Resources:
             Type: Pass
             End: true
       TracingConfiguration:
-        Enabled: true
+        Enabled: false
 
   # EventBridge Rule for weekly simulation
   SimulazioneAutomatizzataSettimanaleEventBridgeRole:
