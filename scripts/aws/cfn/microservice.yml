@@ -1372,7 +1372,6 @@ Resources:
                 '--id_simulazione_manuale.$': $.id_simulazione_manuale
                 '--mese_simulazione.$': $.mese_simulazione
             Next: RECUPERO FILE CSV PER IMPORT DATA
-            ResultPath: null
           RECUPERO FILE CSV PER IMPORT DATA:
             Type: Task
             Resource: arn:aws:states:::lambda:invoke
@@ -1543,7 +1542,6 @@ Resources:
                     ItemsPath: $.output_lambda_ListaFileImportData.Payload.lista_file_csv[4].lista_file_csv_5
                     MaxConcurrency: 2
                     End: true
-            ResultPath: null
           ADD ANY MOCK CAPACITIES:
             Type: Task
             Resource: arn:aws:states:::lambda:invoke
@@ -1720,7 +1718,6 @@ Resources:
                 '--lista_date.$': States.JsonToString($.output_lambda_CountResidui.Payload.lista_settimane_processate)
                 '--count_residui_ultima_settimana.$': $.output_lambda_CountResidui.Payload.count_residui_ultima_settimana
             Next: PARALLEL DELETE DATA
-            ResultPath: null
           PARALLEL DELETE DATA:
             Type: Map
             ItemProcessor:
@@ -1740,10 +1737,8 @@ Resources:
                       IntervalSeconds: 2
                       MaxAttempts: 10
                       BackoffRate: 1
-                  ResultPath: null
                   End: true
             Next: AGGIORNAMENTO SIMULAZIONE DB
-            ResultPath: null
             ItemsPath: $.output_lambda_INSERTMOCKCAPACITIES.Payload.lista_file_csv_caricati
             MaxConcurrency: 6
           AGGIORNAMENTO SIMULAZIONE DB:
@@ -1763,7 +1758,6 @@ Resources:
                 BackoffRate: 2
                 JitterStrategy: FULL
             End: true
-            ResultPath: null
       TracingConfiguration:
         Enabled: false
 
