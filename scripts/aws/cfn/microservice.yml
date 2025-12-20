@@ -2049,7 +2049,7 @@ Resources:
   SimulazioneAutomatizzataSettimanaleEventBridgeRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-eventbridgerole-SimulazioneAutomatizzataSettimanale"
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-EB-SimAuto"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
