@@ -2071,7 +2071,7 @@ Resources:
   SimulazioneAutomatizzataSettimanaleEventBridgeRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-eventbridge-SimulazioneAutomatizzataSettimanale"
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-EB-SimAuto-Weekly"
       Description: "Trigger settimanale della step function pn-simulatore-recapiti-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
       ScheduleExpression: "cron(0 21 ? * MON *)"
       State: ENABLED
