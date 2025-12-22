@@ -191,6 +191,7 @@ Parameters:
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
+    DependsOn: GestioneSimulazioneStateFunction
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
       Parameters:
