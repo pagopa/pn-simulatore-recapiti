@@ -920,7 +920,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - lambda:InvokeFunction
-                Resource: '*'
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
   RunAlgorithmLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -1863,7 +1865,8 @@ Resources:
                 Action:
                   - states:DescribeExecution
                   - states:StopExecution
-                Resource: '*'
+                Resource:
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:execution:sf-*"
               - Effect: Allow
                 Action:
                   - events:PutTargets
