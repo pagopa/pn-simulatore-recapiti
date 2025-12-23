@@ -190,6 +190,11 @@ Parameters:
       - ENABLED
       - DISABLED
 
+  EventBridgeScheduleExpression:
+    Type: String
+    Description: 'Cron expression for the EventBridge rule (e.g., cron(0 21 ? * MON *) for Monday at 21:00 UTC)'
+    Default: 'cron(0 21 ? * MON *)'
+
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -1042,7 +1047,6 @@ Resources:
         Description: !Sub "Glue network connection for ${EnvironmentType} environment to access RDS database"
         ConnectionType: JDBC
         PhysicalConnectionRequirements:
-          AvailabilityZone: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
           SecurityGroupIdList:
             - !Ref VPNWebappSecurityGroupId
           SubnetId: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
@@ -2127,7 +2131,7 @@ Resources:
     Properties:
       Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-EB-SimAuto-Weekly"
       Description: "Trigger settimanale della step function pn-simulatore-recapiti-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
-      ScheduleExpression: "cron(0 21 ? * MON *)"
+      ScheduleExpression: !Ref EventBridgeScheduleExpression
       State: !Ref EventBridgeRuleState
       Targets:
         - Arn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn

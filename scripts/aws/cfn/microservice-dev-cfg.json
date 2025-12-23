@@ -6,6 +6,7 @@
     "MaxTasksNumber": "1",
     "PnDelayerLambdaName": "pn-testDelayerLambda",
     "AllowedHosts": "simulator.vpn.dev.notifichedigitali.it,localhost",
-    "EventBridgeRuleState": "DISABLED"
+    "EventBridgeRuleState": "DISABLED",
+    "EventBridgeScheduleExpression": "cron(0 21 ? * MON *)"
   }
 }
