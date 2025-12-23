@@ -1048,6 +1048,8 @@ Resources:
           SubnetId: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
         ConnectionProperties:
           JDBC_CONNECTION_URL: !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
+          USERNAME: !Ref SvcSimulatorUsername
+          PASSWORD: !Sub "{{resolve:secretsmanager:${SvcSimulatorUserSecretArn}:SecretString:password}}"
           JDBC_ENFORCE_SSL: "false"
 
   # Glue Jobs - Shared Role
@@ -1109,6 +1111,12 @@ Resources:
                 Condition:
                   StringEquals:
                     ec2:Vpc: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPNVpcId}"
+              - Effect: Allow
+                Action:
+                  - glue:GetConnection
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:connection/pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
 
   GenerazioneCsvImportDataGlueJob:
     Type: AWS::Glue::Job
