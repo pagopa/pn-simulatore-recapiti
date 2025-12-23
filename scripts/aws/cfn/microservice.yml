@@ -186,6 +186,10 @@ Parameters:
     Type: String
     Description: 'Name of the pn-delayer-lambda function to be invoked'
 
+  PnDelayerStepFunctionName:
+    Type: String
+    Description: 'Name of the pn-delayer Step Function (BatchWorkflow) to be invoked'
+
   EventBridgeRuleState:
     Type: String
     Description: 'State of the EventBridge rule for weekly simulation'
@@ -1404,7 +1408,7 @@ Resources:
         ListaFileImportDataLambdaArn: !GetAtt ListaFileImportDataLambda.Arn
         ImportDataLambdaArn: !GetAtt ImportDataLambda.Arn
         InsertMockCapacitiesLambdaArn: !GetAtt InsertMockCapacitiesLambda.Arn
-        BatchWorkflowStateMachineArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:BatchWorkflowStateMachine"
+        BatchWorkflowStateMachineArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${PnDelayerStepFunctionName}"
         RunAlgorithmLambdaArn: !GetAtt RunAlgorithmLambda.Arn
         GetPaperDeliveryResiduiLambdaArn: !GetAtt GetPaperDeliveryResiduiLambda.Arn
         GetUsedCapacityLambdaArn: !GetAtt GetUsedCapacityLambda.Arn
