@@ -162,12 +162,6 @@ Parameters:
     Type: String
     Description: 'Name of the S3 bucket for simulator data (from storage stack)'
 
-  # Glue Parameters
-  GlueConnectionName:
-    Type: String
-    Description: 'Glue connection name for Aurora database'
-    Default: 'pn-simulatore-recapiti-glue-network-connection'
-
   CpuValue:
     Type: Number
     Default: 1024
@@ -1038,6 +1032,24 @@ Resources:
         FunctionName: !Ref MergeDeclaredCapacityDBLambda
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
+  # Glue Connection
+  GlueNetworkConnection:
+    Type: AWS::Glue::Connection
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      ConnectionInput:
+        Name: !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+        Description: !Sub "Glue network connection for ${EnvironmentType} environment to access RDS database"
+        ConnectionType: JDBC
+        PhysicalConnectionRequirements:
+          AvailabilityZone: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
+          SecurityGroupIdList:
+            - !Ref VPNWebappSecurityGroupId
+          SubnetId: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
+        ConnectionProperties:
+          JDBC_CONNECTION_URL: !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
+          JDBC_ENFORCE_SSL: "false"
+
   # Glue Jobs - Shared Role
   GlueJobSimulatoreRole:
     Type: AWS::IAM::Role
@@ -1128,7 +1140,7 @@ Resources:
       ExecutionClass: STANDARD
       Connections:
         Connections:
-          - !Ref GlueConnectionName
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
@@ -1161,7 +1173,7 @@ Resources:
       ExecutionClass: STANDARD
       Connections:
         Connections:
-          - !Ref GlueConnectionName
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
@@ -1195,7 +1207,7 @@ Resources:
       ExecutionClass: STANDARD
       Connections:
         Connections:
-          - !Ref GlueConnectionName
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
@@ -1229,7 +1241,7 @@ Resources:
       ExecutionClass: STANDARD
       Connections:
         Connections:
-          - !Ref GlueConnectionName
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
@@ -1262,7 +1274,7 @@ Resources:
       ExecutionClass: STANDARD
       Connections:
         Connections:
-          - !Ref GlueConnectionName
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
@@ -1296,7 +1308,7 @@ Resources:
       ExecutionClass: STANDARD
       Connections:
         Connections:
-          - !Ref GlueConnectionName
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
