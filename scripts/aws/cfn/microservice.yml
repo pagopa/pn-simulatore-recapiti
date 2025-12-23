@@ -1353,7 +1353,11 @@ Resources:
                   - !GetAtt MergeDeclaredCapacityDBLambda.Arn
                   - !GetAtt ListaFileImportDataLambda.Arn
                   - !GetAtt ImportDataLambda.Arn
+                  - !GetAtt InsertMockCapacitiesLambda.Arn
                   - !GetAtt RunAlgorithmLambda.Arn
+                  - !GetAtt GetPaperDeliveryResiduiLambda.Arn
+                  - !GetAtt GetUsedCapacityLambda.Arn
+                  - !GetAtt DeleteDataLambda.Arn
                   - !GetAtt AggiornaSimulazioneDBLambda.Arn
               - Effect: Allow
                 Action:
