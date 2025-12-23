@@ -1294,7 +1294,7 @@ Resources:
   GestioneSimulazioneStateFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-StepFunction-GestioneSimulazione-Role"
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione-Role"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -1787,7 +1787,7 @@ Resources:
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-StepFunction-RecuperoDati-Role"
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDati-Role"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -1824,7 +1824,7 @@ Resources:
                 Action:
                   - states:StartExecution
                 Resource:
-                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-stepfunction-GestioneSimulazione"
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione"
               - Effect: Allow
                 Action:
                   - states:DescribeExecution
@@ -2034,7 +2034,7 @@ Resources:
             Type: Task
             Resource: arn:aws:states:::states:startExecution.sync:2
             Parameters:
-              StateMachineArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-stepfunction-GestioneSimulazione"
+              StateMachineArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione"
               Input:
                 tipo_simulazione: Automatizzata
                 id_simulazione_manuale: ''
@@ -2087,10 +2087,5 @@ Resources:
               "run_sender_limit": 1,
               "run_create_csv_postalizzazioni_after_sender_limit": 1,
               "run_create_csv_postalizzazioni_without_sender_limit": 1,
-              "run_gestione_simulazione": 1,
-              "date_simulazione": [
-                {
-                  "mese_simulazione": "2025-10-06"
-                }
-              ]
+              "run_gestione_simulazione": 1
             }
