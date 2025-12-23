@@ -1,0 +1,256 @@
+{
+  "StartAt": "CALCOLO PRIMA SETTIMANA",
+  "States": {
+    "CALCOLO PRIMA SETTIMANA": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${CalcoloPrimaSettimanaLambdaArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "Map",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
+      "ResultPath": "$.output_lambda_CalcoloPrimaSettimana"
+    },
+    "Map": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "Parallel",
+        "States": {
+          "Parallel": {
+            "Type": "Parallel",
+            "Branches": [
+              {
+                "StartAt": "Run PAPER DELIVERY?",
+                "States": {
+                  "Run PAPER DELIVERY?": {
+                    "Type": "Choice",
+                    "Choices": [
+                      {
+                        "Next": "PAPER DELIVERY",
+                        "Variable": "$$.Execution.Input.run_paper_delivery",
+                        "NumericEquals": 1
+                      }
+                    ],
+                    "Default": "Skip PAPER DELIVERY"
+                  },
+                  "PAPER DELIVERY": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
+                    "Parameters": {
+                      "JobName": "${RecuperoResiduiPaperDeliveryGlueJobName}",
+                      "Arguments": {
+                        "--mese_simulazione.$": "$.mese_simulazione"
+                      }
+                    },
+                    "End": true
+                  },
+                  "Skip PAPER DELIVERY": {
+                    "Type": "Pass",
+                    "End": true
+                  }
+                }
+              },
+              {
+                "StartAt": "Run DECLARED CAPACITY?",
+                "States": {
+                  "Run DECLARED CAPACITY?": {
+                    "Type": "Choice",
+                    "Choices": [
+                      {
+                        "Next": "DECLARED CAPACITY",
+                        "Variable": "$$.Execution.Input.run_declared_capacity",
+                        "NumericEquals": 1
+                      }
+                    ],
+                    "Default": "Skip DECLARED CAPACITY"
+                  },
+                  "DECLARED CAPACITY": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
+                    "Parameters": {
+                      "JobName": "${RecuperoDeclaredCapacityDeltaGlueJobName}",
+                      "Arguments": {
+                        "--mese_simulazione.$": "$.mese_simulazione"
+                      }
+                    },
+                    "Next": "MERGE DB",
+                    "ResultPath": "$.output_jobGlue_DECLAREDCAPACITY"
+                  },
+                  "MERGE DB": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${MergeDeclaredCapacityDBLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  },
+                  "Skip DECLARED CAPACITY": {
+                    "Type": "Pass",
+                    "End": true
+                  }
+                }
+              },
+              {
+                "StartAt": "Run SENDER LIMIT + CREATE CSV POSTALIZZAZIONI?",
+                "States": {
+                  "Run SENDER LIMIT + CREATE CSV POSTALIZZAZIONI?": {
+                    "Type": "Choice",
+                    "Choices": [
+                      {
+                        "Next": "SENDER LIMIT",
+                        "Variable": "$$.Execution.Input.run_sender_limit",
+                        "NumericEquals": 1
+                      },
+                      {
+                        "Next": "CREATE CSV POSTALIZZAZIONI",
+                        "Variable": "$$.Execution.Input.run_create_csv_postalizzazioni_without_sender_limit",
+                        "NumericEquals": 1
+                      }
+                    ],
+                    "Default": "Skip SENDER LIMIT + CREATE CSV POSTALIZZAZIONI"
+                  },
+                  "SENDER LIMIT": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
+                    "Parameters": {
+                      "JobName": "${RecuperoSenderLimitDeltaGlueJobName}",
+                      "Arguments": {
+                        "--mese_simulazione.$": "$.mese_simulazione"
+                      }
+                    },
+                    "Next": "MERGE  DB",
+                    "ResultPath": "$.output_jobGlue_SENDERLIMIT"
+                  },
+                  "MERGE  DB": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${MergeSenderLimitDBLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "Next": "Run CREATE CSV POSTALIZZAZIONI?",
+                    "ResultPath": "$.output_lambda_MERGEDB"
+                  },
+                  "Run CREATE CSV POSTALIZZAZIONI?": {
+                    "Type": "Choice",
+                    "Choices": [
+                      {
+                        "Next": "CREATE CSV POSTALIZZAZIONI",
+                        "Variable": "$$.Execution.Input.run_create_csv_postalizzazioni_after_sender_limit",
+                        "NumericEquals": 1
+                      }
+                    ],
+                    "Default": "Skip CREATE CSV POSTALIZZAZIONI"
+                  },
+                  "Skip CREATE CSV POSTALIZZAZIONI": {
+                    "Type": "Pass",
+                    "End": true
+                  },
+                  "CREATE CSV POSTALIZZAZIONI": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
+                    "Parameters": {
+                      "JobName": "${GenerazioneCsvImportDataGlueJobName}",
+                      "Arguments": {
+                        "--mese_simulazione.$": "$.mese_simulazione"
+                      }
+                    },
+                    "End": true
+                  },
+                  "Skip SENDER LIMIT + CREATE CSV POSTALIZZAZIONI": {
+                    "Type": "Pass",
+                    "End": true
+                  }
+                }
+              }
+            ],
+            "End": true,
+            "ResultPath": null
+          }
+        }
+      },
+      "Next": "Run GESTIONE SIMULAZIONE",
+      "MaxConcurrency": 1,
+      "ItemsPath": "$.output_lambda_CalcoloPrimaSettimana.Payload.date_simulazione",
+      "ResultPath": null
+    },
+    "Run GESTIONE SIMULAZIONE": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "GESTIONE SIMULAZIONE",
+          "Variable": "$.run_gestione_simulazione",
+          "NumericEquals": 1
+        }
+      ],
+      "Default": "Skip GESTIONE SIMULAZIONE"
+    },
+    "GESTIONE SIMULAZIONE": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::states:startExecution.sync:2",
+      "Parameters": {
+        "StateMachineArn": "${GestioneSimulazioneStateMachineArn}",
+        "Input": {
+          "tipo_simulazione": "Automatizzata",
+          "id_simulazione_manuale": "",
+          "mese_simulazione.$": "$.output_lambda_CalcoloPrimaSettimana.Payload.date_simulazione[0]['mese_simulazione']"
+        }
+      },
+      "End": true
+    },
+    "Skip GESTIONE SIMULAZIONE": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}
