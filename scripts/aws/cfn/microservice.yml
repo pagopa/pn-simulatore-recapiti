@@ -73,6 +73,10 @@ Parameters:
     Type: Number
     Description: RDS Cluster Port (from storage stack)
 
+  RdsSimulatorSecurityGroupId:
+    Type: String
+    Description: ID of the Security Group attached to the RDS cluster (from storage stack)
+
   SimulatorAlbPath:
     Type: String
     Default: /*
@@ -1047,16 +1051,11 @@ Resources:
       ConnectionInput:
         Name: !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
         Description: !Sub "Glue network connection for ${EnvironmentType} environment to access RDS database"
-        ConnectionType: JDBC
+        ConnectionType: NETWORK
         PhysicalConnectionRequirements:
           SecurityGroupIdList:
-            - !Ref VPNWebappSecurityGroupId
+            - !Ref RdsSimulatorSecurityGroupId
           SubnetId: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
-        ConnectionProperties:
-          JDBC_CONNECTION_URL: !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
-          USERNAME: !Ref SvcSimulatorUsername
-          PASSWORD: !Sub "{{resolve:secretsmanager:${SvcSimulatorUserSecretArn}:SecretString:password}}"
-          JDBC_ENFORCE_SSL: "false"
 
   # Glue Jobs - Shared Role
   GlueJobSimulatoreRole:
