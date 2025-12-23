@@ -1053,6 +1053,7 @@ Resources:
         Description: !Sub "Glue network connection for ${EnvironmentType} environment to access RDS database"
         ConnectionType: NETWORK
         PhysicalConnectionRequirements:
+          AvailabilityZone: !Select [0, !GetAZs '']
           SecurityGroupIdList:
             - !Ref RdsSimulatorSecurityGroupId
           SubnetId: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
