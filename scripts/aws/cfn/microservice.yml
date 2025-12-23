@@ -282,7 +282,9 @@ Resources:
           - Sid: PassRolePermission
             Effect: Allow
             Action: iam:PassRole
-            Resource: !GetAtt EventBridgeSchedulerRole.Arn
+            Resource: 
+              - !GetAtt EventBridgeSchedulerRole.Arn
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${MicroServiceUniqueName}-TaskRole"
 
   # Lambda Functions
   MergeSenderLimitDBLambda:
