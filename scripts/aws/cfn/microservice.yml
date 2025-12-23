@@ -211,7 +211,7 @@ Resources:
         ContainerEnvEntry3: !Sub DB_HOST=${RdsSimulatorEndpointAddress}
         ContainerEnvEntry4: !Sub DB_PORT=${RdsSimulatorPort}
         ContainerEnvEntry5: !Sub ALLOWED_HOSTS=${AllowedHosts}
-        ContainerEnvEntry6: !Sub ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN=arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${MicroServiceUniqueName}-TaskRole
+        ContainerEnvEntry6: !Sub 'ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN=arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${MicroServiceUniqueName}-TaskRole'
         ContainerEnvEntry7: !Sub 'SF_GESTIONE_SIMULAZIONE_ARN=arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione'
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
@@ -282,7 +282,7 @@ Resources:
           - Sid: PassRolePermission
             Effect: Allow
             Action: iam:PassRole
-            Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${MicroServiceUniqueName}-TaskRole"
+            Resource: !GetAtt EventBridgeSchedulerRole.Arn
 
   # Lambda Functions
   MergeSenderLimitDBLambda:
@@ -2045,6 +2045,29 @@ Resources:
             End: true
       TracingConfiguration:
         Enabled: false
+
+  # EventBridge Scheduler Role for manual simulations
+  EventBridgeSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Scheduler-Role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StartStepFunctionExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource:
+                  - !GetAtt GestioneSimulazioneStateFunction.Arn
 
   # EventBridge Rule for weekly simulation
   SimulazioneAutomatizzataSettimanaleEventBridgeRole:
