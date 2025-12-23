@@ -312,7 +312,7 @@ Resources:
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
-          - !Ref VPNWebappSecurityGroupId
+          - !Ref RdsSimulatorSecurityGroupId
         SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
@@ -414,7 +414,7 @@ Resources:
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
-          - !Ref VPNWebappSecurityGroupId
+          - !Ref RdsSimulatorSecurityGroupId
         SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
@@ -482,7 +482,7 @@ Resources:
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
-          - !Ref VPNWebappSecurityGroupId
+          - !Ref RdsSimulatorSecurityGroupId
         SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
@@ -537,7 +537,7 @@ Resources:
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
-          - !Ref VPNWebappSecurityGroupId
+          - !Ref RdsSimulatorSecurityGroupId
         SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
@@ -695,7 +695,7 @@ Resources:
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
-          - !Ref VPNWebappSecurityGroupId
+          - !Ref RdsSimulatorSecurityGroupId
         SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
@@ -823,7 +823,7 @@ Resources:
       MemorySize: 128
       VpcConfig:
         SecurityGroupIds:
-          - !Ref VPNWebappSecurityGroupId
+          - !Ref RdsSimulatorSecurityGroupId
         SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
@@ -1002,7 +1002,7 @@ Resources:
         S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/MergeDeclaredCapacityDB.zip'
       VpcConfig:
         SecurityGroupIds:
-          - !Ref VPNWebappSecurityGroupId
+          - !Ref RdsSimulatorSecurityGroupId
         SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
