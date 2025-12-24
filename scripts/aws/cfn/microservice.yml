@@ -162,7 +162,7 @@ Parameters:
   AllowedHosts:
     Type: String
 
-  SimulatorDataBucketName:
+  SimulatoreDataBucketName:
     Type: String
     Description: 'Name of the S3 bucket for simulator data (from storage stack)'
 
@@ -202,6 +202,10 @@ Parameters:
     Type: String
     Description: 'Cron expression for the EventBridge rule (e.g., cron(0 21 ? * MON *) for Monday at 21:00 UTC)'
     Default: 'cron(0 21 ? * MON *)'
+
+  EventBridgeRuleInput:
+    Type: String
+    Description: 'JSON input for the EventBridge rule to pass to the Step Function'
 
 Resources:
   SimulatorMicroservice:
@@ -358,8 +362,8 @@ Resources:
                   - s3:ListBucket
                   - s3:PutObject
                 Resource:
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
 
   MergeSenderLimitDBLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -426,7 +430,7 @@ Resources:
           DB_PORT: !Ref RdsSimulatorPort
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
-          source_bucket: !Ref SimulatorDataBucketName
+          source_bucket: !Ref SimulatoreDataBucketName
 
   AggiornaSimulazioneDBLambdaRole:
     Type: AWS::IAM::Role
@@ -461,8 +465,8 @@ Resources:
                   - s3:ListBucket
                   - s3:DeleteObject
                 Resource:
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
 
   AggiornaSimulazioneDBLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -582,8 +586,8 @@ Resources:
                   - s3:GetObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
 
   FillCapProvRegFromS3LookupLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -764,7 +768,7 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          source_bucket: !Ref SimulatorDataBucketName
+          source_bucket: !Ref SimulatoreDataBucketName
 
   ImportDataLambdaRole:
     Type: AWS::IAM::Role
@@ -802,8 +806,8 @@ Resources:
                   - s3:ListBucket
                   - s3:DeleteObject
                 Resource:
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
 
   ImportDataLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -835,7 +839,7 @@ Resources:
           DB_PORT: !Ref RdsSimulatorPort
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
-          source_bucket: !Ref SimulatorDataBucketName
+          source_bucket: !Ref SimulatoreDataBucketName
 
   InsertMockCapacitiesLambdaRole:
     Type: AWS::IAM::Role
@@ -882,8 +886,8 @@ Resources:
                   - s3:ListBucket
                   - s3:DeleteObject
                 Resource:
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
 
   InsertMockCapacitiesLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -955,7 +959,7 @@ Resources:
         S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/ListaFileImportData.zip'
       Environment:
         Variables:
-          source_bucket: !Ref SimulatorDataBucketName
+          source_bucket: !Ref SimulatoreDataBucketName
 
   ListaFileImportDataLambdaRole:
     Type: AWS::IAM::Role
@@ -980,8 +984,8 @@ Resources:
                   - s3:GetObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub 'arn:aws:s3:::${SimulatorDataBucketName}'
-                  - !Sub 'arn:aws:s3:::${SimulatorDataBucketName}/*'
+                  - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}'
+                  - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}/*'
 
   ListaFileImportDataLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -1096,8 +1100,8 @@ Resources:
                   - s3:PutObject
                   - s3:DeleteObject
                 Resource:
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}/*"
-                  - !Sub "arn:aws:s3:::${SimulatorDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
                   - !Sub "arn:aws:s3:::${MicroserviceBucketName}/*"
                   - !Sub "arn:aws:s3:::${MicroserviceBucketName}"
                   - !Sub "arn:aws:s3:::aws-glue-assets-${AWS::AccountId}-${AWS::Region}/*"
@@ -1148,7 +1152,7 @@ Resources:
         "--job-language": "python"
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
         "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
-        "--s3_bucket": !Ref SimulatorDataBucketName
+        "--s3_bucket": !Ref SimulatoreDataBucketName
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
       MaxRetries: 0
       Timeout: 480
@@ -1216,7 +1220,7 @@ Resources:
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
         "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
-        "--s3_bucket": !Ref SimulatorDataBucketName
+        "--s3_bucket": !Ref SimulatoreDataBucketName
       MaxRetries: 0
       Timeout: 480
       GlueVersion: "5.0"
@@ -1250,7 +1254,7 @@ Resources:
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
         "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
-        "--s3_bucket": !Ref SimulatorDataBucketName
+        "--s3_bucket": !Ref SimulatoreDataBucketName
       MaxRetries: 0
       Timeout: 480
       GlueVersion: "5.0"
@@ -1316,7 +1320,7 @@ Resources:
         "--job-language": "python"
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
         "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}:${RdsSimulatorPort}/${RdsSimulatorDbName}"
-        "--s3_bucket": !Ref SimulatorDataBucketName
+        "--s3_bucket": !Ref SimulatoreDataBucketName
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
       MaxRetries: 0
       Timeout: 30
@@ -1574,12 +1578,4 @@ Resources:
         - Arn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
           RoleArn: !GetAtt SimulazioneAutomatizzataSettimanaleEventBridgeRole.Arn
           Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
-          Input: |
-            {
-              "run_paper_delivery": 1,
-              "run_declared_capacity": 1,
-              "run_sender_limit": 1,
-              "run_create_csv_postalizzazioni_after_sender_limit": 1,
-              "run_create_csv_postalizzazioni_without_sender_limit": 1,
-              "run_gestione_simulazione": 1
-            }
+          Input: !Ref EventBridgeRuleInput
