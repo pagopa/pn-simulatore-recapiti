@@ -9,6 +9,13 @@
     "AllowedHosts": "simulator.vpn.dev.notifichedigitali.it,localhost",
     "EventBridgeRuleState": "DISABLED",
     "EventBridgeScheduleExpression": "cron(0 21 ? * MON *)",
-    "EventBridgeRuleInput": "{\"run_paper_delivery\": 1, \"run_declared_capacity\": 1, \"run_sender_limit\": 1, \"run_create_csv_postalizzazioni_after_sender_limit\": 1, \"run_create_csv_postalizzazioni_without_sender_limit\": 1, \"run_gestione_simulazione\": 1}"
+    "EventBridgeRuleInput": "{\"run_paper_delivery\": 1, \"run_declared_capacity\": 1, \"run_sender_limit\": 1, \"run_create_csv_postalizzazioni_after_sender_limit\": 1, \"run_create_csv_postalizzazioni_without_sender_limit\": 1, \"run_gestione_simulazione\": 1}",
+    "TablePaperDeliveryMock": "pn-DelayerPaperDeliveryMock",
+    "TableDriverUsedCapacitiesMock": "pn-PaperDeliveryDriverUsedCapacitiesMock",
+    "TableSenderLimit": "pn-PaperDeliverySenderLimit",
+    "TableUsedSenderLimitMock": "pn-PaperDeliveryUsedSenderLimitMock",
+    "TableCountersMock": "pn-PaperDeliveryCountersMock",
+    "TableDriverCapacities": "pn-PaperDeliveryDriverCapacities",
+    "TableDriverCapacitiesMock": "pn-PaperDeliveryDriverCapacitiesMock"
   }
 }

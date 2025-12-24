@@ -211,6 +211,34 @@ Parameters:
     Type: String
     Description: 'JSON input for the EventBridge rule to pass to the Step Function'
 
+  TablePaperDeliveryMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for paper delivery mock'
+
+  TableDriverUsedCapacitiesMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for driver used capacities mock'
+
+  TableSenderLimit:
+    Type: String
+    Description: 'Name of the DynamoDB table for sender limit'
+
+  TableUsedSenderLimitMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for used sender limit mock'
+
+  TableCountersMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for counters mock'
+
+  TableDriverCapacities:
+    Type: String
+    Description: 'Name of the DynamoDB table for driver capacities'
+
+  TableDriverCapacitiesMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for driver capacities mock'
+
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -912,6 +940,17 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/LambdaRunAlgorithm.zip'
+      Environment:
+        Variables:
+          DELAYER_LAMBDA_NAME: !Ref PnDelayerLambdaName
+          TABLE_PAPER_DELIVERY_MOCK: !Ref TablePaperDeliveryMock
+          TABLE_DRIVER_USED_CAPACITIES_MOCK: !Ref TableDriverUsedCapacitiesMock
+          TABLE_SENDER_LIMIT: !Ref TableSenderLimit
+          TABLE_USED_SENDER_LIMIT_MOCK: !Ref TableUsedSenderLimitMock
+          TABLE_COUNTERS_MOCK: !Ref TableCountersMock
+          TABLE_DRIVER_CAPACITIES: !Ref TableDriverCapacities
+          TABLE_DRIVER_CAPACITIES_MOCK: !Ref TableDriverCapacitiesMock
+          THRESHOLD_VALUE: '180000'
 
   RunAlgorithmLambdaRole:
     Type: AWS::IAM::Role
