@@ -1187,7 +1187,7 @@ Resources:
         "--enable-continuous-cloudwatch-log": "true"
         "--job-language": "python"
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
-        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorReadEndpointAddress}/${RdsSimulatorDbName}"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
       MaxRetries: 0
       Timeout: 480
@@ -1254,7 +1254,7 @@ Resources:
         "--enable-continuous-cloudwatch-log": "true"
         "--job-language": "python"
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
-        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorReadEndpointAddress}/${RdsSimulatorDbName}"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
         "--s3_bucket": !Ref SimulatoreDataBucketName
       MaxRetries: 0
@@ -1288,7 +1288,7 @@ Resources:
         "--enable-continuous-cloudwatch-log": "true"
         "--job-language": "python"
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
-        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorReadEndpointAddress}/${RdsSimulatorDbName}"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
       MaxRetries: 0
       Timeout: 480
