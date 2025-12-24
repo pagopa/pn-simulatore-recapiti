@@ -123,6 +123,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-MergeSenderLimitDB"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   CalcoloPrimaSettimanaLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -134,6 +135,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-CalcoloPrimaSettimana"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   AggiornaSimulazioneDBLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -145,6 +147,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-AggiornaSimulazioneDB"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   ConfigurazioneSimulazioneLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -156,6 +159,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-ConfigurazioneSimulazione"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   FillCapProvRegFromS3LookupLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -167,6 +171,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-FillCapProvRegFromS3Lookup"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   DeleteDataLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -178,6 +183,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaDeleteData"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   GetPaperDeliveryResiduiLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -189,6 +195,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaGetPaperDeliveryResidui"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   GetUsedCapacityLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -200,6 +207,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaGetUsedCapacity"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   ImportDataLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -211,6 +219,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaImportData"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   InsertMockCapacitiesLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -222,6 +231,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaInsertMockCapacities"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   RunAlgorithmLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -233,6 +243,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-RunAlgorithm"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   ListaFileImportDataLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -244,6 +255,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-ListaFileImportData"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   MergeDeclaredCapacityDBLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
@@ -255,72 +267,7 @@ Resources:
         LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-MergeDeclaredCapacityDB"
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
-
-  # Glue Jobs Log Groups
-  GenerazioneCsvImportDataGlueLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-GenerazioneCsvImportData"
-      RetentionInDays: !Ref LogRetention
-
-  RecuperoDeclaredCapacityDeltaGlueLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoDeclaredCapacityDelta"
-      RetentionInDays: !Ref LogRetention
-
-  RecuperoResiduiPaperDeliveryGlueLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoResiduiPaperDelivery"
-      RetentionInDays: !Ref LogRetention
-
-  RecuperoRisultatiPaperDeliveryGlueLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoRisultatiPaperDelivery"
-      RetentionInDays: !Ref LogRetention
-
-  RecuperoSenderLimitDeltaGlueLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoSenderLimitDelta"
-      RetentionInDays: !Ref LogRetention
-
-  RecuperoDeclaredCapacityCAPS3GlueLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws-glue/jobs/${ProjectName}-simulatore-recapiti-Glue-RecuperoDeclaredCapacityCAP-S3"
-      RetentionInDays: !Ref LogRetention
-
-  # Step Functions Log Groups
-  GestioneSimulazioneStateFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-sf-GestioneSimulazione"
-      RetentionInDays: !Ref LogRetention
-
-  RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub "/aws/vendedlogs/states/${ProjectName}-simulatore-recapiti-sf-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
-      RetentionInDays: !Ref LogRetention
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   SimulatorAuroraDbCluster:
     Type: AWS::CloudFormation::Stack
@@ -364,6 +311,15 @@ Resources:
       BucketName: !Sub "pn-simulatore-recapiti-${AWS::Region}-${AWS::AccountId}"
       VersioningConfiguration:
         Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
 
 Outputs:
   RdsSimulatorEndpointAddress:

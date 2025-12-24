@@ -1408,12 +1408,6 @@ Resources:
                 Condition:
                   StringEquals:
                     aws:SourceAccount: !Ref AWS::AccountId
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource:
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-GestioneSimulazione:*"
 
   GestioneSimulazioneStateFunction:
     Type: AWS::StepFunctions::StateMachine
@@ -1480,6 +1474,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - states:StartExecution
+                  - states:DescribeExecution
+                  - states:ListExecutions
+                  - states:StopExecution
                 Resource:
                   - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione"
               - Effect: Allow
@@ -1511,12 +1508,6 @@ Resources:
                 Condition:
                   StringEquals:
                     aws:SourceAccount: !Ref AWS::AccountId
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource:
-                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/vendedlogs/states/${ProjectName}-sf-RecuperoDati:*"
 
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction:
     Type: AWS::StepFunctions::StateMachine
