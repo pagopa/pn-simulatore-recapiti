@@ -1592,7 +1592,7 @@ Resources:
                   - !GetAtt GestioneSimulazioneStateFunction.Arn
 
   # EventBridge Rule for weekly simulation
-  SimulazioneAutomatizzataSettimanaleEventBridgeRole:
+  SimulazioneAutomatizzataWeeklyEventBridgeRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-EB-SimAuto-Weekly-Role"
@@ -1623,6 +1623,6 @@ Resources:
       State: !Ref EventBridgeRuleState
       Targets:
         - Arn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
-          RoleArn: !GetAtt SimulazioneAutomatizzataSettimanaleEventBridgeRole.Arn
+          RoleArn: !GetAtt SimulazioneAutomatizzataWeeklyEventBridgeRole.Arn
           Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
           Input: !Ref EventBridgeRuleInput
