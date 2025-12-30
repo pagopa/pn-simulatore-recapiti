@@ -1614,7 +1614,7 @@ Resources:
                 Resource:
                   - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
 
-  SimulazioneAutomatizzataSettimanaleEventBridgeRule:
+  SimulazioneAutomatizzataWeeklyEventBridgeRule:
     Type: AWS::Events::Rule
     Properties:
       Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-EB-SimAuto-Weekly"
