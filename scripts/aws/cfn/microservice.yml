@@ -1549,7 +1549,7 @@ Resources:
   RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDati"
+      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDati-Weekly"
       RoleArn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionRole.Arn
       LoggingConfiguration:
         Level: 'OFF'
