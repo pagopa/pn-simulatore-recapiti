@@ -1592,10 +1592,10 @@ Resources:
                   - !GetAtt GestioneSimulazioneStateFunction.Arn
 
   # EventBridge Rule for weekly simulation
-  SimulazioneAutomatizzataWeeklyEventBridgeRole:
+  SimulazioneAutomatizzataWeeklyEBRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-EB-SimAuto-Weekly-Role"
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-EventBridge-SimAuto-Weekly-Role"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -1614,15 +1614,15 @@ Resources:
                 Resource:
                   - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
 
-  SimulazioneAutomatizzataWeeklyEventBridgeRule:
+  SimulazioneAutomatizzataWeeklyEB:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-EB-SimAuto-Weekly"
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-EventBridge-SimAuto-Weekly"
       Description: "Trigger settimanale della step function pn-simulatore-recapiti-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
       ScheduleExpression: !Ref EventBridgeScheduleExpression
       State: !Ref EventBridgeRuleState
       Targets:
         - Arn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
-          RoleArn: !GetAtt SimulazioneAutomatizzataWeeklyEventBridgeRole.Arn
+          RoleArn: !GetAtt SimulazioneAutomatizzataWeeklyEBRole.Arn
           Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
           Input: !Ref EventBridgeRuleInput
