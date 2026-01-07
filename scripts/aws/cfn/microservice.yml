@@ -263,7 +263,7 @@ Resources:
         ContainerEnvEntry4: !Sub DB_PORT=${RdsSimulatorPort}
         ContainerEnvEntry5: !Sub ALLOWED_HOSTS=${AllowedHosts}
         ContainerEnvEntry6: !Sub 'ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN=${EventBridgeSchedulerRole.Arn}'
-        ContainerEnvEntry7: !Sub 'SF_GESTIONE_SIMULAZIONE_ARN=arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione'
+        ContainerEnvEntry7: !Sub 'STEP_FUNCTION_ARN=arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione'
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
