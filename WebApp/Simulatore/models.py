@@ -326,7 +326,7 @@ class view_output_modified_capacity_setting(pg.View):
             END AS "ORIGINAL_CAPACITY",
             public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
             CASE 
-                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."SUM_WEEKLY_ESTIMATE"
+                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."CAPACITA_SIMULATE"."SUM_WEEKLY_ESTIMATE"
                 ELSE 0
             END AS "SUM_WEEKLY_ESTIMATE",
             public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
@@ -345,6 +345,7 @@ class view_output_modified_capacity_setting(pg.View):
                 AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
                 AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
                 AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
+                AND public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE" = public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE"
     """
 
     class Meta:

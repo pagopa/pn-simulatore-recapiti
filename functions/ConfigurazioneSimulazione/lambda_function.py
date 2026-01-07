@@ -59,7 +59,7 @@ def lambda_handler(event, context):
         conn.close()
     
     elif tipo_simulazione == 'Manuale':
-        id_simulazione_creata = ''
+        id_simulazione_creata = '-'
 
     else:
         raise Exception('tipo_simulazione non conforme')

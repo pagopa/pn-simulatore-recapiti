@@ -384,19 +384,20 @@ def rimuovi_simulazione(request, id_simulazione):
 
 # AJAX
 def ajax_get_capacita_from_mese_and_tipo(request):
+    # recuperiamo gli input dell'utente nello step 1 della nuova simulazione
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
+    tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
+    id_simulazione = request.GET['id_simulazione']
+    get_modified_capacity = request.GET['get_modified_capacity']
     # calcolo del primo lunedì del mese successivo al mese selezionato dall'utente per la simulazione
     anno, mese = map(int, mese_da_simulare.split('-'))
     primo_lunedi_mese_successivo = date(anno, mese, 1) + relativedelta(months=+1)
     offset = (0 - primo_lunedi_mese_successivo.weekday()) % 7 # RICORDA: con weekday(), 0=lunedì, 6=domenica
     primo_lunedi_mese_successivo = str(primo_lunedi_mese_successivo + timedelta(days=offset))
-
-    tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
-    id_simulazione = request.GET['id_simulazione']
-    get_modified_capacity = request.GET['get_modified_capacity']
     if request.accepts:
         if id_simulazione == '' or get_modified_capacity=='false':
-            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
+            # NUOVA SIMULAZIONE
+            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(MONTH_DELIVERY=mese).filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = True
         else:
             # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input). Nota: escludiamo gli ACTIVATION_DATE_TO nulli inseriti nella prima fase di creazione della simulazione per capacità di default. Escludiamo anche PRODUCT_890 e PRODUCT_AR nulli perché riguardano le capacità recuperate a valle del run e capita nel caso di new_simulazione_from_old
@@ -435,14 +436,15 @@ def ajax_get_capacita_from_mese_and_tipo(request):
                     capacity = item['CAPACITY'] # successivamente, se i volumi sono superiori alla BAU o al picco settiamo picco per la capacità
                 # qui è solo fittizia; è fondamentale quando non abbiamo una nuova simulazione
                 original_capacity = capacity
-                # qui è solo fittizia; è fondamentale quando non abbiamo una nuova simulazione
+                # qui è solo fittizia, la andremo a calcolare successivamente per le nuove simulazioni
                 post_weekly_estimate = None
             else:
                 original_capacity = item['ORIGINAL_CAPACITY']
                 capacity = item['MODIFIED_CAPACITY']
                 post_weekly_estimate = item['SUM_WEEKLY_ESTIMATE']
             activation_date_from = item['ACTIVATION_DATE_FROM']
-            if activation_date_from.day == 1:
+            # se il primo lunedì del mese è il giorno 1 non la consideriamo come prima settimana. Questa cosa va fatta solamente per la prima settimana del mese corrente e non la prima del mese successivo
+            if activation_date_from.day == 1 and activation_date_from.month == mese:
                 continue
             activation_date_to = item['ACTIVATION_DATE_TO']
             
@@ -466,11 +468,8 @@ def ajax_get_capacita_from_mese_and_tipo(request):
             for righe_tabella in dizionario_reg_prov_prod.values():
                 for singola_riga in righe_tabella:
                     if nuova_simulazione:
+                        # calcoliamo il numero di postalizzazioni settimanali come postalizzazioni mensili fratto il numero di settimane nel mese
                         singola_riga['post_weekly_estimate'] = int(round(singola_riga['post_monthly_estimate'] / len(righe_tabella), 0))
-                    else:
-                        # filtriamo le righe aggiunte con il tasto '+'
-                        if singola_riga['post_weekly_estimate'] == None:
-                            singola_riga['post_weekly_estimate'] = int(round(singola_riga['post_monthly_estimate'] / len(righe_tabella), 0))
                     if tipo_capacita_selezionata == 'Combinata':
                         # REGOLA: quando i volumi sono inferiori alla BAU setta BAU mentre se i volumi sono superiori alla BAU o al picco setta picco.
                         if singola_riga['post_weekly_estimate'] >= capacity:

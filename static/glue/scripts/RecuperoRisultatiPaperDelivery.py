@@ -31,7 +31,7 @@ jdbc_connection = args['jdbc_connection']
 #recupero parametri 'id_simulazione_automatizzata','id_simulazione_manuale','lista_date','count_residui_ultima_settimana' dalla step function
 id_simulazione_automatizzata = args['id_simulazione_automatizzata'] # tipo: stringa
 id_simulazione_manuale = args['id_simulazione_manuale'] # tipo: stringa
-if id_simulazione_automatizzata != '':
+if id_simulazione_automatizzata != '-':
     id_simulazione = int(id_simulazione_automatizzata)
 elif id_simulazione_manuale != '':
     id_simulazione = int(id_simulazione_manuale)
