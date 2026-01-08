@@ -1,0 +1,1380 @@
+import dash
+from dash import dcc, html, Input, Output, dash_table
+from django_plotly_dash import DjangoDash
+import plotly.graph_objs as go
+import plotly.express as px
+import numpy as np
+import pandas as pd
+import os
+from PagoPA.settings import *
+import json
+import datetime
+
+
+app_risultati = DjangoDash('dash_risultati')
+
+# enti = [
+# "Regione Lombardia", "INPS", "AMA SPA", "Comune di Roma", "Regione Lazio",
+# "Poste Italiane", "Agenzia Entrate", "Comune di Milano", "Regione Toscana", "Comune di Napoli"
+# ]
+
+# #Simulazione dati per 4 settimane
+# np.random.seed(42)
+# dati_enti = []
+# for ente in enti:
+#     base = np.random.randint(2000, 8000)  # Valore base per ente
+#     for settimana in range(1, 5):
+#         # Fluttuazione con rumore
+#         valore = base + np.random.randint(-2000, 3000)
+#         valore = max(500, valore)  # Minimo 500
+#         dati_enti.append([ente, f"Sett. {settimana}", valore])
+
+# # # Creazione DataFrame
+# df_enti = pd.DataFrame(dati_enti, columns=["Ente", "Settimana", "Postalizzazioni"])
+
+# # ---------- dati di esempio (sostituisci con i tuoi)
+# regioni_province = {
+#     "Lombardia": ["Milano", "Bergamo", "Brescia"],
+#     "Lazio": ["Roma", "Latina", "Viterbo"],
+#     "Campania": ["Napoli", "Salerno", "Caserta"],
+#     "Sicilia": ["Palermo", "Catania", "Messina"]
+# }
+# recapitisti = ["Poste", "Sailpost", "Fulmine", "Express"]
+
+# rows = []
+# for regione, province in regioni_province.items():
+#     for provincia in province:
+#         recap = np.random.choice(recapitisti)
+#         base = np.random.randint(5000, 12000)
+#         decremento = np.random.randint(800, 2000)
+#         for settimana in range(1, 5):
+#             valore = max(500, base - decremento * (settimana - 1))
+#             rows.append({
+#                 "Regione": regione,
+#                 "Provincia": provincia,
+#                 "Recapitista": recap,
+#                 "Settimana": f"Sett. {settimana}",
+#                 "Postalizzazioni": valore
+#             })
+
+# df_regioni_recap = pd.DataFrame(rows)
+
+
+# np.random.seed(258)
+# # Creazione dataset
+# dati_picchi = []
+# for recapitista in recapitisti:
+#     test = np.random.choice([0, 10])
+#     for regione, province in regioni_province.items():
+#         test = np.random.choice([0, 10])
+#         if test >= 2:
+#             for provincia in province:
+#                 valore = np.random.choice([0, 1])
+#                 dati_picchi.append([recapitista, regione, provincia, valore])
+
+# df_picchi = pd.DataFrame(dati_picchi, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
+# df_picchi = df_picchi.groupby(['Recapitista','Regione']).agg(
+#     total_picco=('Assegnazione', 'sum'),
+#     prov_count=('Provincia', 'count')
+# )
+# df_picchi['prop']= df_picchi['total_picco']/df_picchi['prov_count']
+# # Definisco due soglie (puoi cambiarle come preferisci)
+# soglia1 = 0.0001
+# soglia2 = 0.5
+
+# # Creo una nuova colonna "fascia"
+# def classifica_prop(x):
+#     if x < soglia1:
+#         return "No picchi"
+#     elif x < soglia2:
+#         return "<50% picchi"
+#     else:
+#         return ">=50% picchi"
+
+# df_picchi["fascia"] = df_picchi["prop"].apply(classifica_prop)
+
+# # Assegno 3 colori fissi
+# colori = {
+#     "No picchi": "green",
+#     "<50% picchi": "orange",
+#     ">=50% picchi": "red"
+# }
+
+# df_picchi = df_picchi.reset_index()
+
+# ## mappa testo->numero per le fasce (adatta se hai altre categorie)
+# fascia_to_num = {"No picchi": 0, "<50% picchi": 1, ">=50% picchi": 2}
+
+# # costruisci un colorscale "discreto" che associa range a colori
+# # struttura: [ [0.0,color_bassa], [0.3333,color_bassa], [0.3334,color_media], ... ]
+# colorscale = [
+#     [0.0, colori["No picchi"]], [0.3333, colori["No picchi"]],
+#     [0.3334, colori["<50% picchi"]], [0.6666, colori["<50% picchi"]],
+#     [0.6667, colori[">=50% picchi"]], [1.0, colori[">=50% picchi"]],
+# ]
+
+with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding = "utf-8") as f:
+        geojson = json.load(f)
+
+# layout
+app_risultati.layout = html.Div([
+    dcc.Location(id="url", refresh=False), # serve a catturare l'url
+    html.H2(id="titolo-simulazione",
+            style={"text-align":"center"}),
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Ente",
+        style={"text-align":"center"}),
+
+
+    html.Div([
+
+        html.Div([
+
+            html.Label("Seleziona Ente:"),
+
+            dcc.Dropdown(
+                id="ente-filter",
+                options=[],
+                value=[],
+                multi=True
+            ),
+        ], style={"width": "100%", "display": "inline-block"}),
+    ], style={"margin-bottom": "10px"}),
+
+    html.Div([
+
+        dcc.Graph(id="line-plot")
+
+    ]),
+
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Provincia e Recapitista",
+        style={"text-align":"center"}),
+
+    html.Div([
+
+        html.Div([
+
+            html.Label("Seleziona Regione:"),
+
+            dcc.Dropdown(
+
+                id="regione-filter",
+
+                options=[],
+                value=[],
+                multi=True,
+                placeholder="Seleziona una o più regioni..."
+            ),
+        ], style={"width": "48%", "display": "inline-block"}),
+
+        html.Div([
+
+            html.Label("Seleziona Recapitista:"),
+
+            dcc.Dropdown(
+
+                id="recap-filter",
+
+                options=[],
+                value=[],
+                multi=True,
+                placeholder="Seleziona un recapitista..."
+            )
+        ], style={"width": "48%", "display": "inline-block", "float": "right"})
+    ], style={"margin-bottom": "10px"}),
+
+    html.Div([
+
+        dcc.Graph(id="area-plot")
+
+    ]),
+
+    html.H3(
+        "Mappa dei picchi per Recapitista",
+        style={"text-align":"center"}),
+
+
+    html.Div([
+
+        html.Div([
+
+            html.Label("Seleziona Recapitista:"),
+
+            dcc.Dropdown(
+
+                id="recap-only-filter",
+
+                options=[],
+                value=[],
+                placeholder="Seleziona un recapitista..."
+            ),
+        ], style={"width": "100%", "display": "inline-block"}),
+    ], style={"margin-bottom": "10px"}),
+
+    html.Div([
+
+        dcc.Graph(id="map-plot")
+
+    ]),
+
+    html.Div([
+
+        dash_table.DataTable(
+            id='datatable-region',
+            data=[],
+            columns=[],
+            #style_as_list_view=True,
+            style_cell={
+                'padding': '5px',
+                'textAlign': 'center',
+            },
+            # style_header={
+            #     'backgroundColor': "#585858",
+            #     'color': 'white',
+            #     'fontWeight': 'bold',
+
+            # },
+            #sort_action="native",
+            style_data_conditional=[{
+            'if': {
+                'state': 'active'  # 'active' | 'selected'
+                },
+            'backgroundColor': 'rgba(0, 116, 217, 0.3)',
+            'border': '1px solid rgb(0, 116, 217)'
+            }],
+            #sort_mode='multi',
+            selected_rows=[],
+            page_action='native',
+            page_current= 0,
+            page_size= 20,
+        )
+
+    ])
+])
+
+@app_risultati.callback(
+    Output("titolo-simulazione", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+
+@app_risultati.callback(
+    Output("ente-filter", "options"),
+    Output("ente-filter", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_ente(pathname):
+    from .models import table_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
+    value = list(sorted(list(set(lista_enti))))[:5]
+    return options, value
+
+
+@app_risultati.callback(
+    Output("line-plot", "figure"),
+    Input("ente-filter", "value"),
+    Input("url", "pathname")
+)
+def update_chart_ente(ente_sel, pathname):
+    from .models import table_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).order_by("SETTIMANA_DELIVERY").values()
+    df_filtered_enti = pd.DataFrame(filtered_enti)
+    
+    # se non selezionato nulla → grafico vuoto
+    if not ente_sel:
+        return px.line(title="Nessuna selezione effettuata")
+    
+    fig_ente = px.line(
+        df_filtered_enti,
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color='SENDER_PA_ID',
+        markers=True
+    )
+
+    fig_ente.update_layout(
+        legend=dict(
+            title=dict(
+                text="ID Ente"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
+    return fig_ente
+
+@app_risultati.callback(
+    Output("regione-filter", "options"),
+    Output("regione-filter", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_regione(pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_regioni = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
+    value = sorted(list(set(lista_regioni)))[0]
+    return options, value
+
+@app_risultati.callback(
+    Output("recap-filter", "options"),
+    Output("recap-filter", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_recap(pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    #df_lista_reg_recap = pd.DataFrame(list(table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
+    #first_region= sorted(df_lista_reg_recap["REGIONE"].unique())[0]
+    lista_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    #options = [{"label": r, "value": r} for r in sorted(list(df_lista_reg_recap["UNIFIED_DELIVERY_DRIVER"].unique()))]
+    #value = sorted(list(df_lista_reg_recap.loc[df_lista_reg_recap["REGIONE"] == first_region, "UNIFIED_DELIVERY_DRIVER"].unique()))
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
+    value = sorted(list(set(lista_recap)))
+    return options, value
+
+@app_risultati.callback(
+    Output("area-plot", "figure"),
+    Input("regione-filter", "value"),
+    Input("recap-filter", "value"),
+    Input("url", "pathname")
+)
+def update_chart_regioni_recap(regioni_sel, recap_sel, pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    if isinstance(regioni_sel, str):
+        regioni_sel = [regioni_sel]
+    regioni_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
+    # se non selezionato nulla → grafico vuoto
+    if not regioni_sel or not recap_sel:
+        return px.area(title="Nessuna selezione effettuata")
+    df_regioni_recap = pd.DataFrame(regioni_recap)
+    # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
+    fig_reg_recap = px.area(
+        df_regioni_recap,
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color="PROVINCIA_RECAPITISTA",
+        line_group="PROVINCIA_RECAPITISTA",
+        markers=True
+    )
+    fig_reg_recap.update_layout(
+        legend=dict(
+            title=dict(
+                text="Provincia - Recapitista"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
+    return fig_reg_recap
+
+@app_risultati.callback(
+    Output("recap-only-filter", "options"),
+    Output("recap-only-filter", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_only_recap(pathname):
+    from .models import view_output_grafico_mappa_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_recap = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
+    value =sorted(list(set(lista_recap)))[0]
+    return options, value
+
+ 
+@app_risultati.callback(
+    Output("map-plot", "figure"),
+    Input("recap-only-filter", "value"),
+    Input("url", "pathname")
+)
+def update_map_recap(recap_only_sel, pathname):
+    from .models import view_output_grafico_mappa_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    mappa_picchi = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
+    df_mappa_picchi = pd.DataFrame(mappa_picchi)
+
+    # #df_picchi = pd.DataFrame(dati_picchi, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
+    # df_picchi_tot = df_mappa_picchi.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCE']).agg(
+    #     total_picco=('FLAG_PICCO', 'sum')
+    # )
+
+    # df_picchi_tot = df_picchi_tot.reset_index()
+
+    # df_picchi_tot.loc[df_picchi_tot['total_picco'] > 0, 'total_picco'] = 1
+
+    # df_picchi = df_picchi_tot.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','total_picco']).agg(
+    #     prov_count=('PROVINCE', 'count')
+    # )
+    # df_picchi = df_picchi.reset_index()
+    # df_picchi['prop']= df_picchi['total_picco']/df_picchi['prov_count']
+
+    # # Definisco due soglie (puoi cambiarle come preferisci)
+    # soglia1 = 0.0001
+    # soglia2 = 0.5
+
+    # # Creo una nuova colonna "fascia"
+    # def classifica_prop(x):
+    #     if x < soglia1:
+    #         return "No picchi"
+    #     elif x < soglia2:
+    #         return "<50% picchi"
+    #     else:
+    #         return ">=50% picchi"
+
+    # df_picchi["fascia"] = df_picchi["prop"].apply(classifica_prop)
+
+    # Assegno 3 colori fissi
+    colori = {
+        "No picchi": "green",
+        "<50% picchi": "orange",
+        ">=50% picchi": "red"
+    }
+
+    # df_picchi = df_picchi.reset_index()
+
+    ## mappa testo->numero per le fasce (adatta se hai altre categorie)
+    fascia_to_num = {"No picchi": 0, "<50% picchi": 1, ">=50% picchi": 2}
+
+    # costruisci un colorscale "discreto" che associa range a colori
+    # struttura: [ [0.0,color_bassa], [0.3333,color_bassa], [0.3334,color_media], ... ]
+    colorscale = [
+        [0.0, colori["No picchi"]], [0.3333, colori["No picchi"]],
+        [0.3334, colori["<50% picchi"]], [0.6666, colori["<50% picchi"]],
+        [0.6667, colori[">=50% picchi"]], [1.0, colori[">=50% picchi"]],
+    ]
+    df_mappa_picchi["z"] = df_mappa_picchi["FASCIA_PICCO"].map(fascia_to_num)
+    fig_picchi = go.Figure()
+    fig_picchi = fig_picchi.add_trace(
+        go.Choroplethmapbox(
+            geojson=geojson,
+            locations=df_mappa_picchi["REGIONE"],
+            z=df_mappa_picchi["z"],
+            featureidkey="properties.reg_name",
+            colorscale=colorscale,
+            zmin=0, zmax=2,
+            marker_opacity=0.6,
+            marker_line_width=0,
+            name=recap_only_sel,
+            #visible=recap_sel,   # mostra solo il primo inizialmente
+            showscale=False,
+            customdata=df_mappa_picchi[["FASCIA_PICCO"]].values,
+            hovertemplate="<b>%{location}</b><br>Recapitista: " + recap_only_sel + "<br>Fascia: %{customdata[0]}<extra></extra>"
+        )
+    )
+    fig_picchi.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_zoom=4.5,
+        mapbox_center={"lat": 41.9, "lon": 12.5},
+        height=800,
+        #updatemenus=[dict(buttons=buttons,pad={"r": 20, "t": 20}, direction="down", x=1.12, y=1.12)],
+        margin={"r":100,"t":100,"l":100,"b":100},
+        #title="Assegnazioni per Recapitista (fasce)"
+    )
+
+    return fig_picchi
+
+@app_risultati.callback(
+    Output("datatable-region", "data"),
+    Output("datatable-region", "columns"),
+    Input("recap-only-filter", "value"),
+    Input("url", "pathname")
+)
+def update_table_recap(recap_only_sel,pathname):
+
+    from .models import view_output_tabella_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).order_by("REGIONE","PROVINCE").values()
+    df_tab_picchi = pd.DataFrame(tab_picchi)
+
+    # filtered_df_picchi = df_mappa_picchi[df_mappa_picchi["UNIFIED_DELIVERY_DRIVER"] == recap_only_sel]
+    #df_picchi = pd.DataFrame(dati_picchi, columns=["Recapitista", "Regione", "Provincia", "Assegnazione"])
+    # df_picchi_tot = filtered_df_picchi.groupby(['UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCE']).agg(
+    #     total_picco=('FLAG_PICCO', 'sum')
+    # )
+
+    # df_picchi_tot = df_picchi_tot.reset_index()
+    # df_picchi_tot.loc[df_picchi_tot['total_picco'] > 0, 'total_picco'] = 1
+    df_tab_picchi["TOT_PICCO"] = df_tab_picchi["TOT_PICCO"].map({0: 'Assente', 1: 'Presente'})
+    df_tab_picchi.drop(columns=["id","SIMULAZIONE_ID"], axis=1, inplace=True)
+    df_tab_picchi = df_tab_picchi.rename(columns={"UNIFIED_DELIVERY_DRIVER": "Recapitista", "REGIONE": "Regione" , "PROVINCE": "Provincia", "TOT_PICCO": "Picco"})
+    data = df_tab_picchi.to_dict("records")
+    columns =  [{'name': i, 'id': i} for i in df_tab_picchi.columns]
+    return data, columns
+
+
+app_confronto = DjangoDash('dash_confronto_risultati')
+
+
+# layout
+app_confronto.layout = html.Div([
+    dcc.Location(id="url", refresh=False), # serve a catturare l'url
+    
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Ente",
+        style={"text-align":"center"}),
+
+    html.Div([
+        html.Div([
+            html.H4(id="titolo-simulazione-1",style={"text-align":"center"})
+        ], className="col-sm"),
+        html.Div([
+            html.H4(id="titolo-simulazione-2",style={"text-align":"center"})
+        ], className="col-sm")
+    ], className='row text-center'),
+
+    html.Div([
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Ente:"),
+
+                    dcc.Dropdown(
+
+                        id="ente-filter-1",
+
+                        options=[],
+                        value=[],
+                        multi=True,
+                        placeholder="Seleziona Ente:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="line-plot-1")
+
+            ]),
+        ], className="col-sm"),
+
+        html.Div([
+
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Ente:"),
+
+                    dcc.Dropdown(
+
+                        id="ente-filter-2",
+
+                        options=[],
+                        value=[],
+                        multi=True,
+                        placeholder="Seleziona Ente:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="line-plot-2")
+
+            ]),  
+        ], className="col-sm"),
+    ], className='row text-center'),
+
+
+    html.H3(
+        "Simulazione Pianificazione Postalizzazioni per Provincia e Recapitista",
+        style={"text-align":"center"}),
+
+
+    html.Div([
+        html.Div([
+            html.H4(id="secondo-titolo-simulazione-1",style={"text-align":"center"})
+        ], className="col-sm"),
+        html.Div([
+            html.H4(id="secondo-titolo-simulazione-2",style={"text-align":"center"})
+        ], className="col-sm")
+    ], className='row text-center'),
+
+    html.Div([
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Regione:"),
+
+                    dcc.Dropdown(
+
+                        id="regione-filter-1",
+
+                        options=[],
+                        value=[],
+                        multi=True,
+                        placeholder="Seleziona una o più regioni..."
+                    ),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm"),
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-filter-1",
+
+                        options=[],
+                        value=[],
+                        multi=True,
+                        placeholder="Seleziona un recapitista..."
+                    )
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm")
+            ], style={"margin-bottom": "10px"}
+            , className='row text-center'),
+            
+
+            html.Div([
+
+                dcc.Graph(id="area-plot-1")
+
+            ]),
+        ], className="col-sm"),
+
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Regione:"),
+
+                    dcc.Dropdown(
+
+                        id="regione-filter-2",
+
+                        options=[],
+                        value=[],
+                        multi=True,
+                        placeholder="Seleziona una o più regioni..."
+                    ),
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm"),
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-filter-2",
+
+                        options=[],
+                        value=[],
+                        multi=True,
+                        placeholder="Seleziona un recapitista..."
+                    )
+                ], style={"width": "48%", "display": "inline-block"}
+                , className="col-sm")
+            ], style={"margin-bottom": "10px"}
+            , className='row text-center'),
+
+            html.Div([
+
+                dcc.Graph(id="area-plot-2")
+
+            ]),
+        ], className="col-sm"),
+    ], className='row text-center'),
+
+    html.H3(
+        "Mappa dei picchi per Recapitista",
+        style={"text-align":"center"}),
+
+    html.Div([
+        html.Div([
+            html.H4(id="terzo-titolo-simulazione-1",style={"text-align":"center"})
+        ], className="col-sm"),
+        html.Div([
+            html.H4(id="terzo-titolo-simulazione-2",style={"text-align":"center"})
+        ], className="col-sm")
+    ], className='row text-center'),
+
+    html.Div([
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-only-filter-1",
+
+                        options=[],
+                        value=[],
+                        placeholder="Seleziona Recapitista:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="map-plot-1")
+
+            ]),
+
+            html.Div([
+
+                dash_table.DataTable(
+                    id='datatable-region-1',
+                    data=[],
+                    columns=[],
+                    #style_as_list_view=True,
+                    style_cell={
+                        'padding': '5px',
+                        'textAlign': 'center',
+                        'minWidth': '30px', 'width': '30px', 'maxWidth': '30px',
+                    },
+                    # style_header={
+                    #     'backgroundColor': "#585858",
+                    #     'color': 'white',
+                    #     'fontWeight': 'bold',
+
+                    # },
+                    #sort_action="native",
+                    #style_table={'width': '50%'},
+                    style_data_conditional=[{
+                    'if': {
+                        'state': 'active'  # 'active' | 'selected'
+                        },
+                    'backgroundColor': 'rgba(0, 116, 217, 0.3)',
+                    'border': '1px solid rgb(0, 116, 217)'
+                    }],
+                    #sort_mode='multi',
+                    selected_rows=[],
+                    page_action='native',
+                    page_current= 0,
+                    page_size= 20,
+                )
+
+            ]),
+
+        ], className="col-sm"),
+
+        html.Div([
+            html.Div([
+
+                html.Div([
+
+                    html.Label("Seleziona Recapitista:"),
+
+                    dcc.Dropdown(
+
+                        id="recap-only-filter-2",
+
+                        options=[],
+                        value=[],
+                        placeholder="Seleziona Recapitista:"
+                    ),
+                ], style={"width": "100%", "display": "inline-block"}),
+            ], style={"margin-bottom": "5px"}),
+
+            html.Div([
+
+                dcc.Graph(id="map-plot-2")
+            ]),
+
+            html.Div([
+
+                dash_table.DataTable(
+                    id='datatable-region-2',
+                    data=[],
+                    columns=[],
+                    #style_as_list_view=True,
+                    style_cell={
+                        'padding': '5px',
+                        'textAlign': 'center',
+                        'minWidth': '30px', 'width': '30px', 'maxWidth': '30px',
+                    },
+                    # style_header={
+                    #     'backgroundColor': "#585858",
+                    #     'color': 'white',
+                    #     'fontWeight': 'bold',
+
+                    # },
+                    #sort_action="native",
+                    style_data_conditional=[{
+                    'if': {
+                        'state': 'active'  # 'active' | 'selected'
+                        },
+                    'backgroundColor': 'rgba(0, 116, 217, 0.3)',
+                    'border': '1px solid rgb(0, 116, 217)'
+                    }],
+                    #sort_mode='multi',
+                    selected_rows=[],
+                    page_action='native',
+                    page_current= 0,
+                    page_size= 20,
+                )
+            ])
+        ], className="col-sm")
+    ], className='row text-center'),
+])
+
+@app_confronto.callback(
+    Output("titolo-simulazione-1", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+@app_confronto.callback(
+    Output("titolo-simulazione-2", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+
+@app_confronto.callback(
+    Output("ente-filter-1", "options"),
+    Output("ente-filter-1", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_ente_1(pathname):
+    from .models import table_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
+    value = list(sorted(list(set(lista_enti))))[:5]
+    return options, value
+
+@app_confronto.callback(
+    Output("ente-filter-2", "options"),
+    Output("ente-filter-2", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_ente_2(pathname):
+    from .models import table_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("SENDER_PA_ID", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_enti)))]
+    value = list(sorted(list(set(lista_enti))))[:5]
+    return options, value
+
+
+@app_confronto.callback(
+    Output("line-plot-1", "figure"),
+    Input("ente-filter-1", "value"),
+    Input("url", "pathname")
+)
+def update_chart_ente_1(ente_sel, pathname):
+    from .models import table_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).order_by("SETTIMANA_DELIVERY").values()
+    df_filtered_enti = pd.DataFrame(filtered_enti)
+    # se non selezionato nulla → grafico vuoto
+    if not ente_sel:
+        return px.line(title="Nessuna selezione effettuata")
+
+    fig_ente = px.line(
+        df_filtered_enti,
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color='SENDER_PA_ID',
+        markers=True
+    )
+
+    fig_ente.update_layout(
+        legend=dict(
+            title=dict(
+                text="ID Ente"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
+    return fig_ente
+
+@app_confronto.callback(
+    Output("line-plot-2", "figure"),
+    Input("ente-filter-2", "value"),
+    Input("url", "pathname")
+)
+def update_chart_ente_2(ente_sel, pathname):
+    from .models import table_output_grafico_ente
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    filtered_enti = table_output_grafico_ente.objects.filter(SIMULAZIONE_ID = id_simulazione, SENDER_PA_ID__in = ente_sel).order_by("SETTIMANA_DELIVERY").values()
+    df_filtered_enti = pd.DataFrame(filtered_enti)
+    # se non selezionato nulla → grafico vuoto
+    if not ente_sel:
+        return px.line(title="Nessuna selezione effettuata")
+
+    fig_ente = px.line(
+        df_filtered_enti,
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color='SENDER_PA_ID',
+        markers=True
+    )
+
+    fig_ente.update_layout(
+        legend=dict(
+            title=dict(
+                text="ID Ente"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
+    return fig_ente
+
+
+@app_confronto.callback(
+    Output("secondo-titolo-simulazione-1", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+@app_confronto.callback(
+    Output("secondo-titolo-simulazione-2", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+
+@app_confronto.callback(
+    Output("regione-filter-1", "options"),
+    Output("regione-filter-1", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_regione_1(pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    lista_regioni = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
+    value = sorted(list(set(lista_regioni)))[0]
+    return options, value
+
+@app_confronto.callback(
+    Output("recap-filter-1", "options"),
+    Output("recap-filter-1", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_recap_1(pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    #df_lista_reg_recap = pd.DataFrame(list(table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
+    #first_region= sorted(df_lista_reg_recap["REGIONE"].unique())[0]
+    lista_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    #options = [{"label": r, "value": r} for r in sorted(list(df_lista_reg_recap["UNIFIED_DELIVERY_DRIVER"].unique()))]
+    #value = sorted(list(df_lista_reg_recap.loc[df_lista_reg_recap["REGIONE"] == first_region, "UNIFIED_DELIVERY_DRIVER"].unique()))
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
+    value = sorted(list(set(lista_recap)))
+    return options, value
+
+@app_confronto.callback(
+    Output("regione-filter-2", "options"),
+    Output("regione-filter-2", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_regione_2(pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_regioni = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("REGIONE", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_regioni)))]
+    value = sorted(list(set(lista_regioni)))[0]
+    return options, value
+
+@app_confronto.callback(
+    Output("recap-filter-2", "options"),
+    Output("recap-filter-2", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_recap_2(pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    #df_lista_reg_recap = pd.DataFrame(list(table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()))
+    #first_region= sorted(df_lista_reg_recap["REGIONE"].unique())[0]
+    lista_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    #options = [{"label": r, "value": r} for r in sorted(list(df_lista_reg_recap["UNIFIED_DELIVERY_DRIVER"].unique()))]
+    #value = sorted(list(df_lista_reg_recap.loc[df_lista_reg_recap["REGIONE"] == first_region, "UNIFIED_DELIVERY_DRIVER"].unique()))
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
+    value = sorted(list(set(lista_recap)))
+    return options, value
+
+@app_confronto.callback(
+    Output("area-plot-1", "figure"),
+    Input("regione-filter-1", "value"),
+    Input("recap-filter-1", "value"),
+    Input("url", "pathname")
+)
+def update_chart_regioni_recap_1(regioni_sel, recap_sel, pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    if isinstance(regioni_sel, str):
+        regioni_sel = [regioni_sel]
+
+    regioni_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
+    # se non selezionato nulla → grafico vuoto
+    if not regioni_sel or not recap_sel:
+        return px.area(title="Nessuna selezione effettuata")
+    df_regioni_recap = pd.DataFrame(regioni_recap)
+    # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
+    fig_reg_recap = px.area(
+        df_regioni_recap,
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color="PROVINCIA_RECAPITISTA",
+        line_group="PROVINCIA_RECAPITISTA",
+        markers=True
+    )
+    fig_reg_recap.update_layout(
+        legend=dict(
+            title=dict(
+                text="Provincia - Recapitista"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
+    return fig_reg_recap
+
+
+@app_confronto.callback(
+    Output("area-plot-2", "figure"),
+    Input("regione-filter-2", "value"),
+    Input("recap-filter-2", "value"),
+    Input("url", "pathname")
+)
+def update_chart_regioni_recap_2(regioni_sel, recap_sel, pathname):
+    from .models import table_output_grafico_reg_recap
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    if isinstance(regioni_sel, str):
+        regioni_sel = [regioni_sel]
+
+    regioni_recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).values()
+    # se non selezionato nulla → grafico vuoto
+    if not regioni_sel or not recap_sel:
+        return px.area(title="Nessuna selezione effettuata")
+    df_regioni_recap = pd.DataFrame(regioni_recap)
+    # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
+    fig_reg_recap = px.area(
+        df_regioni_recap,
+        x="SETTIMANA_DELIVERY",
+        y="COUNT_REQUEST",
+        color="PROVINCIA_RECAPITISTA",
+        line_group="PROVINCIA_RECAPITISTA",
+        markers=True
+    )
+    fig_reg_recap.update_layout(
+        legend=dict(
+            title=dict(
+                text="Provincia - Recapitista"
+            ),
+            x=1.02, 
+            y=1, 
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Settima di Delivery"
+            )
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Numero di Postalizzazioni"
+            )
+        )
+    )
+    return fig_reg_recap
+ 
+
+@app_confronto.callback(
+    Output("terzo-titolo-simulazione-1", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+@app_confronto.callback(
+    Output("terzo-titolo-simulazione-2", "children"),
+    Input("url", "pathname")
+)
+def aggiorna_da_url(pathname):
+    from .models import table_simulazione
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    nome_simulazione = table_simulazione.objects.filter(ID = id_simulazione).values_list("NOME", flat=True)[0]
+    titolo = "Risultati Simulazione: "+str(nome_simulazione)
+    return titolo
+
+
+@app_confronto.callback(
+    Output("recap-only-filter-1", "options"),
+    Output("recap-only-filter-1", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_only_recap_1(pathname):
+    from .models import view_output_grafico_mappa_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    lista_recap = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
+    value =sorted(list(set(lista_recap)))[0]
+    return options, value
+
+@app_confronto.callback(
+    Output("recap-only-filter-2", "options"),
+    Output("recap-only-filter-2", "value"),
+    Input("url", "pathname")
+)
+def populate_dropdown_only_recap_2(pathname):
+    from .models import view_output_grafico_mappa_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    lista_recap = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione).values_list("UNIFIED_DELIVERY_DRIVER", flat=True)
+    options = [{"label": r, "value": r} for r in sorted(list(set(lista_recap)))]
+    value =sorted(list(set(lista_recap)))[0]
+    return options, value
+
+@app_confronto.callback(
+    Output("map-plot-1", "figure"),
+    Input("recap-only-filter-1", "value"),
+    Input("url", "pathname")
+)
+def update_map_recap_1(recap_only_sel,pathname):
+    from .models import view_output_grafico_mappa_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    mappa_picchi = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
+    df_mappa_picchi = pd.DataFrame(mappa_picchi)
+
+    # Assegno 3 colori fissi
+    colori = {
+        "No picchi": "green",
+        "<50% picchi": "orange",
+        ">=50% picchi": "red"
+    }
+
+    ## mappa testo->numero per le fasce (adatta se hai altre categorie)
+    fascia_to_num = {"No picchi": 0, "<50% picchi": 1, ">=50% picchi": 2}
+
+    # costruisci un colorscale "discreto" che associa range a colori
+    # struttura: [ [0.0,color_bassa], [0.3333,color_bassa], [0.3334,color_media], ... ]
+    colorscale = [
+        [0.0, colori["No picchi"]], [0.3333, colori["No picchi"]],
+        [0.3334, colori["<50% picchi"]], [0.6666, colori["<50% picchi"]],
+        [0.6667, colori[">=50% picchi"]], [1.0, colori[">=50% picchi"]],
+    ]
+    df_mappa_picchi["z"] = df_mappa_picchi["FASCIA_PICCO"].map(fascia_to_num)
+    fig_picchi = go.Figure()
+    fig_picchi = fig_picchi.add_trace(
+        go.Choroplethmapbox(
+            geojson=geojson,
+            locations=df_mappa_picchi["REGIONE"],
+            z=df_mappa_picchi["z"],
+            featureidkey="properties.reg_name",
+            colorscale=colorscale,
+            zmin=0, zmax=2,
+            marker_opacity=0.6,
+            marker_line_width=0,
+            name=recap_only_sel,
+            #visible=recap_sel,   # mostra solo il primo inizialmente
+            showscale=False,
+            customdata=df_mappa_picchi[["FASCIA_PICCO"]].values,
+            hovertemplate="<b>%{location}</b><br>Recapitista: " + recap_only_sel + "<br>Fascia: %{customdata[0]}<extra></extra>"
+        )
+    )
+    fig_picchi.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_zoom=4.5,
+        mapbox_center={"lat": 41.9, "lon": 12.5},
+        height=800,
+        #updatemenus=[dict(buttons=buttons,pad={"r": 20, "t": 20}, direction="down", x=1.12, y=1.12)],
+        margin={"r":100,"t":100,"l":100,"b":100},
+        #title="Assegnazioni per Recapitista (fasce)"
+    )
+
+    return fig_picchi
+
+@app_confronto.callback(
+    Output("datatable-region-1", "data"),
+    Output("datatable-region-1", "columns"),
+    Input("recap-only-filter-1", "value"),
+    Input("url", "pathname")
+)
+def update_table_recap_1(recap_only_sel, pathname):
+    from .models import view_output_tabella_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-2])
+    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).order_by("REGIONE","PROVINCE").values()
+    df_tab_picchi = pd.DataFrame(tab_picchi)
+
+    df_tab_picchi["TOT_PICCO"] = df_tab_picchi["TOT_PICCO"].map({0: 'Assente', 1: 'Presente'})
+    df_tab_picchi.drop(columns=["id","SIMULAZIONE_ID"], axis=1, inplace=True)
+    df_tab_picchi = df_tab_picchi.rename(columns={"UNIFIED_DELIVERY_DRIVER": "Recapitista", "REGIONE": "Regione" , "PROVINCE": "Provincia", "TOT_PICCO": "Picco"})
+    data = df_tab_picchi.to_dict("records")
+    columns =  [{'name': i, 'id': i} for i in df_tab_picchi.columns]
+    return data, columns
+
+@app_confronto.callback(
+    Output("map-plot-2", "figure"),
+    Input("recap-only-filter-2", "value"),
+    Input("url", "pathname")
+)
+def update_map_recap_2(recap_only_sel, pathname):
+    from .models import view_output_grafico_mappa_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    mappa_picchi = view_output_grafico_mappa_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).values()
+    df_mappa_picchi = pd.DataFrame(mappa_picchi)
+
+    # Assegno 3 colori fissi
+    colori = {
+        "No picchi": "green",
+        "<50% picchi": "orange",
+        ">=50% picchi": "red"
+    }
+
+    ## mappa testo->numero per le fasce (adatta se hai altre categorie)
+    fascia_to_num = {"No picchi": 0, "<50% picchi": 1, ">=50% picchi": 2}
+
+    # costruisci un colorscale "discreto" che associa range a colori
+    # struttura: [ [0.0,color_bassa], [0.3333,color_bassa], [0.3334,color_media], ... ]
+    colorscale = [
+        [0.0, colori["No picchi"]], [0.3333, colori["No picchi"]],
+        [0.3334, colori["<50% picchi"]], [0.6666, colori["<50% picchi"]],
+        [0.6667, colori[">=50% picchi"]], [1.0, colori[">=50% picchi"]],
+    ]
+    df_mappa_picchi["z"] = df_mappa_picchi["FASCIA_PICCO"].map(fascia_to_num)
+    fig_picchi = go.Figure()
+    fig_picchi = fig_picchi.add_trace(
+        go.Choroplethmapbox(
+            geojson=geojson,
+            locations=df_mappa_picchi["REGIONE"],
+            z=df_mappa_picchi["z"],
+            featureidkey="properties.reg_name",
+            colorscale=colorscale,
+            zmin=0, zmax=2,
+            marker_opacity=0.6,
+            marker_line_width=0,
+            name=recap_only_sel,
+            #visible=recap_sel,   # mostra solo il primo inizialmente
+            showscale=False,
+            customdata=df_mappa_picchi[["FASCIA_PICCO"]].values,
+            hovertemplate="<b>%{location}</b><br>Recapitista: " + recap_only_sel + "<br>Fascia: %{customdata[0]}<extra></extra>"
+        )
+    )
+    fig_picchi.update_layout(
+        mapbox_style="carto-positron",
+        mapbox_zoom=4.5,
+        mapbox_center={"lat": 41.9, "lon": 12.5},
+        height=800,
+        #updatemenus=[dict(buttons=buttons,pad={"r": 20, "t": 20}, direction="down", x=1.12, y=1.12)],
+        margin={"r":100,"t":100,"l":100,"b":100},
+        #title="Assegnazioni per Recapitista (fasce)"
+    )
+
+    return fig_picchi
+
+@app_confronto.callback(
+    Output("datatable-region-2", "data"),
+    Output("datatable-region-2", "columns"),
+    Input("recap-only-filter-2", "value"),
+    Input("url", "pathname")
+)
+def update_table_recap_2(recap_only_sel, pathname):
+    from .models import view_output_tabella_picchi
+    id_simulazione = int(pathname.strip("/").split("/")[-1])
+    tab_picchi = view_output_tabella_picchi.objects.filter(SIMULAZIONE_ID = id_simulazione, UNIFIED_DELIVERY_DRIVER = recap_only_sel).order_by("REGIONE","PROVINCE").values()
+    df_tab_picchi = pd.DataFrame(tab_picchi)
+
+    df_tab_picchi["TOT_PICCO"] = df_tab_picchi["TOT_PICCO"].map({0: 'Assente', 1: 'Presente'})
+    df_tab_picchi.drop(columns=["id","SIMULAZIONE_ID"], axis=1, inplace=True)
+    df_tab_picchi = df_tab_picchi.rename(columns={"UNIFIED_DELIVERY_DRIVER": "Recapitista", "REGIONE": "Regione" , "PROVINCE": "Provincia", "TOT_PICCO": "Picco"})
+    data = df_tab_picchi.to_dict("records")
+    columns =  [{'name': i, 'id': i} for i in df_tab_picchi.columns]
+    return data, columns
+
+

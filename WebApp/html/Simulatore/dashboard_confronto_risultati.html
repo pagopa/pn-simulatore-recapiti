@@ -1,0 +1,11 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+{% load plotly_dash %}
+    <div>        
+        {% plotly_direct name="dash_confronto_risultati" %}
+    </div>
+
+    {% plotly_footer %}
+
+{% endblock content %}
