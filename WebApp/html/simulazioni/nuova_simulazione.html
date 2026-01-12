@@ -1,0 +1,929 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+<br><br>
+
+<!-- Position bar bootstrap -->
+<div class="position-relative mb-5">
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="height: 1px;">
+        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+    </div>
+    <button type="button" id="stepBtn1" class="position-absolute top-0 start-0 translate-middle btn btn-sm btn-primary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">1</button>
+    <button type="button" id="stepBtn2" class="position-absolute top-0 start-50 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">2</button>
+    <button type="button" id="stepBtn3" class="position-absolute top-0 start-100 translate-middle btn btn-sm btn-secondary rounded-pill" style="width: 2rem; height:2rem; cursor: default;">3</button>
+</div>
+
+
+<!-- Form -->
+<form id="multiStepForm" action="{% url 'salva_simulazione' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <!-- STEP 1 - Parametri di scheduling -->
+    <div class="step" id="step1">
+        <h4 class="text-start">Parametri di scheduling</h4>
+        <br>
+        <div class="card p-4">
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label"><b>Nome simulazione</b></label>
+                </div>
+                <div class="col-auto w-50">
+                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label"><b>Descrizione (opzionale)</b></label>
+                </div>
+                <div class="col-auto w-50">
+                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione_selezionata.DESCRIZIONE|default_if_none:''}}</textarea>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label"><b>Mese da simulare</b></label>
+                </div>
+                <div class="col-auto w-50">
+                    <select required class="form-select" id="mese_da_simulare" name="mese_da_simulare" {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}disabled{% endif %}>
+                        <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
+                        {% for singolo_mese in lista_mesi %}
+                            <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}
+                    <input type="hidden" name="mese_da_simulare" value="{{ simulazione_selezionata.MESE_SIMULAZIONE }}">
+                {% endif %}
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label"><b>Data-ora pianificazione</b>&nbsp;&nbsp;</label>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Schedule -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione_selezionata.TRIGGER == 'Schedule' %}checked{% endif %}>
+                        <label class="form-check-label" for="inlineRadio1">Schedule</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Now -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione_selezionata.TRIGGER == 'Now' %}checked{% endif %}>
+                        <label class="form-check-label" for="inlineRadio2">Now</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campo datetime (inizialmente nascosto) -->
+            <div class="row mb-3 align-items-center d-none" id="datetimeField">
+                <div class="col-auto">
+                    <label class="form-label">Seleziona data-ora</label>
+                </div>
+                <div class="col-auto">
+                    <input type="datetime-local" class="form-control" autocomplete="off" style="width:auto;" id="timeSchedule" name="schedule_datetime">
+                </div>
+            </div>
+            <!-- bottoni salva-avanti -->
+            <div class="row">
+                <div class="col d-grid gap-2 mx-auto">
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" class="disabled" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 2 - Postalizzazioni di mock aggiuntive -->
+    <div class="step d-none" id="step2">
+        <h5 class="text-center">Postalizzazioni di mock aggiuntive</h5>
+        <br>
+        <div class="card p-4">
+            <div class="form-check">
+                <input class="form-check-input" checked disabled type="checkbox" id="commesse_default">
+                <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
+            </div>
+            <div class="row text-center">
+                <div class="col-8">
+                </div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-xl" style="cursor: pointer;" title="Download csv"></i></p>
+                    <label style="font-size: 12px;">Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label" style="font-size: 12px;"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
+                    </div>
+                </div>
+            </div>
+
+            <br>
+
+            <table class="table table-hover d-none" id="table_postalizzazioni">
+                <thead class="text-center">
+                    <tr>
+                        <th scope="col">Regione</th>
+                        <th scope="col">Provincia</th>
+                        <th scope="col">Prodotto</th>
+                        <th scope="col">N° di postalizzazioni</th>
+                        <th scope="col">
+                            <button type="button" id="aggiungi_riga_tabella_step2" class="btn btn-outline-success btn-sm" title="Aggiungi riga">+</button>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="table-group-divider text-center">
+                    <tr id="riga-1">
+                        <td>
+                            <select class="form-select regione-select" name="regione">
+                                <option value="" selected disabled class="form-control text-center">--- Seleziona regione ---</option>
+                                {% for regione in lista_regioni %}
+                                    <option value="{{ regione }}">{{ regione }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select provincia-select" name="provincia">
+                                <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select prodotto-select" name="prodotto">
+                                <option value="" selected disabled class="text-center">--- Seleziona prodotto ---</option>
+                                <option value="AR" class="text-center">AR</option>
+                                <option value="890" class="text-center">890</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="1" title="Rimuovi riga">-</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <br><br>
+
+            <!-- bottoni indietro-salva-avanti -->
+            <div class="row text-center">
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3 - Capacità recapitisti -->
+    <div class="step d-none" id="step3">
+        <h5 class="text-end">Capacità recapitisti</h5>
+        <br>
+        <div class="card p-4">
+            <div class="row text-center">
+                <div class="col-8">
+                </div>
+                <div class="col-2 mx-auto">
+                    <p style="margin-bottom: 0;"><i class="fa-solid fa-file-csv fa-xl" style="cursor: pointer;" title="Download csv"></i></p>
+                    <label style="font-size: 12px;">Download capacità di default per input</label>
+                </div>
+                <div class="col-2 mx-auto">
+                    <div class="mb-3">
+                        <label for="formFileSm" class="form-label" style="font-size: 12px;"><b>Carica capacità da file</b></label>
+                        <input class="form-control form-control-sm" id="formFileSm" type="file" accept=".csv">
+                    </div>
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-2 mx-auto"></div>
+                <div class="col-5 mx-auto">
+                    <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
+                        <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
+                        <option value="BAU" {% if simulazione_selezionata.TIPO_CAPACITA == 'BAU' %}selected{% endif %}>BAU</option>
+                        <option value="Picco" {% if simulazione_selezionata.TIPO_CAPACITA == 'Picco' %}selected{% endif %}>Picco</option>
+                        <option value="Combinata" {% if simulazione_selezionata.TIPO_CAPACITA == 'Combinata' %}selected{% endif %}>Combinata</option>
+                    </select>
+                </div>
+                <div class="col-3 mx-auto">
+                    <br>
+                    <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax(false)">Carica tabelle capacità</button>
+                </div>
+                <div class="col-2 mx-auto"></div>
+            </div>
+
+            <br>
+
+            <!-- Capacità recuperate da db -->
+            <div class="text-center" id="spinner"></div>
+            <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_get_capacita_from_mese_and_tipo' %}></span>
+
+            <br><br><br><br>
+            <!-- Campo nascosto per contenere il JSON -->
+            <input type="hidden" name="capacita_json" id="capacita_json">
+
+            <!-- bottoni indietro-salva-avvia -->
+            <div class="row text-center">
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
+                </div>
+                <div class="col d-grid gap-2 mx-auto">
+                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" id="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()" class="disabled" disabled>Avvia scheduling 📅</button>
+                    <!--MODAL PER IL BOTTONE AVVIA SCHEDULING-->
+                    <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel"></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                <p id="avviso_modal_avvia_scheduling"></p>
+                                </div>
+                                <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+                                <input class="btn btn-primary" onclick="form_submit_scheduling()" type="submit" name="avvia_scheduling" value="Avvia scheduling 📅" />
+                                </div>
+                                <script type="text/javascript">
+                                function form_submit_scheduling() {
+                                    multiStepForm = document.getElementById("multiStepForm");
+                                    var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
+                                    var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
+                                    // riempimento input nascosto con capacità modificate dall'utente
+                                    save_capacita_json();
+                                    multiStepForm.submit();
+                                }    
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <p>Sei sicuro di voler salvare come bozza?</p>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+            <input class="btn btn-primary" onclick="form_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
+            </div>
+            <script type="text/javascript">
+            function form_submit_bozza() {
+                multiStepForm = document.getElementById("multiStepForm");
+                var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
+                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
+                var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
+                // riempimento input nascosto con capacità modificate dall'utente
+                save_capacita_json();
+                // submit form
+                multiStepForm.submit();
+            }    
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+
+{% block scripts %}
+<!-- GESTIONE STEP -->
+<script>
+    let currentStep = 1;
+    const button_salva_bozza = document.getElementById("salva_bozza");
+
+    function showStep(step) {
+        // nasconde tutti
+        document.querySelectorAll(".step").forEach(s => s.classList.add("d-none"));
+        // mostra quello richiesto
+        document.getElementById("step" + step).classList.remove("d-none");
+
+        // aggiorna progress bar
+        const progressBar = document.getElementById("progressBar");
+        progressBar.style.width = ((step - 1) / 2) * 100 + "%";
+
+        // aggiorna pulsanti step
+        for (let i = 1; i <= 3; i++) {
+            const btn = document.getElementById("stepBtn" + i);
+            if (i < step) {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-success rounded-pill";
+            } else if (i === step) {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-primary rounded-pill";
+            } else {
+                btn.className = "position-absolute top-0 " + (i === 2 ? "start-50" : (i === 3 ? "start-100" : "start-0")) + " translate-middle btn btn-sm btn-secondary rounded-pill";
+            }
+            btn.style.width = "2rem";
+            btn.style.height = "2rem";
+        }
+
+        currentStep = step;
+    }
+
+    function nextStep() {
+        // controlla validità dei campi required mostrando il messaggio di default del browser
+        const currentStepEl = document.getElementById("step" + currentStep);
+        const requiredFields = currentStepEl.querySelectorAll("[required]");
+        let isValid = true;
+        let firstInvalid = null;
+        requiredFields.forEach(field => {
+            if (!field.checkValidity()) {
+            isValid = false;
+            if (!firstInvalid) firstInvalid = field;
+            }
+        });
+        if (!isValid) {
+            firstInvalid.reportValidity();
+            return;
+        }
+        // altrimenti vai avanti
+        if (currentStep < 3) {
+            showStep(currentStep + 1);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) {
+            showStep(currentStep - 1);
+        }
+    }
+
+    // mostra step iniziale
+    showStep(1);
+
+    // gestione invio
+    document.getElementById("multiStepForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+    });
+
+
+    function checkRequiredFields() {
+        const nomeField = document.querySelector('input[type="text"][required]');    
+        // controlliamo se il campo nome è stato inserito
+        let isValid = nomeField.value.trim() !== '';
+        return isValid;
+    }
+
+    function updateSaveButton() {
+        button_salva_bozza.disabled = !checkRequiredFields();
+    }
+
+    // event listener
+    document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
+
+    // Controllo iniziale
+    updateSaveButton();
+</script>
+
+<!-- mostra/nascondi datetime picker quando viene selezionato/deselezionato il radiobutton "Schedule" -->
+<script>
+    const radioSchedule = document.getElementById("inlineRadio1");
+    const radioNow = document.getElementById("inlineRadio2");
+    const datetimeField = document.getElementById("datetimeField");
+    const timeSchedule = document.getElementById("timeSchedule");
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (radioSchedule.checked) {
+            datetimeField.classList.remove("d-none"); // mostra
+            timeSchedule.setAttribute('required','required');
+        } else {
+            datetimeField.classList.add("d-none"); // nasconde
+            timeSchedule.removeAttribute('required');
+        }
+    });
+
+    document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
+        radio.addEventListener("change", () => {
+            if (radioSchedule.checked) {
+                datetimeField.classList.remove("d-none"); // mostra
+                timeSchedule.setAttribute('required','required');
+            } else {
+                datetimeField.classList.add("d-none"); // nasconde
+                timeSchedule.removeAttribute('required');
+            }
+        });
+    });
+</script>
+
+<!-- cattura il valore della select tipo_capacita_da_modificare e lo inserisce nell'intestazione della colonna 'Capacità settimanale' e nel sotto-accordion -->
+<script>
+    function select_tipo_capacita_da_modificare() {
+        tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
+        // inseriamo il tipo_capacita_da_modificare nell'intestazione della colonna 'Capacità settimanale'
+        document.querySelectorAll(".th_capacita_settimanale").forEach(el => {
+            el.innerHTML = '<br>(' + tipo_capacita_selezionata + ')';
+        });
+        // inseriamo il tipo_capacita_da_modificare nel sotto-accordion
+        document.querySelectorAll(".span_tipo_capacita_selezionata").forEach(span => {
+            span.textContent = ' ('+tipo_capacita_selezionata+')';
+        });
+    }
+</script>
+
+<!-- flatpickr datetimepicker STEP 1 -->
+ <script>
+    flatpickr("#timeSchedule", {
+        // lunedì primo giorno della settimana
+        locale: {
+            firstDayOfWeek: 1
+        },
+        enableTime: true,
+        dateFormat: "d/m/Y H:i",
+        time_24hr: true,
+        minuteIncrement: 30,
+        minDate: new Date(),
+        allowInput:true,
+        disable: [
+            function(date) {
+                // disabilitiamo i lunedì (1)
+                return (date.getDay() === 1);
+            }
+        ],
+        defaultDate: '{{simulazione_selezionata.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
+    });
+</script>
+
+<!-- jQuery/Ajax per accordion output_capacity_setting -->
+<script>
+    function load_tabella_capacita_with_ajax(get_modified_capacity) {
+        var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
+        var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
+        var id_simulazione = '{{simulazione_selezionata.ID}}';
+        // è obbligatorio selezionare sia il tipo di capacità che il mese da simulare
+        if (tipo_capacita_selezionata == '' ||  mese_da_simulare_selezionato == ''){
+            return;
+        }
+        var content = document.getElementById('capacita_recuperate_da_db');
+        // puliamo lo spazio dove andremo ad iniettare il codice html
+        content.innerHTML='';
+        var spinner = document.getElementById('spinner');
+        spinner.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+        var content_capacita = '';
+        $.ajax({
+            url: $('.capacita_recuperate_da_db').data('url'),
+            type: 'GET',
+            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata, 'id_simulazione':id_simulazione, 'get_modified_capacity':get_modified_capacity},
+            success: function(resp){
+                var counter_livello_1 = 0;
+                // scorriamo i recapitisti e creiamo le relative sezioni (accordion) di ogni recapitista
+                for (var recapitista in resp.context){
+                    content_capacita += `
+                        <div class="accordion accordion_recapitista" data-group="${recapitista}">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}">
+                                        <b>RECAPITISTA: ${recapitista}</b>
+                                    </button>
+                                </h2>
+                                <div id="recapitista_${counter_livello_1}" class="accordion-collapse collapse">
+                                    <div class="accordion-body table-responsive">
+                    `;
+                    var counter_livello_2 = 0;
+                    // scorriamo regione+'_'+cod_sigla_provincia+'_'+product per ogni recapitista
+                    for (var singola_regione_codsiglaprovincia_product in resp.context[recapitista]){
+                        content_capacita += `
+                            <div class="accordion accordion_regprovprod" data-group="${singola_regione_codsiglaprovincia_product}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
+                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
+                                        </button>
+                                    </h2>
+                                    <div id="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" class="accordion-collapse collapse">
+                                        <div class="accordion-body table-responsive">
+                                            <table class="table table-hover table_capacita">
+                                                <thead class="text-center">
+                                                    <tr>
+                                                        <th scope="col">Regione</th>
+                                                        <th scope="col">Provincia</th>
+                                                        <th scope="col">Product</th>
+                                                        <th scope="col">Numero di post. settimanali</th>
+                                                        <th scope="col">Inizio periodo di validità</th>
+                                                        <th scope="col">Fine periodo di validità</th>
+                                                        <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
+                                                        <th scope="col" class="align-bottom">Capacità di produzione</th>
+                                                        <th scope="col"></th> <!-- colonna per alert -->
+                                                        <th scope="col">
+                                                            <button type="button" id="aggiungi_riga_tabelle_step3" class="btn btn-outline-success btn-sm" title="Aggiungi riga">+</button>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="table-group-divider text-center">
+                                    `;
+                        // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
+                        resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
+                            if(singola_capacity.production_capacity != 0){
+                                production_capacity = singola_capacity.production_capacity;
+                            }else{
+                                production_capacity = '-';
+                            }
+                            content_capacita += `
+                                                    <tr>
+                                                        <td>${singola_capacity.regione}</td>
+                                                        <td>${singola_capacity.cod_sigla_provincia}</td>
+                                                        <td>${singola_capacity.product}</td>
+                                                        <td>${singola_capacity.post_weekly_estimate}</td>
+                                                        <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
+                                                        <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
+                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: <span class="input_capacita_reale">${singola_capacity.original_capacity}</span></label></td>
+                                                        <td>${production_capacity}</td>
+                                                        <td></td>
+                                                        <td></td>
+                                                    </tr>
+                            `;
+                        });
+                        content_capacita += `
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>                    
+                        `;
+                        counter_livello_2++;
+                    };
+                    content_capacita += `
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                    
+                    `;
+                    counter_livello_1++;  
+                }
+                content.innerHTML = content_capacita;
+                // dopo aver creato la tabella lanciamo la validateRow() su tutte le tabelle
+                $('.table_capacita tbody tr').each(function() {
+                    validateRow(this);
+                });
+                // dopo aver creato la tabella lanciamo la sommaCapacitySettimanale() su tutte le tabelle
+                $('.table_capacita').each(function() {
+                    sommaCapacitySettimanale(this);
+                });
+                
+                // cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale'
+                select_tipo_capacita_da_modificare();
+                // abilitiamo il tasto "Avvia Scheduling"
+                $('#avvia_scheduling').prop('disabled', false);
+            },
+            error: function(resp){
+                spinner.innerHTML='';
+            },
+            complete: function(resp){
+                spinner.innerHTML='';
+            }
+        });
+	}
+</script>
+
+<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità  -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        if (document.querySelector('#tipo_capacita_da_modificare').value != '' && document.querySelector('#mese_da_simulare').value != ''){
+            load_tabella_capacita_with_ajax(true);
+        }
+    });
+</script>
+
+<!-- Caricamento testo per modal che appare al click sul bottone "Avvia scheduling" -->
+<script>
+    function load_text_avviso_modal_avvia_scheduling() {
+        tipo_scheduling = document.getElementById('avviso_modal_avvia_scheduling');
+        const radioSchedule = document.getElementById("inlineRadio1");
+        const timeSchedule = document.getElementById("timeSchedule");
+        if (radioSchedule.checked) {
+            tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Schedule" ('+timeSchedule.value+')?';
+        }
+        else{
+            tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Now"?';
+        }
+    }
+</script>
+
+<!-- Cattura tabelle output_setting_capacity per inserirla in un input nascosto in formato json  -->
+<script>
+    function save_capacita_json() {
+        let data = {};
+        // scorriamo tutti gli accordion di livello 1 (cioè ogni recapitista)
+        $('.accordion_recapitista').each(function() {
+            let gruppo = $(this).data('group');
+            data[gruppo] = [];
+
+            // scorriamo tutti gli accordion di livello 2 (cioè ogni regione-provincia-prodotto)
+            $(this).find('.accordion_regprovprod').each(function() {
+                // intestazione accordion livello 2
+                let n_post_mensili = $(this).find('.accordion-header .accordion-button .somma_postalizzazioni').text().trim();
+                $(this).find('tbody tr').each(function() {
+                    let row = $(this);
+                    if (row.find('td').eq(4).text().trim() != ''){
+                        valore_inizioPeriodoValidita = row.find('td').eq(4).text().trim();
+                    } else{
+                        valore_inizioPeriodoValidita = row.find('.input_inizioPeriodoValidita').val();
+                    }
+                    if (row.find('td').eq(5).text().trim() != ''){
+                        valore_finePeriodoValidita = row.find('td').eq(5).text().trim();
+                    } else{
+                        valore_finePeriodoValidita = row.find('.input_finePeriodoValidita').val();
+                    }
+
+                    let item = {
+                        regione: row.find('td').eq(0).text().trim(),
+                        cod_sigla_provincia: row.find('td').eq(1).text().trim(),
+                        product: row.find('td').eq(2).text().trim(),
+                        postalizzazioni_mensili: n_post_mensili,
+                        postalizzazioni_settimanali: row.find('td').eq(3).text().trim(),
+                        inizioPeriodoValidita: valore_inizioPeriodoValidita,
+                        finePeriodoValidita: valore_finePeriodoValidita,
+                        capacita: row.find('.input_capacita').val(),
+                        capacita_reale: row.find('.input_capacita_reale').text(),
+                    };
+                    data[gruppo].push(item);
+                });
+            });
+        });
+        // riempiamo un input nascosto inserendo il json
+        $('#capacita_json').val(JSON.stringify(data));
+    }
+</script>
+
+<!-- ALERT + somma capacità settimanali per ogni tabella ed aggiornamento capacità mensile in real-time -->
+<script>
+    // funzione che si triggera ogni volta che viene modificata la capacità
+    $(document).on('input change', '.input_capacita', function() {
+        const row = $(this).closest('tr');
+        validateRow(row);
+        const table = $(this).closest('.table_capacita');
+        sommaCapacitySettimanale(table);
+    });
+
+    function validateRow(row) {
+        const td = $(row).find('td');
+        const valpostalizzazione = parseInt(td.eq(3).text().trim()) || 0; // terzo campo -> postalizzazioni
+        const valcapacity = parseInt(td.eq(6).find('input').val()) || 0; // sesto campo -> capacità
+        const alertTd = td.eq(8); // colonna alert
+        alertTd.empty(); // puliamo messaggi precedenti sulla colonna alert
+        if (valcapacity < valpostalizzazione) {
+            alertTd.html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Capacità settimanale inferiore al numero di postalizzazioni settimanali"></i>');
+        }
+    }
+    
+    function sommaCapacitySettimanale(table) {
+        let sommaCapacita = 0;
+        const $table = $(table);
+        $table.find('.input_capacita').each(function() {
+            const valore = parseInt($(this).val()) || 0;
+            sommaCapacita += valore;
+        });
+        $table.closest('.accordion-collapse').prev('.accordion-header').find('.somma_capacita').text(sommaCapacita);
+        // dopo aver aggiornato in real-time la somma mensile delle capacità andiamo a fare il confronto con le postalizzazioni mensili per alert rosso sul sotto-accordion
+        alertMensileRosso($table, sommaCapacita);
+    }
+
+    function alertMensileRosso($table, sommaCapacita) {
+        const alert_settimanale_giallo = $table.find('td:nth-child(9) .fa-triangle-exclamation[style*="orange"]').length > 0;
+        const accordionHeader = $table.closest('.accordion-collapse').prev('.accordion-header');       
+        const n_postalizzazioni_mensili = parseInt(accordionHeader.find('.somma_postalizzazioni').text()) || 0;        
+        if (sommaCapacita < n_postalizzazioni_mensili) {
+            accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: red;" title="Capacità mensile inferiore al numero di postalizzazioni mensili"></i>');
+        } else if (alert_settimanale_giallo == true) {
+            accordionHeader.find('.alert_mensile').html('<i class="fa-solid fa-triangle-exclamation fa-lg" style="color: orange;" title="Una o più capacità settimanali è inferiore al numero di postalizzazioni settimanali"></i>');            
+        } else{
+            accordionHeader.find('.alert_mensile').empty(); // puliamo eventuali alert precedenti;
+        }
+    }
+</script>
+
+<!-- Recupera la provincia a partire dalla selezione della regione e gestisce + e - -->
+<script>
+    $(document).ready(function() {
+        let rowCount = 1;
+        
+        // aggiungi_riga_tabella_step2
+        $('#aggiungi_riga_tabella_step2').click(function() {
+            rowCount++;
+            const newRow = `
+                <tr id="riga-${rowCount}">
+                    <td>
+                        <select class="form-select regione-select" name="regione">
+                            <option value="" selected disabled class="form-control text-center">--- Seleziona regione ---</option>
+                            {% for regione in lista_regioni %}
+                                <option value="{{ regione }}">{{ regione }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select provincia-select" name="provincia">
+                            <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select prodotto-select" name="prodotto">
+                            <option value="" selected disabled class="text-center">--- Seleziona prodotto ---</option>
+                            <option value="AR" class="text-center">AR</option>
+                            <option value="890" class="text-center">890</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="${rowCount}" title="Rimuovi riga">-</button>
+                    </td>
+                </tr>
+            `;
+            $('tbody').append(newRow);
+        });
+
+        // rimuovi riga
+        $('tbody').on('click', '.rimuovi_riga_tabella_step2', function() {
+            const rowId = $(this).data('row');
+            $(`#riga-${rowId}`).remove();
+        });
+
+        // get provincia from regione selezionata
+        $('tbody').on('change', '.regione-select', function() {
+            var regione = $(this).val();
+            var provinciaSelect = $(this).closest('tr').find('.provincia-select');
+            $.ajax({
+                url: '/get_province/',
+                data: {
+                    'regione': regione
+                },
+                success: function(data) {
+                    provinciaSelect.empty();
+                    provinciaSelect.append('<option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>');
+                    $.each(data, function(index, provincia) {
+                        provinciaSelect.append('<option value="' + provincia + '">' + provincia + ' </option>');
+                    });
+                    provinciaSelect.prop('disabled', false);
+                }
+            });
+        });
+    });
+</script>
+
+
+<!-- mostra/nascondi sezione STEP 2 se selezionata la checkbox "Utilizza le commesse di default" -->
+<script>
+    const checkbox_default = document.getElementById("commesse_default");
+    const table_postalizzazioni = document.getElementById("table_postalizzazioni");
+
+    checkbox_default.addEventListener('change', e => {
+        if (!(e.target.checked)) {
+            table_postalizzazioni.classList.remove("d-none"); // mostra
+        } else {
+            table_postalizzazioni.classList.add("d-none"); // nasconde
+        }
+    });
+</script>
+
+
+
+
+<script>
+// Funzione per aggiungere una riga alla tabella
+function aggiungiRiga(button) {
+    // Trova la tabella più vicina al bottone cliccato
+    const table = button.closest('table');
+    const tbody = table.querySelector('tbody');
+    
+    // Trova la prima riga esistente per clonare i valori dei primi 3 campi
+    const righeOriginali = tbody.querySelectorAll('tr:not(:has(.rimuovi-riga))');
+    const ultimaRigaOriginale = righeOriginali[righeOriginali.length - 1];
+    const righeTotali = tbody.querySelectorAll('tr:has(.rimuovi-riga)');
+    
+    // Crea una nuova riga
+    const nuovaRiga = document.createElement('tr');
+    
+    // Clona i primi 3 valori
+    const celleUltimaRiga = ultimaRigaOriginale.querySelectorAll('td');
+    let capacita_reale_ultima_riga = celleUltimaRiga[6].textContent.split(" ");
+    capacita_reale_ultima_riga = capacita_reale_ultima_riga[capacita_reale_ultima_riga.length -1]
+    
+    nuovaRiga.innerHTML = `
+        <td>${celleUltimaRiga[0].textContent}</td>
+        <td>${celleUltimaRiga[1].textContent}</td>
+        <td>${celleUltimaRiga[2].textContent}</td>
+        <td>0</td>
+        <td><input type="date" class="form-control text-center input_inizioPeriodoValidita" onkeydown="return (event.keyCode!=13);"></td>
+        <td><input type="date" class="form-control text-center input_finePeriodoValidita" onkeydown="return (event.keyCode!=13);"></td>
+        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${capacita_reale_ultima_riga}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: ${capacita_reale_ultima_riga}</label></td>
+        <td>-</td>
+        <td></td> <!-- colonna alert vuota -->
+        <td>
+            <button type="button" class="btn btn-outline-danger btn-sm rimuovi-riga" title="Rimuovi riga">-</button>
+        </td>
+    `;
+    
+    // Aggiungi la nuova riga al tbody
+    tbody.appendChild(nuovaRiga);
+    
+    // Aggiungi l'event listener per il bottone di rimozione
+    const bottoneRimuovi = nuovaRiga.querySelector('.rimuovi-riga');
+    bottoneRimuovi.addEventListener('click', function() {
+        nuovaRiga.remove();
+        // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
+        $('.input_capacita').trigger('input');
+    });
+
+    var data_fine_ultima_riga;
+    
+    if (righeTotali.length == 0){
+        data_fine_ultima_riga = celleUltimaRiga[5].textContent;
+    } else{
+        data_fine_ultima_riga = righeTotali[righeTotali.length - 1].querySelectorAll('td')[5].querySelector('input').value;
+    }
+
+    return [data_fine_ultima_riga,nuovaRiga]; // data fine ultima settimana da impostare come data minima in flatpickr
+}
+
+// Event listener per il bottone "Aggiungi riga"
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'aggiungi_riga_tabelle_step3') {
+        e.preventDefault();
+        var array_dataminima_nuovariga = aggiungiRiga(e.target);
+        inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga);
+        // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
+        $('.input_capacita').trigger('input');
+    }
+});
+</script>
+
+
+<!-- flatpickr per vincoli datepicker STEP 3: l'inizializzazione dei calendari datepicker (flatpickr) dev'essere fatta solo dopo aver caricato l'input con il relativo id -->
+ <script>
+    function inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga){
+        const inputInizio = array_dataminima_nuovariga[1].querySelector('.input_inizioPeriodoValidita');
+        const inputFine = array_dataminima_nuovariga[1].querySelector('.input_finePeriodoValidita');
+        // convertiamo in Date (ricordiamo che i mesi partono da 0)
+        const data_split = array_dataminima_nuovariga[0].split('/');
+        const old_DateObj = new Date(data_split[2], data_split[1] - 1, data_split[0]);
+        // aggiungo 1 giorno
+        const defaultDateObj = new Date(old_DateObj);
+        defaultDateObj.setDate(defaultDateObj.getDate() + 1);
+        const finePicker = flatpickr(inputFine, {
+            // lunedì primo giorno della settimana
+            locale: {
+                firstDayOfWeek: 1
+            },
+            dateFormat: "d/m/Y",
+            disable: [
+                function(date) {
+                    // abilitiamo solo le domeniche (0)
+                    return !(date.getDay() === 0);
+                }
+            ],
+        });
+        const inizioPicker = flatpickr(inputInizio, {
+            // lunedì primo giorno della settimana
+            locale: {
+                firstDayOfWeek: 1
+            },
+            dateFormat: "d/m/Y",
+            minDate: array_dataminima_nuovariga[0],
+            maxDate: defaultDateObj,
+            defaultDate: defaultDateObj,
+            onReady: function(selectedDates) {
+                if (!selectedDates || selectedDates.length === 0) return;
+                const data_inizio = new Date(selectedDates[0]);
+                const data_fine = new Date(data_inizio);
+                data_fine.setDate(data_fine.getDate() + 6);
+                finePicker.set('minDate', data_fine);
+                finePicker.set('maxDate', data_fine);
+                finePicker.setDate(data_fine);
+            },
+            disable: [
+                function(date) {
+                    // abilitiamo solo i lunedì (1)
+                    return !(date.getDay() === 1);
+                }
+            ],
+        });
+    }
+</script>
+{% endblock %}

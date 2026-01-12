@@ -1,0 +1,380 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+<br>
+
+<!-- DATATABLES: tabella_simulazioni -->
+<table class="table table-fluid table-hover table-striped table-bordered" id="tabella_simulazioni" style="text-align:center;">
+    <thead>
+        <tr>
+            <th style="text-align:center;">Timestamp esecuzione</th>
+            <th style="text-align:center;">Stato</th>
+            <th style="text-align:center;">Nome simulazione</th>
+            <th style="text-align:center;">Descrizione</th>
+            <th style="text-align:center;">Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for simulazione in lista_simulazioni %}
+            <tr>
+                <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
+                <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}🟢{% elif simulazione.STATO == 'In lavorazione' %}🕛{% elif simulazione.STATO == 'Schedulata' %}📅{% elif simulazione.STATO == 'Non completata' %}🔴{% endif %}</td>
+                <td style="text-align:center;">{{simulazione.NOME}}</td>
+                <td style="text-align:center;">{{simulazione.DESCRIZIONE}}</td>
+                <td style="text-align:left;">
+                    <!-- REGOLE VISUALIZZAZIONI BOTTONI -->
+                        <!--
+                            Bottone risultati per simulazione Manuale:
+                                - azzurro: l'ultimo run dell'automatizzata di quel mese
+                                - blu: sullo stesso mese (sia manuale che automatizzata)
+
+                            Bottone risultati per simulazione automatizzata: 
+                                - azzurro: confronto con automatizzata precedente dello stesso mese (la prima non avrà confronti)
+                                - blu: sullo stesso mese (sia manuale che automatizzata)
+                        -->
+                    <!-- Visualizza dettagli -->
+                    <span class="ms-4">
+                        <!-- Button trigger modal -->
+                        <button type="button" title="Visualizza dettagli" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#visualizzaDettagliModal{{ forloop.counter }}"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </span>
+                    <!-- Modal -->
+                    <div class="modal fade" id="visualizzaDettagliModal{{ forloop.counter }}" tabindex="-1" aria-labelledby="visualizzaDettagliModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title w-100 fs-3" align="center" id="visualizzaDettagliModalLabel">Dettaglio simulazione</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-start">
+                                    <div class="container">
+                                        <br>
+                                        <div class="row justify-content-center">
+                                            <div class="col offset-md-2">
+                                                <p><b>Nome simulazione</b>: {{simulazione.NOME}}</p>
+                                                <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE}}</p>
+                                                <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</p>
+                                            </div>
+                                            <div class="col">
+                                                <p><b>Mese di simulazione</b>: {{simulazione.MESE_SIMULAZIONE}}</p>
+                                                <p><b>Tipo capacità</b>: {{simulazione.TIPO_CAPACITA}}</p>
+                                                <p><b>Stato</b>: {% if simulazione.STATO == 'Lavorata' %}Lavorata 🟢{% elif simulazione.STATO == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.STATO == 'Schedulata' %}Schedulata 📅{% elif simulazione.STATO == 'Non completata' %}Non completata 🔴{% endif %}</p>
+                                            </div>
+                                        </div>
+                                        <br>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
+                        <!-- Nuova simulazione partendo dallo stesso input --> 
+                        <span>
+                            <a type="button" title="Nuova simulazione partendo dallo stesso input" class="btn btn-outline-warning" href={% url 'nuova_simulazione' 'new' %}?id={{simulazione.ID}}><i class="fa-solid fa-file-circle-plus"></i></a>
+                        </span>
+                    {% endif %}
+
+                    {% if simulazione.STATO == 'Schedulata' %}
+
+                        <!-- Modifica scheduling --> 
+                        <span>
+                            <a type="button" title="Modifica scheduling" class="btn btn-outline-secondary" href={% url 'nuova_simulazione' simulazione.ID %}><i class="fa-solid fa-pen-to-square"></i></a>
+                        </span>
+
+                        <!-- Elimina scheduling --> 
+                        <span>
+                            <a type="button" title="Elimina scheduling" class="btn btn-outline-danger" href="#" data-bs-toggle="modal" data-bs-target="#modalRemove{{ forloop.counter }}"><i class="fa-solid fa-trash"></i></a></td>
+                        </span>
+                        <!--MODAL PER IL BOTTONE DI RIMOZIONE DELLA SIMULAZIONE SCHEDULATA-->
+                        <div class="modal fade" id="modalRemove{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="modalRemoveLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                    <h5 class="modal-title" id="modalRemoveLabel"></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                    <p>Sei sicuro di voler rimuovere questa simulazione schedulata?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}?next={% url 'home' %}">Rimuovi</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    {% elif simulazione.STATO == 'Non completata' or simulazione.STATO == 'In lavorazione' %}
+
+
+
+                    {% elif simulazione.STATO == 'Lavorata' %}
+                        {% if simulazione.automatizzata_da_confrontare != None %}
+                            <!-- Confronto con automatizzata --> 
+                            <span>
+                                <a type="button" title="Confronto con automatizzata" class="btn btn-outline-info" href="{% url 'confronto_risultati' simulazione.ID simulazione.automatizzata_da_confrontare %}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-area"></i></a>
+                            </span>
+                        {% endif %}
+
+                        <!-- Confronto con altra simulazione --> 
+                        <span>
+                            <button type="button" title="Confronto con altra simulazione" class="btn btn-outline-primary" onclick="simulazioni_da_confrontare_ajax('{{simulazione.ID}}','{{simulazione.MESE_SIMULAZIONE}}')" href="#" data-bs-toggle="modal" data-bs-target="#modalConfrontoRisultati{{ forloop.counter }}"><i class="fa-solid fa-chart-line"></i><i class="fa-solid fa-chart-line"></i></button>
+                        </span>
+                        <!--MODAL PER IL BOTTONE DI CONFRONTO CON ALTRA SIMULAZIONE-->
+                        <div class="modal fade" id="modalConfrontoRisultati{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="modalConfrontoRisultatiLabel{{ forloop.counter }}" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                    <h5 class="modal-title" id="modalConfrontoRisultatiLabel{{ forloop.counter }}"></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                    <p>Scegli la simulazione da confrontare:</p>
+                                    <span class="d-none" id="value_id1"></span>
+                                    <!-- Capacità recuperate da db -->
+                                    <div class="text-center" id="spinner"></div>
+                                    <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_get_simulazioni_da_confrontare' %}></span>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-primary btn-confronto" href="#">Confronta</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Visualizza risultati --> 
+                        <span>
+                            <a type="button" title="Visualizza risultati" class="btn btn-outline-dark" href="{% url 'risultati' simulazione.ID %}"><i class="fa-solid fa-chart-line"></i></a>
+                        </span>
+
+                    {% endif %}
+
+                    
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+
+<!-- Legenda -->
+<div align="center">
+    <div class="card w-75">
+        <div class="card-body">
+			<b>LEGENDA</b>
+			<div class="container">
+				<div class="row">
+					<div class="col">
+					    🟢 Lavorata
+					</div>
+					<div class="col">
+					    🕛 In lavorazione
+					</div>
+					<div class="col">
+					    📅 Schedulata
+					</div>
+					<div class="col">
+					    🔴 Non completata
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock content %}
+
+
+{% block scripts %}
+<!-- script per la tabella datatables -->
+<script>
+    var fullDate = new Date();
+	var currentDate = fullDate.getFullYear() + "_" + (fullDate.getMonth() + 1).toString().padStart(2, "0") + "_" + fullDate.getDate().toString().padStart(2, "0");
+	new DataTable('#tabella_simulazioni', {
+        // rimuoviamo il vecchio ordinamento per inserire il nuovo con columnControl 
+        ordering: {
+            indicators: false,
+            handler: false
+        },
+        // ordinamento decrescente sulla prima colonna
+        order: [[0, 'desc']],
+        pageLength : 10,
+		lengthMenu: [[10, 20, 50, -1], [10, 20, 50, 'All']],
+        responsive: true,
+        columnDefs:[
+            {
+                // colonna Timestamp esecuzione
+                targets: 0,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'sort') {
+                        // formato per ordinamento
+                        var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
+                        return date.format('YYYY-MM-DD HH:mm');
+                    } else if (type === 'filter') {
+                        // formato per filtro
+                        var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
+                        return date.format('YYYY-MM-DD');
+                    }
+                    else{
+                        // formato per display, export, excel, csv, pdf, print
+                        return data;
+                    }
+                },
+                type:'date'
+            },
+            {
+                // colonna stato
+                targets: 1,
+                columnControl: ['order', ['searchList']],
+            },
+            {
+                // colonna nome
+                targets: 2,
+                columnControl: ['order', ['search']],
+            },
+            {
+                // colonna descrizione
+                targets: 3,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        // mostriamo solo i primi 30 caratteri
+                        return data.length > 30 ? data.substr(0, 30) + '…' : data;
+                    }
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 30 caratteri
+                    return data;
+                }
+            },
+            { // rimuoviamo ordinamento e filtri sull'ultima colonna
+                targets: -1,        
+                columnControl: []
+            },
+        ],
+        bAutoWidth: false,
+		layout: {
+            // bottone Nuova simulazione
+            topStart: {
+                buttons: [
+                    {
+                        text: '<b><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</b>',
+                        className: 'btn-primary',
+                        action: function () {
+                            window.location.href = "{% url 'nuova_simulazione' 'new' %}";
+                        },
+                        init: function(api, node, config) {
+                            $(node).removeClass('btn-secondary')
+                        }
+                    }
+                ]
+            },
+            // entries per page
+            bottomStart: 'pageLength',
+            // mostra quanti elementi vengono mostrati
+            bottom2Start: 'info',
+            // esportazione tabella
+			bottom2End: 
+				{
+				buttons: [
+                    {
+                        extend: 'copy',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    },
+					{
+						extend: 'csv',
+						text: 'CSV',
+						fieldSeparator: ',',
+						className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+					},
+                    {
+                        extend: 'excel',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+                        exportOptions: {
+                            columns: [0,1,2,3]
+                        }
+                    }
+				],
+			}
+		},
+	});
+</script>
+
+<!-- jQuery/Ajax per select simulazioni da confrontare -->
+<script>
+    function simulazioni_da_confrontare_ajax(id_simulazione,mese_simulazione) {
+        var content = document.getElementById(`simulazioni_recuperate_da_db_${id_simulazione}`);
+        var content_id_simulazione = document.getElementById('value_id1');
+        // puliamo lo spazio dove andremo ad iniettare il codice html
+        content.innerHTML='';
+        var spinner = document.getElementById('spinner');
+        spinner.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+        var content_simulazioni = '';
+        $.ajax({
+            url: $(`.simulazioni_recuperate_da_db_${id_simulazione}`).data('url'),
+            type: 'GET',
+            data: {'id_simulazione':id_simulazione, 'mese_simulazione':mese_simulazione},
+            success: function(resp){
+                content_simulazioni += `
+                        <select class="form-select" id="simulazione_selezionata_per_confronto_${id_simulazione}">
+                            <option selected disabled class="text-center" value="">--- Seleziona una simulazione ---</option>
+                `;
+                resp.context.forEach(function(simulazione) {
+                    content_simulazioni += `
+                        <option value="${simulazione.ID}">${simulazione.NOME} (${simulazione.TIMESTAMP_ESECUZIONE})</option>
+                    `;
+                });
+                content_simulazioni += `</select>`;
+                content.innerHTML = content_simulazioni;
+                content_id_simulazione.innerHTML=id_simulazione;
+            },
+            error: function(resp){
+                spinner.innerHTML='';
+            },
+            complete: function(resp){
+                spinner.innerHTML='';
+            }
+        });
+    }
+</script>
+
+<!-- funzione per ricondurre alla pagina confronto_risultati cliccando su "Confronta" nella modale -->
+<script>
+    $(document).on('click', '.btn-confronto', function() {
+        const id1 = document.getElementById('value_id1').textContent;
+        const id2 = $(`#simulazione_selezionata_per_confronto_${id1}`).val();
+        const url = `/confronto_risultati/${id1}/${id2}/`;
+        if (id1!=null && id2!=null){
+            window.location.href = url;
+        }
+    });
+</script>
+
+{% endblock %}

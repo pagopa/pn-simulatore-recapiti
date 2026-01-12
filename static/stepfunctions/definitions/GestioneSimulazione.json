@@ -1,0 +1,623 @@
+{
+  "StartAt": "CONFIGURAZIONE SIMULAZIONE",
+  "States": {
+    "CONFIGURAZIONE SIMULAZIONE": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ConfigurazioneSimulazioneLambdaArn}",
+        "Payload.$": "$"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "SIMULAZIONE MANUALE?",
+      "ResultPath": "$.output_lambda_ConfigurazioneSimulazione",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
+      "OutputPath": "$"
+    },
+    "SIMULAZIONE MANUALE?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "RECUPERO DECLARED CAPACITY CAP-S3",
+          "Variable": "$.tipo_simulazione",
+          "StringEquals": "Manuale"
+        }
+      ],
+      "Default": "RECUPERO FILE CSV PER IMPORT DATA"
+    },
+    "RECUPERO DECLARED CAPACITY CAP-S3": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${RecuperoDeclaredCapacityCAPS3GlueJobName}",
+        "Arguments": {
+          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
+          "--mese_simulazione.$": "$.mese_simulazione"
+        }
+      },
+      "Next": "RECUPERO FILE CSV PER IMPORT DATA",
+      "ResultPath": null
+    },
+    "RECUPERO FILE CSV PER IMPORT DATA": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${ListaFileImportDataLambdaArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "Parallel",
+      "ResultPath": "$.output_lambda_ListaFileImportData",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
+      "OutputPath": "$"
+    },
+    "Parallel": {
+      "Type": "Parallel",
+      "Next": "ADD ANY MOCK CAPACITIES",
+      "Branches": [
+        {
+          "StartAt": "MAP IMPORT DATA WEEK 1",
+          "States": {
+            "MAP IMPORT DATA WEEK 1": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "IMPORT DATA WEEK 1",
+                "States": {
+                  "IMPORT DATA WEEK 1": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${ImportDataLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[0].lista_file_csv_1",
+              "MaxConcurrency": 2,
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "MAP IMPORT DATA WEEK 2",
+          "States": {
+            "MAP IMPORT DATA WEEK 2": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "IMPORT DATA WEEK 2",
+                "States": {
+                  "IMPORT DATA WEEK 2": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${ImportDataLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[1].lista_file_csv_2",
+              "MaxConcurrency": 2,
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "MAP IMPORT DATA WEEK 3",
+          "States": {
+            "MAP IMPORT DATA WEEK 3": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "IMPORT DATA WEEK 3",
+                "States": {
+                  "IMPORT DATA WEEK 3": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${ImportDataLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[2].lista_file_csv_3",
+              "MaxConcurrency": 2,
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "MAP IMPORT DATA WEEK 4",
+          "States": {
+            "MAP IMPORT DATA WEEK 4": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "IMPORT DATA WEEK 4",
+                "States": {
+                  "IMPORT DATA WEEK 4": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${ImportDataLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[3].lista_file_csv_4",
+              "MaxConcurrency": 2,
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "MAP IMPORT DATA WEEK 5",
+          "States": {
+            "MAP IMPORT DATA WEEK 5": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "IMPORT DATA WEEK 5",
+                "States": {
+                  "IMPORT DATA WEEK 5": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${ImportDataLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 3,
+                        "BackoffRate": 2,
+                        "JitterStrategy": "FULL"
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[4].lista_file_csv_5",
+              "MaxConcurrency": 2,
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": null
+    },
+    "ADD ANY MOCK CAPACITIES": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${InsertMockCapacitiesLambdaArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "CHECK ERRORI INSERIMENTI",
+      "ResultPath": "$.output_lambda_INSERTMOCKCAPACITIES",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
+      "OutputPath": "$"
+    },
+    "CHECK ERRORI INSERIMENTI": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "GET ALGORITHM STATUS",
+          "Variable": "$.output_lambda_INSERTMOCKCAPACITIES.Payload.errori_presenti",
+          "NumericEquals": 0
+        }
+      ],
+      "Default": "PARALLEL DELETE DATA"
+    },
+    "GET ALGORITHM STATUS": {
+      "Type": "Task",
+      "Parameters": {
+        "StateMachineArn": "${BatchWorkflowStateMachineArn}",
+        "MaxResults": 1
+      },
+      "Resource": "arn:aws:states:::aws-sdk:sfn:listExecutions",
+      "Next": "CHECK ALGOTITHM  STATUS",
+      "ResultSelector": {
+        "lastExecution.$": "$.Executions[0]"
+      },
+      "ResultPath": "$.output_GetAlgorithmStatus"
+    },
+    "CHECK ALGOTITHM  STATUS": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "RUN ALGORITHM",
+          "Or": [
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "SUCCEEDED"
+            },
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "FAILED"
+            },
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "TIMED_OUT"
+            },
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "ABORTED"
+            }
+          ]
+        }
+      ],
+      "Default": "PARALLEL DELETE DATA"
+    },
+    "RUN ALGORITHM": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${RunAlgorithmLambdaArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "WAIT",
+      "ResultPath": "$.output_lambda_RUNALGORITHM",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
+      "OutputPath": "$"
+    },
+    "WAIT": {
+      "Type": "Wait",
+      "Seconds": 5,
+      "Next": "GET  ALGORITHM STATUS"
+    },
+    "GET  ALGORITHM STATUS": {
+      "Type": "Task",
+      "Parameters": {
+        "StateMachineArn": "${BatchWorkflowStateMachineArn}",
+        "MaxResults": 1
+      },
+      "Resource": "arn:aws:states:::aws-sdk:sfn:listExecutions",
+      "Next": "CHECK  ALGOTITHM  STATUS",
+      "ResultSelector": {
+        "lastExecution.$": "$.Executions[0]"
+      },
+      "ResultPath": "$.output_GetAlgorithmStatus"
+    },
+    "CHECK  ALGOTITHM  STATUS": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "WAIT 10'",
+          "Or": [
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "RUNNING"
+            },
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "PENDING_REDRIVE"
+            }
+          ]
+        },
+        {
+          "Next": "COUNT RESIDUI",
+          "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+          "StringEquals": "SUCCEEDED"
+        },
+        {
+          "Next": "PARALLEL DELETE DATA",
+          "Or": [
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "FAILED"
+            },
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "TIMED_OUT"
+            },
+            {
+              "Variable": "$.output_GetAlgorithmStatus.lastExecution.Status",
+              "StringEquals": "ABORTED"
+            },
+            {
+              "Not": {
+                "Variable": "$.output_lambda_RUNALGORITHM.Payload.statusCode",
+                "NumericEquals": 200
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "COUNT RESIDUI": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${GetPaperDeliveryResiduiLambdaArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "RESIDUI PRESENTI?",
+      "ResultPath": "$.output_lambda_CountResidui",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
+      "OutputPath": "$"
+    },
+    "WAIT 10'": {
+      "Type": "Wait",
+      "Seconds": 600,
+      "Next": "GET  ALGORITHM STATUS"
+    },
+    "RESIDUI PRESENTI?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "RUN ALGORITHM",
+          "Variable": "$.output_lambda_CountResidui.Payload.continuare_run_algorithm",
+          "NumericEquals": 1
+        },
+        {
+          "Next": "RECUPERO CAPACITÀ DI PRODUZIONE",
+          "Variable": "$.output_lambda_CountResidui.Payload.continuare_run_algorithm",
+          "NumericEquals": 0
+        }
+      ]
+    },
+    "RECUPERO CAPACITÀ DI PRODUZIONE": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${GetUsedCapacityLambdaArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "RECUPERO RISULTATI PAPER DELIVERY",
+      "ResultPath": "$.output_lambda_RecuperoCapacitaDiProduzione",
+      "ResultSelector": {
+        "Payload.$": "$.Payload"
+      },
+      "OutputPath": "$"
+    },
+    "RECUPERO RISULTATI PAPER DELIVERY": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${RecuperoRisultatiPaperDeliveryGlueJobName}",
+        "Arguments": {
+          "--id_simulazione_automatizzata.$": "$.output_lambda_ConfigurazioneSimulazione.Payload.id_simulazione_automatizzata",
+          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
+          "--lista_date.$": "States.JsonToString($.output_lambda_CountResidui.Payload.lista_settimane_processate)",
+          "--count_residui_ultima_settimana.$": "$.output_lambda_CountResidui.Payload.count_residui_ultima_settimana"
+        }
+      },
+      "Next": "PARALLEL DELETE DATA",
+      "ResultPath": null
+    },
+    "PARALLEL DELETE DATA": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "DELETE DATA",
+        "States": {
+          "DELETE DATA": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "Payload.$": "$",
+              "FunctionName": "${DeleteDataLambdaArn}"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Exception"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 10,
+                "BackoffRate": 1
+              }
+            ],
+            "ResultPath": null,
+            "End": true
+          }
+        }
+      },
+      "Next": "AGGIORNAMENTO SIMULAZIONE DB",
+      "ResultPath": null,
+      "ItemsPath": "$.output_lambda_INSERTMOCKCAPACITIES.Payload.lista_file_csv_caricati",
+      "MaxConcurrency": 6
+    },
+    "AGGIORNAMENTO SIMULAZIONE DB": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${AggiornaSimulazioneDBLambdaArn}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "End": true,
+      "ResultPath": null
+    }
+  }
+}
