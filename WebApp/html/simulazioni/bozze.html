@@ -1,0 +1,188 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+<br>
+
+<!-- DATATABLES: tabella_bozze -->
+<table class="table table-fluid table-hover table-striped table-bordered" id="tabella_bozze" style="text-align:center;">
+    <thead>
+        <tr>
+            <th style="text-align:center;">Timestamp di scheduling</th>
+            <th style="text-align:center;">Nome simulazione</th>
+            <th style="text-align:center;">Descrizione</th>
+            <th style="text-align:center;">Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for singola_bozza in lista_bozze %}
+            <tr>
+                <td style="text-align:center;">{{singola_bozza.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
+                <td style="text-align:center;">{{singola_bozza.NOME}}</td>
+                <td style="text-align:center;">{{singola_bozza.DESCRIZIONE}}</td>
+                <td>
+                    <!-- Modifica bozza --> 
+                    <span>
+                        <a type="button" title="Modifica bozza" class="btn btn-outline-secondary" href={% url 'nuova_simulazione' singola_bozza.ID %}><i class="fa-solid fa-pen-to-square"></i></a>
+                    </span>
+
+                    <!-- Elimina bozza --> 
+                    <span>
+                        <a title="Elimina bozza" class="btn btn-outline-danger" href="#" data-bs-toggle="modal" data-bs-target="#exampleModal{{ forloop.counter }}"><i class="fa-solid fa-trash"></i></a></td>
+                        <!--MODAL PER IL BOTTONE DI RIMOZIONE DELLA BOZZA-->
+                        <div class="modal fade" id="exampleModal{{ forloop.counter }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                    <h5 class="modal-title" id="exampleModalLabel"></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                    <p>Sei sicuro di voler rimuovere questa bozza?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' singola_bozza.ID %}?next={% url 'bozze' %}">Rimuovi</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </span>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock content %}
+
+
+{% block scripts %}
+<!-- script per la tabella datatables -->
+<script>
+    var fullDate = new Date();
+	var currentDate = fullDate.getFullYear() + "_" + (fullDate.getMonth() + 1).toString().padStart(2, "0") + "_" + fullDate.getDate().toString().padStart(2, "0");
+	new DataTable('#tabella_bozze', {
+        // rimuoviamo il vecchio ordinamento per inserire il nuovo con columnControl 
+        ordering: {
+            indicators: false,
+            handler: false
+        },
+        // ordinamento decrescente sulla prima colonna
+        order: [[0, 'desc']],
+        pageLength : 10,
+		lengthMenu: [[10, 20, 50, -1], [10, 20, 50, 'All']],
+        responsive: true,
+        columnDefs:[
+            {
+                // colonna Timestamp esecuzione
+                targets: 0,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'sort') {
+                        if (data != ''){
+                            // formato solo per filtro e ordinamento
+                            var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
+                            return date.format('YYYY-MM-DD HH:mm');
+                        } else{
+                            return '';
+                        }
+                    } else if (type === 'filter') {
+                        if (data != ''){
+                            // formato solo per filtro e ordinamento
+                            var date = moment(data, 'DD/MM/YYYY HH:mm', 'it');
+                            return date.format('YYYY-MM-DD');
+                        } else{
+                            return '';
+                        }
+                    }
+                    else{
+                        // formato per display, export, excel, csv, pdf, print
+                        return data;
+                    }
+                },
+                type:'date'
+            },
+            {
+                // colonna nome
+                targets: 1,
+                columnControl: ['order', ['search']],
+            },
+            {
+                // colonna descrizione
+                targets: 2,
+                columnControl: ['order', ['search']],
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        // mostriamo solo i primi 30 caratteri
+                        return data.length > 30 ? data.substr(0, 30) + '…' : data;
+                    }
+                    // per search e sort uso sempre il valore intero, mentre per display vediamo solo i primi 30 caratteri
+                    return data;
+                }
+            },
+            { // rimuoviamo ordinamento e filtri sull'ultima colonna
+                targets: -1,        
+                columnControl: []
+            },
+        ],
+        bAutoWidth: false,
+		layout: {
+            topStart:'',
+            // entries per page
+            bottomStart: 'pageLength',
+            // mostra quanti elementi vengono mostrati
+            bottom2Start: 'info',
+            // esportazione tabella
+			bottom2End: 
+				{
+				buttons: [
+                    {
+                        extend: 'copy',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+                        exportOptions: {
+                            columns: [0,1,2]
+                        }
+                    },
+					{
+						extend: 'csv',
+						text: 'CSV',
+						fieldSeparator: ',',
+						className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2]
+                        }
+					},
+                    {
+                        extend: 'excel',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2]
+                        }
+                    },
+                    {
+                        extend: 'pdf',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+						filename: 'Simulazioni_'+currentDate,
+                        exportOptions: {
+                            columns: [0,1,2]
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        title: 'Simulazioni_'+currentDate,
+                        className: 'btn btn-sm btn-primary',
+                        exportOptions: {
+                            columns: [0,1,2]
+                        }
+                    }
+				],
+			}
+		},
+	});
+</script>
+{% endblock %}

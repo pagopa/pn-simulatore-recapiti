@@ -1,0 +1,1628 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Example microservice deploy'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: 'Usually pn can be pnXYZ where XYZ are the feature number, useful to create
+      experimental environments without crash official development environment'
+
+  EnvironmentType:
+    Type: String
+    AllowedValues:
+      - dev
+      - test
+      - uat
+      - hotfix
+      - prod
+    Default: dev
+
+  AlarmSNSTopicArn:
+    Type: String
+    Description: 'ARN of alarm topic'
+
+  MicroServiceUniqueName:
+    Type: String
+    Description: 'Unique name for the microservice'
+
+  ContainerImageUri:
+    Type: String
+    Description: 'Exact container image URI with full repository and image digest'
+
+  MicroserviceNumber:
+    Type: Number
+    Description: 'Disambiguation useful for load balancer rules'
+
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: 'The S3 bucket from which to fetch the templates used by this stack.'
+
+  VPNECSClusterName:
+    Type: String
+    Description: 'The name of the ECS cluster where the microservice is going to be deployed'
+
+  VPNServicesSubnetsIds:
+    Type: String
+    Description: 'subnets ids comma separated list. Where to deploy the microservice'
+
+  VPNDefaultSecurityGroupId:
+    Type: String
+    Description: 'Default security group ID for the VPC'
+
+  VPNVpcId:
+    Type: String
+    Description: 'VpcId where the microservice is going to be deployed'
+
+  VPNVpcCidr:
+    Type: String
+    Description: 'Source VPC CIDR block for RDS ingress rule'
+
+  VPNApplicationLoadBalancerListenerArn:
+    Type: String
+    Description: 'Load balancer listener where HTTP endpoints is going to be registered'
+
+  VPNWebappSecurityGroupId:
+    Type: String
+    Description: 'Security group ID for the web application'
+
+  EcsDefaultSecurityGroup:
+    Type: String
+    Description: 'Default security group required by infrastructure'
+
+  RdsSimulatorPort:
+    Type: Number
+    Description: RDS Cluster Port (from storage stack)
+
+  RdsSimulatorSecurityGroupId:
+    Type: String
+    Description: ID of the Security Group attached to the RDS cluster (from storage stack)
+
+  SimulatorAlbPath:
+    Type: String
+    Default: /*
+
+  SimulatorHealthCheckPath:
+    Type: String
+    Default: /status
+
+  MinTasksNumber:
+    Default: 1
+    Type: Number
+    Description: 'minimum autoscaling number of tasks'
+
+  MaxTasksNumber:
+    Default: 6
+    Type: Number
+    Description: 'maximum autoscaling number of tasks'
+
+  MicroserviceBucketName:
+    Type: String
+    Default: 'default-microservice-bucket'
+    Description: 'Name of the bucket where the microservice files are copied during deploy'
+
+  MicroserviceBucketBaseKey:
+    Type: String
+    Default: ''
+    Description: 'Base key of the microservice in the s3 bucket'
+
+  # Log group parameters
+  EcsLogGroup:
+    Type: String
+    Description: 'Ecs log group name'
+
+  LogAlarmStrategy:
+    Type: String
+    Default: 'FATAL'
+
+  # Heath Check parameters
+  HealthCheckInterval:
+    Description: 'Seconds between two health check'
+    Type: Number
+    Default: 60
+
+  HealthCheckTimeout:
+    Description: 'health check timeout seconds'
+    Type: Number
+    Default: 5
+
+  HealthyThresholdCount:
+    Description: 'The number of consecutive health checks successes required before considering 
+      an unhealthy target healthy.'
+    Type: Number
+    Default: 5
+
+  UnhealthyThresholdCount:
+    Description: 'The number of consecutive health check failures required before considering a target unhealthy.'
+    Type: Number
+    Default: 2
+
+  # Instance parameters
+  # 256 (.25 vCPU) - Available memory values: 0.5GB, 1GB, 2GB
+  # 512 (.5 vCPU) - Available memory values: 1GB, 2GB, 3GB, 4GB
+  # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
+  # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
+  # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
+
+  SvcSimulatorUsername:
+    Description: service user Username
+    Type: String
+
+  RdsSimulatorEndpointAddress:
+    Description: RDS Cluster Writer Endpoint Address
+    Type: String
+
+  RdsSimulatorReadEndpointAddress:
+    Description: RDS Cluster Reader Endpoint Address (read-only)
+    Type: String
+
+  RdsSimulatorDbName:
+    Description: RDS Database Name
+    Type: String
+
+  SvcSimulatorUserSecretArn:
+    Description: ARN of the placeholder secret for service user
+    Type: String
+
+  AllowedHosts:
+    Type: String
+
+  SimulatoreDataBucketName:
+    Type: String
+    Description: 'Name of the S3 bucket for simulator data (from storage stack)'
+
+  CpuValue:
+    Type: Number
+    Default: 1024
+    Description: 'Fargate virtual CPU quantity 1024 equals one vCPU'
+
+  # 0.5GB, 1GB, 2GB - Available cpu values: 256 (.25 vCPU)
+  # 1GB, 2GB, 3GB, 4GB - Available cpu values: 512 (.5 vCPU)
+  # 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB - Available cpu values: 1024 (1 vCPU)
+  # Between 4GB and 16GB in 1GB increments - Available cpu values: 2048 (2 vCPU)
+  # Between 8GB and 30GB in 1GB increments - Available cpu values: 4096 (4 vCPU)
+  MemoryAmount:
+    Type: String
+    Default: 2GB
+    Description: 'memory amount reserved to the task pod.'
+    AllowedValues: [ 2GB, 4GB, 6GB, 8GB ]
+
+  PnDelayerLambdaName:
+    Type: String
+    Description: 'Name of the pn-delayer-lambda function to be invoked'
+
+  PnDelayerStepFunctionName:
+    Type: String
+    Description: 'Name of the pn-delayer Step Function (BatchWorkflow) to be invoked'
+
+  EventBridgeRuleState:
+    Type: String
+    Description: 'State of the EventBridge rule for weekly simulation'
+    Default: DISABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+
+  EventBridgeScheduleExpression:
+    Type: String
+    Description: 'Cron expression for the EventBridge rule (e.g., cron(0 21 ? * MON *) for Monday at 21:00 UTC)'
+    Default: 'cron(0 21 ? * MON *)'
+
+  EventBridgeRuleInput:
+    Type: String
+    Description: 'JSON input for the EventBridge rule to pass to the Step Function'
+
+  TablePaperDeliveryMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for paper delivery mock'
+
+  TableDriverUsedCapacitiesMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for driver used capacities mock'
+
+  TableSenderLimit:
+    Type: String
+    Description: 'Name of the DynamoDB table for sender limit'
+
+  TableUsedSenderLimitMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for used sender limit mock'
+
+  TableCountersMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for counters mock'
+
+  TableDriverCapacities:
+    Type: String
+    Description: 'Name of the DynamoDB table for driver capacities'
+
+  TableDriverCapacitiesMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for driver capacities mock'
+
+Resources:
+  SimulatorMicroservice:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: GestioneSimulazioneStateFunction
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
+      Parameters:
+        MicroServiceUniqueName: !Sub "${ProjectName}-${MicroServiceUniqueName}"
+        CpuValue: !Ref CpuValue
+        MemoryAmount: !Ref MemoryAmount
+        MappedPaths: !Ref SimulatorAlbPath
+        HealthCheckTimeout: !Ref HealthCheckTimeout
+        HealthCheckInterval: !Ref HealthCheckInterval
+        HealthyThresholdCount: !Ref HealthyThresholdCount
+        UnhealthyThresholdCount: !Ref UnhealthyThresholdCount
+        HealthCheckPath: !Ref SimulatorHealthCheckPath
+        MinTasksNumber: !Ref MinTasksNumber
+        MaxTasksNumber: !Ref MaxTasksNumber
+        ContainerEnvEntry1: !Sub DB_NAME=${RdsSimulatorDbName}
+        ContainerEnvEntry2: !Sub DB_USER=${SvcSimulatorUsername}
+        ContainerEnvEntry3: !Sub DB_HOST=${RdsSimulatorEndpointAddress}
+        ContainerEnvEntry4: !Sub DB_PORT=${RdsSimulatorPort}
+        ContainerEnvEntry5: !Sub ALLOWED_HOSTS=${AllowedHosts}
+        ContainerEnvEntry6: !Sub 'ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN=${EventBridgeSchedulerRole.Arn}'
+        ContainerEnvEntry7: !Sub 'STEP_FUNCTION_ARN=arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione'
+        ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        ContainerImageURI: !Ref ContainerImageUri
+        ECSClusterName: !Ref VPNECSClusterName
+        Subnets: !Ref VPNServicesSubnetsIds
+        VpcId: !Ref VPNVpcId
+        AlbSecurityGroup: !Ref VPNWebappSecurityGroupId
+        LoadBalancerListenerArn: !Ref VPNApplicationLoadBalancerListenerArn
+        LoadbalancerRulePriority: !Ref MicroserviceNumber
+        EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
+        EcsLogGroup: !Ref EcsLogGroup
+        LogAlarmStrategyV1: !Ref LogAlarmStrategy
+        TaskRoleManagedPolicyArn: !Ref SimulatorMicroserviceTaskManagedPolicy
+        MicroServiceSecretPrefix: pn-simulatore-recapiti-db-svc-user-credentials
+
+  EcsSimulatorDefaultSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG with specific egress for pn-simulatore-recapiti tasks
+      VpcId: !Ref VPNVpcId
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: !Ref RdsSimulatorPort
+          ToPort: !Ref RdsSimulatorPort
+          DestinationSecurityGroupId: !Ref VPNWebappSecurityGroupId
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: pn-simulatore-recapiti-EcsSimulatorDefault-sg
+        - Key: Environment
+          Value: !Ref EnvironmentType
+
+  SimulatorMicroserviceTaskManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowSecretManagerAccess
+            Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref SvcSimulatorUserSecretArn
+          - Sid: InvokeStepFunction
+            Effect: Allow
+            Action: states:StartExecution
+            Resource:
+              - !GetAtt GestioneSimulazioneStateFunction.Arn
+              - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+          - Sid: EventBridgeSchedulerAccess
+            Effect: Allow
+            Action:
+              - scheduler:CreateSchedule
+              - scheduler:GetSchedule
+              - scheduler:UpdateSchedule
+              - scheduler:DeleteSchedule
+              - scheduler:ListSchedules
+            Resource: !Sub "arn:aws:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/*/*"
+          - Sid: EventBridgeSchedulerBasicPermissions
+            Effect: Allow
+            Action:
+              - scheduler:ListScheduleGroups
+              - scheduler:GetScheduleGroup
+            Resource: "*"
+          - Sid: PassRolePermission
+            Effect: Allow
+            Action: iam:PassRole
+            Resource: 
+              - !GetAtt EventBridgeSchedulerRole.Arn
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-${MicroServiceUniqueName}-TaskRole"
+
+  # Lambda Functions
+  MergeSenderLimitDBLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-MergeSenderLimitDB"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt MergeSenderLimitDBLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/MergeSenderLimitDB.zip"
+      Timeout: 300
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+
+  MergeSenderLimitDBLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-mergesenderlimitdb-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:PutObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+
+  MergeSenderLimitDBLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref MergeSenderLimitDBLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  CalcoloPrimaSettimanaLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-CalcoloPrimaSettimana"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt CalcoloPrimaSettimanaLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/CalcoloPrimaSettimana.zip"
+      Timeout: 3
+      MemorySize: 128
+
+  CalcoloPrimaSettimanaLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-calcoloprimasettimana-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  CalcoloPrimaSettimanaLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref CalcoloPrimaSettimanaLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  AggiornaSimulazioneDBLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-AggiornaSimulazioneDB"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt AggiornaSimulazioneDBLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/AggiornaSimulazioneDB.zip"
+      Timeout: 60
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+          source_bucket: !Ref SimulatoreDataBucketName
+
+  AggiornaSimulazioneDBLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-aggiornasimulazionedb-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+
+  AggiornaSimulazioneDBLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref AggiornaSimulazioneDBLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  ConfigurazioneSimulazioneLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-ConfigurazioneSimulazione"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt ConfigurazioneSimulazioneLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/ConfigurazioneSimulazione.zip"
+      Timeout: 300
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+
+  ConfigurazioneSimulazioneLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-configurazionesimulazione-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+
+  ConfigurazioneSimulazioneLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref ConfigurazioneSimulazioneLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  FillCapProvRegFromS3LookupLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-FillCapProvRegFromS3Lookup"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt FillCapProvRegFromS3LookupLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/FillCapProvRegFromS3Lookup.zip"
+      Timeout: 300
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+
+  FillCapProvRegFromS3LookupLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-fillcapprovregfroms3lookup-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+
+  FillCapProvRegFromS3LookupLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref FillCapProvRegFromS3LookupLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  DeleteDataLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaDeleteData"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt DeleteDataLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaDeleteData.zip"
+      Timeout: 300
+      MemorySize: 128
+
+  DeleteDataLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdadeletedata-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
+
+  DeleteDataLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref DeleteDataLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  GetPaperDeliveryResiduiLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaGetPaperDeliveryResidui"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt GetPaperDeliveryResiduiLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaGetPaperDeliveryResidui.zip"
+      Timeout: 300
+      MemorySize: 128
+
+  GetPaperDeliveryResiduiLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdagetpaperdeliveryresidui-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
+
+  GetPaperDeliveryResiduiLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref GetPaperDeliveryResiduiLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  GetUsedCapacityLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaGetUsedCapacity"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt GetUsedCapacityLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaGetUsedCapacity.zip"
+      Timeout: 300
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+
+  GetUsedCapacityLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdagetusedcapacity-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
+
+  GetUsedCapacityLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref GetUsedCapacityLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  ImportDataLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaImportData"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt ImportDataLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaImportData.zip"
+      Timeout: 300
+      MemorySize: 128
+      Environment:
+        Variables:
+          source_bucket: !Ref SimulatoreDataBucketName
+
+  ImportDataLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdaimportdata-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject*
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+
+  ImportDataLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref ImportDataLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  InsertMockCapacitiesLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-LambdaInsertMockCapacities"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt InsertMockCapacitiesLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaInsertMockCapacities.zip"
+      Timeout: 300
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+          source_bucket: !Ref SimulatoreDataBucketName
+
+  InsertMockCapacitiesLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-lambdainsertmockcapacities-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject*
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+
+  InsertMockCapacitiesLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref InsertMockCapacitiesLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  # Lambda LambdaRunAlgorithm
+  RunAlgorithmLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${MicroServiceUniqueName}-Lambda-RunAlgorithm'
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Timeout: 300
+      MemorySize: 128
+      Role: !GetAtt RunAlgorithmLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/LambdaRunAlgorithm.zip'
+      Environment:
+        Variables:
+          DELAYER_LAMBDA_NAME: !Ref PnDelayerLambdaName
+          TABLE_PAPER_DELIVERY_MOCK: !Ref TablePaperDeliveryMock
+          TABLE_DRIVER_USED_CAPACITIES_MOCK: !Ref TableDriverUsedCapacitiesMock
+          TABLE_SENDER_LIMIT: !Ref TableSenderLimit
+          TABLE_USED_SENDER_LIMIT_MOCK: !Ref TableUsedSenderLimitMock
+          TABLE_COUNTERS_MOCK: !Ref TableCountersMock
+          TABLE_DRIVER_CAPACITIES: !Ref TableDriverCapacities
+          TABLE_DRIVER_CAPACITIES_MOCK: !Ref TableDriverCapacitiesMock
+          THRESHOLD_VALUE: '180000'
+
+  RunAlgorithmLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-${MicroServiceUniqueName}-lambda-runalgorithm-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaInvokePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
+
+  RunAlgorithmLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
+      Parameters:
+        FunctionName: !Ref RunAlgorithmLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  # Lambda ListaFileImportData
+  ListaFileImportDataLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${MicroServiceUniqueName}-Lambda-ListaFileImportData'
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Timeout: 300
+      MemorySize: 128
+      Role: !GetAtt ListaFileImportDataLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/ListaFileImportData.zip'
+      Environment:
+        Variables:
+          source_bucket: !Ref SimulatoreDataBucketName
+
+  ListaFileImportDataLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-${MicroServiceUniqueName}-lambda-listafileimportdata-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3ReadPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}'
+                  - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}/*'
+
+  ListaFileImportDataLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
+      Parameters:
+        FunctionName: !Ref ListaFileImportDataLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  # Lambda MergeDeclaredCapacityDB
+  MergeDeclaredCapacityDBLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${MicroServiceUniqueName}-Lambda-MergeDeclaredCapacityDB'
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Timeout: 300
+      MemorySize: 128
+      Role: !GetAtt MergeDeclaredCapacityDBLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub '${MicroserviceBucketBaseKey}/functions_zip/MergeDeclaredCapacityDB.zip'
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+
+  MergeDeclaredCapacityDBLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-${MicroServiceUniqueName}-lambda-mergedeclaredcapacitydb-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+
+  MergeDeclaredCapacityDBLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
+      Parameters:
+        FunctionName: !Ref MergeDeclaredCapacityDBLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  # Glue Connection
+  GlueNetworkConnection:
+    Type: AWS::Glue::Connection
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      ConnectionInput:
+        Name: !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+        Description: !Sub "Glue network connection for ${EnvironmentType} environment to access RDS database"
+        ConnectionType: NETWORK
+        PhysicalConnectionRequirements:
+          AvailabilityZone: !Select [0, !GetAZs '']
+          SecurityGroupIdList:
+            - !Ref RdsSimulatorSecurityGroupId
+          SubnetId: !Select [0, !Split [',', !Ref VPNServicesSubnetsIds]]
+
+  # Glue Jobs - Shared Role
+  GlueJobSimulatoreRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-Simulatore-Role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      Policies:
+        - PolicyName: GlueJobPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
+                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                  - !Sub "arn:aws:s3:::${MicroserviceBucketName}/*"
+                  - !Sub "arn:aws:s3:::${MicroserviceBucketName}"
+                  - !Sub "arn:aws:s3:::aws-glue-assets-${AWS::AccountId}-${AWS::Region}/*"
+                  - !Sub "arn:aws:s3:::aws-glue-assets-${AWS::AccountId}-${AWS::Region}"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws-glue/*"
+              - Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeVpcEndpoints
+                  - ec2:DescribeSubnets
+                  - ec2:DescribeSecurityGroups
+                  - ec2:DescribeVpcs
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    ec2:Vpc: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPNVpcId}"
+              - Effect: Allow
+                Action:
+                  - glue:GetConnection
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:connection/pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+
+  GenerazioneCsvImportDataGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneCsvImportData"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/GenerazioneCsvImportData.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorReadEndpointAddress}/${RdsSimulatorDbName}"
+        "--s3_bucket": !Ref SimulatoreDataBucketName
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+  RecuperoDeclaredCapacityDeltaGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoDeclaredCapacityDelta"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoDeclaredCapacityDelta.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+  RecuperoResiduiPaperDeliveryGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoResiduiPaperDelivery"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoResiduiPaperDelivery.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorReadEndpointAddress}/${RdsSimulatorDbName}"
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+        "--s3_bucket": !Ref SimulatoreDataBucketName
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+  RecuperoRisultatiPaperDeliveryGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoRisultatiPaperDelivery"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoRisultatiPaperDelivery.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+        "--s3_bucket": !Ref SimulatoreDataBucketName
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+  RecuperoSenderLimitDeltaGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoSenderLimitDelta"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoSenderLimitDelta.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+  RecuperoDeclaredCapacityCAPS3GlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoDeclaredCapacityCAP-S3"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoDeclaredCapacityCAP-S3.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorReadEndpointAddress}/${RdsSimulatorDbName}"
+        "--s3_bucket": !Ref SimulatoreDataBucketName
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+      MaxRetries: 0
+      Timeout: 30
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+  # Step Functions
+  GestioneSimulazioneStateFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione-Role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt ConfigurazioneSimulazioneLambda.Arn
+                  - !GetAtt CalcoloPrimaSettimanaLambda.Arn
+                  - !GetAtt MergeSenderLimitDBLambda.Arn
+                  - !GetAtt MergeDeclaredCapacityDBLambda.Arn
+                  - !GetAtt ListaFileImportDataLambda.Arn
+                  - !GetAtt ImportDataLambda.Arn
+                  - !GetAtt InsertMockCapacitiesLambda.Arn
+                  - !GetAtt RunAlgorithmLambda.Arn
+                  - !GetAtt GetPaperDeliveryResiduiLambda.Arn
+                  - !GetAtt GetUsedCapacityLambda.Arn
+                  - !GetAtt DeleteDataLambda.Arn
+                  - !GetAtt AggiornaSimulazioneDBLambda.Arn
+              - Effect: Allow
+                Action:
+                  - glue:StartJobRun
+                  - glue:GetJobRun
+                  - glue:GetJobRuns
+                  - glue:BatchStopJobRun
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${ProjectName}-${MicroServiceUniqueName}-Glue-*"
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                  - states:DescribeExecution
+                  - states:ListExecutions
+                  - states:StopExecution
+                Resource:
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${PnDelayerStepFunctionName}"
+              - Effect: Allow
+                Action:
+                  - events:PutTargets
+                  - events:PutRule
+                  - events:DescribeRule
+                Resource:
+                  - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    aws:SourceAccount: !Ref AWS::AccountId
+
+  GestioneSimulazioneStateFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione"
+      RoleArn: !GetAtt GestioneSimulazioneStateFunctionRole.Arn
+      LoggingConfiguration:
+        Level: 'OFF'
+      DefinitionS3Location:
+        Bucket: !Ref MicroserviceBucketName
+        Key: !Sub "${MicroserviceBucketBaseKey}/static/stepfunctions/definitions/GestioneSimulazione.json"
+      DefinitionSubstitutions:
+        ConfigurazioneSimulazioneLambdaArn: !GetAtt ConfigurazioneSimulazioneLambda.Arn
+        RecuperoDeclaredCapacityCAPS3GlueJobName: !Ref RecuperoDeclaredCapacityCAPS3GlueJob
+        ListaFileImportDataLambdaArn: !GetAtt ListaFileImportDataLambda.Arn
+        ImportDataLambdaArn: !GetAtt ImportDataLambda.Arn
+        InsertMockCapacitiesLambdaArn: !GetAtt InsertMockCapacitiesLambda.Arn
+        BatchWorkflowStateMachineArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${PnDelayerStepFunctionName}"
+        RunAlgorithmLambdaArn: !GetAtt RunAlgorithmLambda.Arn
+        GetPaperDeliveryResiduiLambdaArn: !GetAtt GetPaperDeliveryResiduiLambda.Arn
+        GetUsedCapacityLambdaArn: !GetAtt GetUsedCapacityLambda.Arn
+        RecuperoRisultatiPaperDeliveryGlueJobName: !Ref RecuperoRisultatiPaperDeliveryGlueJob
+        DeleteDataLambdaArn: !GetAtt DeleteDataLambda.Arn
+        AggiornaSimulazioneDBLambdaArn: !GetAtt AggiornaSimulazioneDBLambda.Arn
+      TracingConfiguration:
+        Enabled: false
+
+  RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDati-Role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Policies:
+        - PolicyName: StepFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt CalcoloPrimaSettimanaLambda.Arn
+                  - !GetAtt MergeDeclaredCapacityDBLambda.Arn
+                  - !GetAtt MergeSenderLimitDBLambda.Arn
+              - Effect: Allow
+                Action:
+                  - glue:StartJobRun
+                  - glue:GetJobRun
+                  - glue:GetJobRuns
+                  - glue:BatchStopJobRun
+                Resource:
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoResiduiPaperDeliveryGlueJob}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoDeclaredCapacityDeltaGlueJob}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoSenderLimitDeltaGlueJob}"
+                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${GenerazioneCsvImportDataGlueJob}"
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                  - states:DescribeExecution
+                  - states:ListExecutions
+                  - states:StopExecution
+                Resource:
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione"
+              - Effect: Allow
+                Action:
+                  - states:DescribeExecution
+                  - states:StopExecution
+                Resource:
+                  - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:execution:sf-*"
+              - Effect: Allow
+                Action:
+                  - events:PutTargets
+                  - events:PutRule
+                  - events:DescribeRule
+                  - events:DeleteRule
+                  - events:RemoveTargets
+                Resource:
+                  - !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                  - logs:DescribeLogGroups
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    aws:SourceAccount: !Ref AWS::AccountId
+
+  RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDati-Weekly"
+      RoleArn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunctionRole.Arn
+      LoggingConfiguration:
+        Level: 'OFF'
+      DefinitionS3Location:
+        Bucket: !Ref MicroserviceBucketName
+        Key: !Sub "${MicroserviceBucketBaseKey}/static/stepfunctions/definitions/RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale.json"
+      DefinitionSubstitutions:
+        CalcoloPrimaSettimanaLambdaArn: !GetAtt CalcoloPrimaSettimanaLambda.Arn
+        RecuperoResiduiPaperDeliveryGlueJobName: !Ref RecuperoResiduiPaperDeliveryGlueJob
+        RecuperoDeclaredCapacityDeltaGlueJobName: !Ref RecuperoDeclaredCapacityDeltaGlueJob
+        MergeDeclaredCapacityDBLambdaArn: !GetAtt MergeDeclaredCapacityDBLambda.Arn
+        RecuperoSenderLimitDeltaGlueJobName: !Ref RecuperoSenderLimitDeltaGlueJob
+        MergeSenderLimitDBLambdaArn: !GetAtt MergeSenderLimitDBLambda.Arn
+        GenerazioneCsvImportDataGlueJobName: !Ref GenerazioneCsvImportDataGlueJob
+        GestioneSimulazioneStateMachineArn: !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione"
+      TracingConfiguration:
+        Enabled: false
+
+  # EventBridge Scheduler Role for manual simulations
+  EventBridgeSchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Scheduler-Role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StartStepFunctionExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource:
+                  - !GetAtt GestioneSimulazioneStateFunction.Arn
+
+  # EventBridge Rule for weekly simulation
+  SimulazioneAutomatizzataWeeklyEBRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-EventBridge-SimAuto-Weekly-Role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StartStepFunctionExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource:
+                  - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+
+  SimulazioneAutomatizzataWeeklyEB:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-EventBridge-SimAuto-Weekly"
+      Description: "Trigger settimanale della step function pn-simulatore-recapiti-RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale"
+      ScheduleExpression: !Ref EventBridgeScheduleExpression
+      State: !Ref EventBridgeRuleState
+      Targets:
+        - Arn: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+          RoleArn: !GetAtt SimulazioneAutomatizzataWeeklyEBRole.Arn
+          Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
+          Input: !Ref EventBridgeRuleInput

@@ -1,0 +1,361 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Some storage with input and output
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Nome dell'ambiente destinazione
+
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: URL da cui caricare i frammenti di template di infrastruttura
+
+  LogRetention:
+    Type: Number
+    Default: 14
+
+  EnvironmentType:
+    Type: String
+
+    AllowedValues:
+      - dev
+      - test
+      - uat
+      - hotfix
+      - prod
+
+  Version:
+    Type: String
+
+  LogsKinesisSourceStreamArn:
+    Type: String
+    Default: ''
+
+  VPNVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPN VPC id
+
+  VPNServicesSubnetsIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: VPN private subnets
+
+  VPNVpcCidr:
+    Type: String
+    Description: Source VPC CIDR block for RDS ingress rule
+
+  AlarmSNSTopicArn:
+    Type: String
+    Description: ARN of the shared SNS topic for alarms
+
+  RdsSimulatorClusterIdentifierSuffix:
+    Type: String
+    Description: Suffix to make RDS cluster unique
+    Default: simulatore-recapiti-db
+
+  RdsSimulatorDatabaseName:
+    Type: String
+    Default: simulatore_recapiti_db
+
+  RdsSimulatorMasterUsername:
+    Type: String
+    Default: dbsimulatorerecapitiadmin
+    NoEcho: true
+
+  RdsSimulatorSvcUsername:
+    Type: String
+    Default: simulatore-recapiti_svc
+    NoEcho: true
+
+  RdsSimulatorEngineVersion:
+    Type: String
+
+  RdsSimulatorDbClusterFamily:
+    Type: String
+
+  RdsSimulatorMinACU:
+    Type: Number
+    Default: 0.5
+
+  RdsSimulatorMaxACU:
+    Type: Number
+    Default: 8
+
+  RdsSimulatorBackupRetentionPeriod:
+    Type: Number
+    Default: 7
+
+  RdsSimulatorDeletionProtection:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+
+  RdsSimulatorDbCpuAlarmThreshold:
+    Type: Number
+    Default: 80
+
+  RdsSimulatorDbConnectionsAlarmThreshold:
+    Type: Number
+    Default: 1500
+
+Resources:
+
+  SimulatorLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub '${ProjectName}-simulatore-recapiti'
+        LogGroupRetention: !Ref LogRetention
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  # Lambda Functions Log Groups
+  MergeSenderLimitDBLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-MergeSenderLimitDB"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  CalcoloPrimaSettimanaLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-CalcoloPrimaSettimana"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  AggiornaSimulazioneDBLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-AggiornaSimulazioneDB"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  ConfigurazioneSimulazioneLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-ConfigurazioneSimulazione"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  FillCapProvRegFromS3LookupLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-FillCapProvRegFromS3Lookup"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  DeleteDataLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaDeleteData"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  GetPaperDeliveryResiduiLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaGetPaperDeliveryResidui"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  GetUsedCapacityLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaGetUsedCapacity"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  ImportDataLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaImportData"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  InsertMockCapacitiesLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-LambdaInsertMockCapacities"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  RunAlgorithmLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-RunAlgorithm"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  ListaFileImportDataLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-ListaFileImportData"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  MergeDeclaredCapacityDBLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-MergeDeclaredCapacityDB"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+
+  SimulatorAuroraDbCluster:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub ${TemplateBucketBaseUrl}/fragments/aurora-serverless-v2-pg.yaml
+      Parameters:
+        EnvType: !Ref EnvironmentType
+        VpcId: !Ref VPNVpcId
+        PrivateSubnets: !Join
+          - ','
+          - !Ref VPNServicesSubnetsIds
+        SourceVpcCidr: !Ref VPNVpcCidr
+        ClusterIdentifierSuffix: !Ref RdsSimulatorClusterIdentifierSuffix
+        DatabaseName: !Ref RdsSimulatorDatabaseName
+        MasterUsername: !Ref RdsSimulatorMasterUsername
+        SvcUsername: !Ref RdsSimulatorSvcUsername
+        EngineVersion: !Ref RdsSimulatorEngineVersion
+        DbClusterFamily: !Ref RdsSimulatorDbClusterFamily
+        MinACU: !Ref RdsSimulatorMinACU
+        MaxACU: !Ref RdsSimulatorMaxACU
+        BackupRetentionPeriod: !Ref RdsSimulatorBackupRetentionPeriod
+        DeletionProtectionEnabled: !Ref RdsSimulatorDeletionProtection
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
+        DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
+
+  SimulatorDbIngressForGlueRole:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      SourceSecurityGroupId: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+
+  SimulatoreDataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "pn-simulatore-recapiti-${AWS::Region}-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+Outputs:
+  RdsSimulatorEndpointAddress:
+    Description: RDS Cluster Writer Endpoint Address
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsEndpointAddress
+  RdsSimulatorReadEndpointAddress:
+    Description: RDS Cluster Reader Endpoint Address
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsReadEndpointAddress
+  RdsSimulatorPort:
+    Description: RDS Cluster Port
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsPort
+  RdsSimulatorDbName:
+    Description: RDS Database Name
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsDbName
+  RdsSimulatorSecurityGroupId:
+    Description: ID of the Security Group attached to the RDS cluster
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.RdsSecurityGroupId
+  DBSimulatorClusterArn:
+    Description: ARN of the DB Cluster
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.DBClusterArn
+  DBSimulatorClusterResourceId:
+    Description: Resource ID of the DB Cluster
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.DBClusterResourceId
+  SvcSimulatorUserSecretArn:
+    Description: ARN of the placeholder secret for service user
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcUserSecretArn
+  SvcSimulatorUsername:
+    Description: service user Username
+    Value: !GetAtt SimulatorAuroraDbCluster.Outputs.SvcUsername
+  RdsSimulatorClusterIdentifierSuffix:
+    Description: Suffix used for RDS cluster identifier
+    Value: !Ref RdsSimulatorClusterIdentifierSuffix
+  # Log group exports
+  EcsLogGroup:
+    Value: !GetAtt SimulatorLogGroup.Outputs.LogGroupName
+  # S3 Bucket exports
+  SimulatoreDataBucketName:
+    Description: Name of the S3 bucket for simulator data
+    Value: !Ref SimulatoreDataBucket
