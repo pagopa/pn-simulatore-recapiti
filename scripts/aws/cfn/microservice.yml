@@ -417,6 +417,9 @@ Resources:
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/CalcoloPrimaSettimana.zip"
       Timeout: 3
       MemorySize: 128
+      Environment:
+        Variables:
+          cutoff: '20'
 
   CalcoloPrimaSettimanaLambdaRole:
     Type: AWS::IAM::Role
