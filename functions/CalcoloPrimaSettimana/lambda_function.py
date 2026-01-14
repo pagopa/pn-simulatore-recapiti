@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import os
 
 def lambda_handler(event, context):
     try:
@@ -15,9 +16,9 @@ def lambda_handler(event, context):
         mese = datetime_now.month
         anno = datetime_now.year
 
-        # REQUISITO: dopo il 16 del mese corrente bisogna processare il mese successivo
+        # REQUISITO: dopo il cut-off (impostato tramite parametro modificabile) del mese corrente bisogna processare il mese successivo
         
-        if giorno > 16:
+        if giorno > int(os.environ['cutoff']):
             # aumentiamo il mese di 1
             if mese == 12:
                 anno = anno + 1
