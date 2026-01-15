@@ -35,13 +35,14 @@ def lambda_handler(event, context):
     db_host = os.environ['DB_HOST']
     db_name = os.environ['DB_NAME']
     db_port = os.environ['DB_PORT']
+    s3_bucket = os.environ['source_bucket']
     # recupero credenziali da SecretsManager
     creds = get_db_credentials(secretsManager_SecretId)
     # connessione db
     conn = get_connection(db_host, db_name, db_port, creds)
 
     # recupero record da csv salvato su s3
-    rows = read_csv_from_s3("pn-simulatore-recapiti-hesplora-dev", "dataset_db/regione_provincia_cap.csv")
+    rows = read_csv_from_s3(s3_bucket, "dataset_db/regione_provincia_cap.csv")
     # rimozione header
     rows = rows[1:]
 

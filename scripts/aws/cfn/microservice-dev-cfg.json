@@ -16,6 +16,7 @@
     "TableUsedSenderLimitMock": "pn-PaperDeliveryUsedSenderLimitMock",
     "TableCountersMock": "pn-PaperDeliveryCountersMock",
     "TableDriverCapacities": "pn-PaperDeliveryDriverCapacities",
-    "TableDriverCapacitiesMock": "pn-PaperDeliveryDriverCapacitiesMock"
+    "TableDriverCapacitiesMock": "pn-PaperDeliveryDriverCapacitiesMock",
+    "LambdaCalcoloPrimaSettimanaCutOffDay": "25"
   }
 }

@@ -238,6 +238,11 @@ Parameters:
   TableDriverCapacitiesMock:
     Type: String
     Description: 'Name of the DynamoDB table for driver capacities mock'
+  
+  LambdaCalcoloPrimaSettimanaCutOffDay:
+    Type: Number 
+    Description: 'Cut-off day for the CalcoloPrimaSettimana Lambda function'
+    Default: 25
 
 Resources:
   SimulatorMicroservice:
@@ -419,7 +424,7 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          cutoff: '20'
+          cutoff: !Ref LambdaCalcoloPrimaSettimanaCutOffDay
 
   CalcoloPrimaSettimanaLambdaRole:
     Type: AWS::IAM::Role
@@ -587,6 +592,7 @@ Resources:
           DB_HOST: !Ref RdsSimulatorEndpointAddress
           DB_PORT: !Ref RdsSimulatorPort
           DB_NAME: !Ref RdsSimulatorDbName
+          source_bucket: !Ref SimulatoreDataBucketName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
 
   FillCapProvRegFromS3LookupLambdaRole:
