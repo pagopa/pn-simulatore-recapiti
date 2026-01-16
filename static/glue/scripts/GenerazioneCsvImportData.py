@@ -266,10 +266,13 @@ anno_corrente = timestamp_df.collect()[0][1][:4]
 mese_corrente = timestamp_df.collect()[0][1][4:6]
 giorno_corrente = timestamp_df.collect()[0][1][6:8]
 
+anno_str = args['mese_simulazione'][:4]
+mese_str = args['mese_simulazione'][5:7]
+
 path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
                                                           + mese_corrente + "/" \
                                                           + giorno_corrente + "/" \
-                                                          + str(anno) + "-" + str(mese)
+                                                          + str(anno_str) + "-" + str(mese_str)
 
 #suddivisione dataset in settimane
 for lunedi in lista_lunedi:
@@ -285,3 +288,4 @@ for lunedi in lista_lunedi:
 
 # da lasciare come ultimo comando per indicare che il job ha terminato con SUCCESS la sua esecuzione
 job.commit()
+ 
