@@ -686,7 +686,7 @@ Resources:
           MetricNamespace: "ErrorFatalLogs"
           MetricName: !Sub "${DeleteDataLambda}-ErrorMetric"
 
-  DeleteDataLambdaAlarms:
+  DeleteDataLambdaLogInvocationAlarms:
     Type: AWS::CloudWatch::Alarm
     DependsOn: DeleteDataLambdaErrorLogsMetricFilter
     Properties:
@@ -900,7 +900,7 @@ Resources:
           MetricNamespace: "ErrorFatalLogs"
           MetricName: !Sub "${ImportDataLambda}-ErrorMetric"
 
-  ImportDataLambdaAlarms:
+  ImportDataLambdaLogInvocationAlarms:
     Type: AWS::CloudWatch::Alarm
     DependsOn: ImportDataLambdaErrorLogsMetricFilter
     Properties:
