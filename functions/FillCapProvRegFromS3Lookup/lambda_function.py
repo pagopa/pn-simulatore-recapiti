@@ -46,8 +46,13 @@ def lambda_handler(event, context):
     # rimozione header
     rows = rows[1:]
 
-    #query
     cur = conn.cursor()
+    # cancellazione
+    cur.execute('DELETE FROM public."CAP_PROV_REG";')
+    # commit della cancellazione
+    conn.commit()
+    
+    # inserimento
     insert_query = """
         INSERT INTO public."CAP_PROV_REG" ("CAP", "REGIONE", "PROVINCIA", "COD_SIGLA_PROVINCIA", "POP_CAP", "PERCENTUALE_POP_CAP")
         VALUES (%s, %s, %s, %s, %s, %s)
