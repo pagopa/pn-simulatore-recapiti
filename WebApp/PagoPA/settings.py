@@ -15,6 +15,7 @@ from socket import gethostbyname
 from socket import gethostname
 
 import os
+import re
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -35,6 +36,24 @@ if env_hosts:
     ALLOWED_HOSTS.append(gethostbyname(gethostname()))
     USE_X_FORWARDED_HOST = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost',
+        'https://localhost',
+        'http://127.0.0.1',
+        'https://127.0.0.1',
+        r'http://localhost:\d+',
+        r'https://localhost:\d+',
+        r'http://127.0.0.1:\d+',
+        r'https://127.0.0.1:\d+'
+    ]
+    for singolo_host in ALLOWED_HOSTS:
+        CSRF_TRUSTED_ORIGINS.extend([
+            f'http://{singolo_host}',
+            f'https://{singolo_host}',
+            f'http://{singolo_host}:\d+',
+            f'https://{singolo_host}:\d+',
+        ])
+
 else:
     ALLOWED_HOSTS = []
 
@@ -60,7 +79,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    #'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
