@@ -19,6 +19,9 @@ def homepage(request):
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
     
     for singola_simulazione in lista_simulazioni:
+        # cambio stato su 'Non completata' se siamo sullo stato 'In lavorazione' da più di 2gg
+        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.TIMESTAMP_ESECUZIONE < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
+            singola_simulazione.STATO = 'Non completata'
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
         if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
             singola_simulazione.STATO = 'In lavorazione'
