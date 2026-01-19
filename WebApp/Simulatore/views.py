@@ -10,6 +10,7 @@ from django.db import connection
 from zoneinfo import ZoneInfo
 import boto3
 from botocore.config import Config
+from django.utils.http import url_has_allowed_host_and_scheme
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -378,8 +379,16 @@ def rimuovi_simulazione(request, id_simulazione):
     except:
         pass
 
-    next_url = request.GET.get('next', '/')  # fallback alla home
-    return redirect(next_url)
+    next_url = request.GET.get('next')
+
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect('/')
 
 
 # AJAX
