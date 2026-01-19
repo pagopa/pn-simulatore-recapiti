@@ -38,7 +38,7 @@ if env_hosts:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     CSRF_TRUSTED_ORIGINS = []
     for singolo_host in ALLOWED_HOSTS:
-        CSRF_TRUSTED_ORIGINS.extend(
+        CSRF_TRUSTED_ORIGINS.extend([
             'http://'+singolo_host+':80',
             'https://'+singolo_host+':80',
             'http://'+singolo_host+':8080',
@@ -46,8 +46,8 @@ if env_hosts:
             'http://'+singolo_host+':443',
             'https://'+singolo_host+':443',
             'http://'+singolo_host+':8443',
-            'https://'+singolo_host+':8443',
-        )
+            'https://'+singolo_host+':8443'
+        ])
 else:
     ALLOWED_HOSTS = []
 
