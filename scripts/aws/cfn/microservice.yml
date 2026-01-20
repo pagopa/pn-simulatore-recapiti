@@ -402,14 +402,6 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
 
-  MergeSenderLimitDBLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref MergeSenderLimitDBLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   CalcoloPrimaSettimanaLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -439,14 +431,6 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-
-  CalcoloPrimaSettimanaLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref CalcoloPrimaSettimanaLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   AggiornaSimulazioneDBLambda:
     Type: AWS::Lambda::Function
@@ -508,14 +492,6 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
 
-  AggiornaSimulazioneDBLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref AggiornaSimulazioneDBLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   ConfigurazioneSimulazioneLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -562,14 +538,6 @@ Resources:
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref SvcSimulatorUserSecretArn
-
-  ConfigurazioneSimulazioneLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref ConfigurazioneSimulazioneLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   FillCapProvRegFromS3LookupLambda:
     Type: AWS::Lambda::Function
@@ -714,14 +682,6 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  GetPaperDeliveryResiduiLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref GetPaperDeliveryResiduiLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   GetUsedCapacityLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -778,14 +738,6 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
-
-  GetUsedCapacityLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref GetUsedCapacityLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   ImportDataLambda:
     Type: AWS::Lambda::Function
@@ -912,14 +864,6 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
 
-  InsertMockCapacitiesLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref InsertMockCapacitiesLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   # Lambda LambdaRunAlgorithm
   RunAlgorithmLambda:
     Type: AWS::Lambda::Function
@@ -970,14 +914,6 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  RunAlgorithmLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
-      Parameters:
-        FunctionName: !Ref RunAlgorithmLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   # Lambda ListaFileImportData
   ListaFileImportDataLambda:
     Type: AWS::Lambda::Function
@@ -1020,14 +956,6 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}'
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}/*'
-
-  ListaFileImportDataLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
-      Parameters:
-        FunctionName: !Ref ListaFileImportDataLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Lambda MergeDeclaredCapacityDB
   MergeDeclaredCapacityDBLambda:
@@ -1076,14 +1004,6 @@ Resources:
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref SvcSimulatorUserSecretArn
-
-  MergeDeclaredCapacityDBLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
-      Parameters:
-        FunctionName: !Ref MergeDeclaredCapacityDBLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Glue Connection
   GlueNetworkConnection:
@@ -1619,3 +1539,48 @@ Resources:
           RoleArn: !GetAtt SimulazioneAutomatizzataWeeklyEBRole.Arn
           Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
           Input: !Ref EventBridgeRuleInput
+
+  ### Enable sending notifications to SNS topic when the step functions are in failed, aborted or timedOut status.
+  StepFunctionAlarmTopicPublisherRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-AlarmRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PublishToSNSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref AlarmSNSTopicArn
+
+  StepFunctionAlarmRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventBridge rule to notify SNS when Step Functions fail"
+      EventPattern:
+        source:
+          - aws.states
+        detail-type:
+          - Step Functions Execution Status Change
+        detail:
+          status:
+            - FAILED
+            - TIMED_OUT
+            - ABORTED
+          stateMachineArn:
+            - !GetAtt GestioneSimulazioneStateFunction.Arn
+            - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AlarmSNSTopicArn
+          Id: !Sub "${ProjectName}-sf-alarms"
+          RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
