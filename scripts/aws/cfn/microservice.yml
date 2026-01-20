@@ -1584,3 +1584,26 @@ Resources:
         - Arn: !Ref AlarmSNSTopicArn
           Id: !Sub "${ProjectName}-sf-alarms"
           RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
+
+  # Alarm for Step Function failures
+  StepFunctionFailedInvocationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-FailedInvocation-Alarm"
+      AlarmDescription: "CloudWatch alarm for when Step Function executions fail, timeout or are aborted."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Name: RuleName
+          Value: !Ref StepFunctionAlarmRule
+      DatapointsToAlarm: 1
+      MetricName: "Invocations"
+      Namespace: "AWS/Events"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 12 # 1 hour
+      Period: 300 # 5 minutes
+      Statistic: Sum
+      Threshold: 1
