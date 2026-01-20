@@ -1562,10 +1562,10 @@ Resources:
                   - sns:Publish
                 Resource: !Ref AlarmSNSTopicArn
 
-  StepFunctionAlarmRule:
+  GestioneSimulazioneSFAlarmRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: "EventBridge rule to notify SNS when Step Functions fail"
+      Description: "EventBridge rule to notify SNS when GestioneSimulazione Step Function fails"
       EventPattern:
         source:
           - aws.states
@@ -1578,19 +1578,40 @@ Resources:
             - ABORTED
           stateMachineArn:
             - !GetAtt GestioneSimulazioneStateFunction.Arn
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AlarmSNSTopicArn
+          Id: !Sub "${ProjectName}-gestione-sim-sf-alarm"
+          RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
+
+  RecuperoDatiWeeklySFAlarmRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventBridge rule to notify SNS when RecuperoDati Weekly Step Function fails"
+      EventPattern:
+        source:
+          - aws.states
+        detail-type:
+          - Step Functions Execution Status Change
+        detail:
+          status:
+            - FAILED
+            - TIMED_OUT
+            - ABORTED
+          stateMachineArn:
             - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
       State: ENABLED
       Targets:
         - Arn: !Ref AlarmSNSTopicArn
-          Id: !Sub "${ProjectName}-sf-alarms"
+          Id: !Sub "${ProjectName}-recupero-dati-weekly-sf-alarm"
           RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
 
-  # Alarm for Step Function failures
-  StepFunctionFailedInvocationAlarm:
+  # Alarms for Step Function failures
+  GestioneSimulazioneSFFailedInvocationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-FailedInvocation-Alarm"
-      AlarmDescription: "CloudWatch alarm for when Step Function executions fail, timeout or are aborted."
+      AlarmName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione-Failed-Alarm"
+      AlarmDescription: "CloudWatch alarm for when GestioneSimulazione Step Function executions fail, timeout or are aborted."
       TreatMissingData: notBreaching
       AlarmActions:
         - !Ref AlarmSNSTopicArn
@@ -1598,12 +1619,34 @@ Resources:
         - !Ref AlarmSNSTopicArn
       Dimensions:
         - Name: RuleName
-          Value: !Ref StepFunctionAlarmRule
+          Value: !Ref GestioneSimulazioneSFAlarmRule
       DatapointsToAlarm: 1
       MetricName: "Invocations"
       Namespace: "AWS/Events"
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 12
-      Period: 300
+      EvaluationPeriods: 12 # 1 hour
+      Period: 300 # 5 minutes
+      Statistic: Sum
+      Threshold: 1
+
+  RecuperoDatiWeeklySFFailedInvocationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDatiWeekly-Failed-Alarm"
+      AlarmDescription: "CloudWatch alarm for when RecuperoDati Weekly Step Function executions fail, timeout or are aborted."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Name: RuleName
+          Value: !Ref RecuperoDatiWeeklySFAlarmRule
+      DatapointsToAlarm: 1
+      MetricName: "Invocations"
+      Namespace: "AWS/Events"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 12 # 1 hour
+      Period: 300 # 5 minutes
       Statistic: Sum
       Threshold: 1
