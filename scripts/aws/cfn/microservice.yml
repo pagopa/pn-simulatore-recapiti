@@ -1603,7 +1603,7 @@ Resources:
       MetricName: "Invocations"
       Namespace: "AWS/Events"
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 12 # 1 hour
-      Period: 300 # 5 minutes
+      EvaluationPeriods: 12
+      Period: 300
       Statistic: Sum
       Threshold: 1
