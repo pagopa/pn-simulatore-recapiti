@@ -238,6 +238,11 @@ Parameters:
   TableDriverCapacitiesMock:
     Type: String
     Description: 'Name of the DynamoDB table for driver capacities mock'
+  
+  LambdaCalcoloPrimaSettimanaCutOffDay:
+    Type: Number 
+    Description: 'Cut-off day for the CalcoloPrimaSettimana Lambda function'
+    Default: 25
 
 Resources:
   SimulatorMicroservice:
@@ -397,14 +402,6 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
 
-  MergeSenderLimitDBLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref MergeSenderLimitDBLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   CalcoloPrimaSettimanaLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -419,7 +416,7 @@ Resources:
       MemorySize: 128
       Environment:
         Variables:
-          cutoff: '20'
+          cutoff: !Ref LambdaCalcoloPrimaSettimanaCutOffDay
 
   CalcoloPrimaSettimanaLambdaRole:
     Type: AWS::IAM::Role
@@ -434,14 +431,6 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-
-  CalcoloPrimaSettimanaLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref CalcoloPrimaSettimanaLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   AggiornaSimulazioneDBLambda:
     Type: AWS::Lambda::Function
@@ -503,14 +492,6 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
 
-  AggiornaSimulazioneDBLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref AggiornaSimulazioneDBLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   ConfigurazioneSimulazioneLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -558,14 +539,6 @@ Resources:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref SvcSimulatorUserSecretArn
 
-  ConfigurazioneSimulazioneLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref ConfigurazioneSimulazioneLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   FillCapProvRegFromS3LookupLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -587,6 +560,7 @@ Resources:
           DB_HOST: !Ref RdsSimulatorEndpointAddress
           DB_PORT: !Ref RdsSimulatorPort
           DB_NAME: !Ref RdsSimulatorDbName
+          source_bucket: !Ref SimulatoreDataBucketName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
 
   FillCapProvRegFromS3LookupLambdaRole:
@@ -670,14 +644,6 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  DeleteDataLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref DeleteDataLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   GetPaperDeliveryResiduiLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -715,14 +681,6 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
-
-  GetPaperDeliveryResiduiLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref GetPaperDeliveryResiduiLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   GetUsedCapacityLambda:
     Type: AWS::Lambda::Function
@@ -781,14 +739,6 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  GetUsedCapacityLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref GetUsedCapacityLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   ImportDataLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -842,14 +792,6 @@ Resources:
                 Resource:
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
-
-  ImportDataLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref ImportDataLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   InsertMockCapacitiesLambda:
     Type: AWS::Lambda::Function
@@ -922,14 +864,6 @@ Resources:
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
                   - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
 
-  InsertMockCapacitiesLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
-      Parameters:
-        FunctionName: !Ref InsertMockCapacitiesLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   # Lambda LambdaRunAlgorithm
   RunAlgorithmLambda:
     Type: AWS::Lambda::Function
@@ -980,14 +914,6 @@ Resources:
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
                   - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
-  RunAlgorithmLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
-      Parameters:
-        FunctionName: !Ref RunAlgorithmLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-
   # Lambda ListaFileImportData
   ListaFileImportDataLambda:
     Type: AWS::Lambda::Function
@@ -1030,14 +956,6 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}'
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}/*'
-
-  ListaFileImportDataLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
-      Parameters:
-        FunctionName: !Ref ListaFileImportDataLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Lambda MergeDeclaredCapacityDB
   MergeDeclaredCapacityDBLambda:
@@ -1086,14 +1004,6 @@ Resources:
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref SvcSimulatorUserSecretArn
-
-  MergeDeclaredCapacityDBLambdaAlarms:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub '${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml'
-      Parameters:
-        FunctionName: !Ref MergeDeclaredCapacityDBLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Glue Connection
   GlueNetworkConnection:
@@ -1629,3 +1539,114 @@ Resources:
           RoleArn: !GetAtt SimulazioneAutomatizzataWeeklyEBRole.Arn
           Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
           Input: !Ref EventBridgeRuleInput
+
+  ### Enable sending notifications to SNS topic when the step functions are in failed, aborted or timedOut status.
+  StepFunctionAlarmTopicPublisherRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-AlarmRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: PublishToSNSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref AlarmSNSTopicArn
+
+  GestioneSimulazioneSFAlarmRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventBridge rule to notify SNS when GestioneSimulazione Step Function fails"
+      EventPattern:
+        source:
+          - aws.states
+        detail-type:
+          - Step Functions Execution Status Change
+        detail:
+          status:
+            - FAILED
+            - TIMED_OUT
+            - ABORTED
+          stateMachineArn:
+            - !GetAtt GestioneSimulazioneStateFunction.Arn
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AlarmSNSTopicArn
+          Id: !Sub "${ProjectName}-gestione-sim-sf-alarm"
+          RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
+
+  RecuperoDatiWeeklySFAlarmRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "EventBridge rule to notify SNS when RecuperoDati Weekly Step Function fails"
+      EventPattern:
+        source:
+          - aws.states
+        detail-type:
+          - Step Functions Execution Status Change
+        detail:
+          status:
+            - FAILED
+            - TIMED_OUT
+            - ABORTED
+          stateMachineArn:
+            - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AlarmSNSTopicArn
+          Id: !Sub "${ProjectName}-recupero-dati-weekly-sf-alarm"
+          RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
+
+  # Alarms for Step Function failures
+  GestioneSimulazioneSFFailedInvocationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione-Failed-Alarm"
+      AlarmDescription: "CloudWatch alarm for when GestioneSimulazione Step Function executions fail, timeout or are aborted."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Name: RuleName
+          Value: !Ref GestioneSimulazioneSFAlarmRule
+      DatapointsToAlarm: 1
+      MetricName: "Invocations"
+      Namespace: "AWS/Events"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 12 # 1 hour
+      Period: 300 # 5 minutes
+      Statistic: Sum
+      Threshold: 1
+
+  RecuperoDatiWeeklySFFailedInvocationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-RecuperoDatiWeekly-Failed-Alarm"
+      AlarmDescription: "CloudWatch alarm for when RecuperoDati Weekly Step Function executions fail, timeout or are aborted."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Name: RuleName
+          Value: !Ref RecuperoDatiWeeklySFAlarmRule
+      DatapointsToAlarm: 1
+      MetricName: "Invocations"
+      Namespace: "AWS/Events"
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 12 # 1 hour
+      Period: 300 # 5 minutes
+      Statistic: Sum
+      Threshold: 1
