@@ -139,6 +139,7 @@ for date in date_list:
                 date_stg=datetime.strptime(diz['activationDateFrom'],"%Y-%m-%d %H:%M:%S")
                 date_stg2=date_stg+timedelta(seconds=604799)
                 diz['ACTIVATION_DATE_TO']=date_stg2.strftime("%Y-%m-%d %H:%M:%S")
+                del diz['activationDateTo']
             except:
                 diz['ACTIVATION_DATE_TO']=None
             # Aggiunta colonna per prodotto
