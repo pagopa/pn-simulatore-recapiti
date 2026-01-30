@@ -122,6 +122,7 @@ for cap in lista_cap:
         try:
             test=diz['activationDateTo']
             diz['ACTIVATION_DATE_TO']=test
+            del diz['activationDateTo']
         except:
             diz['ACTIVATION_DATE_TO']=None
         diz['PRODUCTS'] = None

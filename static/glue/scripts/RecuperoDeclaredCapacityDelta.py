@@ -173,11 +173,13 @@ df_capacity_tot=df_capacity_tot.withColumn('ACTIVATION_DATE_FROM',F.col('ACTIVAT
 # Deduplicazione delle righe con conseguente popolamento del campo PRODUCTION_CAPACITY
 # Assunzione: ogni pk può avere al più 2 record di cui uno con ACTIVATION_DATE_TO valorizzata e uno con ACTIVATION_DATE_TO nulla
 
+df_capacity_tot.filter(F.col('GEOKEY')==lista_province[0]).show()
+
 # Raggruppamento tenendo la capacità massima per i due record
-df_capacity_tot_stg=df_capacity_tot.groupBy('PK').agg(F.max(F.col('CAPACITY')).alias('MAX_CAPACITY'), F.max_by(F.col('ACTIVATION_DATE_TO'),F.col('CAPACITY')).alias('MAX_DATE'))
+df_capacity_tot_stg=df_capacity_tot.groupBy('PK', 'ACTIVATION_DATE_FROM').agg(F.max(F.col('CAPACITY')).alias('MAX_CAPACITY'), F.max_by(F.col('ACTIVATION_DATE_TO'),F.col('CAPACITY')).alias('MAX_DATE'))
 
 # Aggiunta del campo di capacità massima al dataframe
-df_capacity_tot_stg2=df_capacity_tot.join(df_capacity_tot_stg, on='PK', how='left')
+df_capacity_tot_stg2=df_capacity_tot.join(df_capacity_tot_stg, on=['PK','ACTIVATION_DATE_FROM'], how='left')
 
 # Deduplicazione eliminando i record con ACTIVATION_DATE_TO valorizzata
 df_capacity_tot_dedup=df_capacity_tot_stg2.filter(F.col('ACTIVATION_DATE_TO').isNull())
@@ -189,7 +191,7 @@ df_capacity_tot_final=df_capacity_tot_dedup.withColumn('PRODUCTION_CAPACITY',F.w
                                                    'CREATED_AT','PEAK_CAPACITY','ACTIVATION_DATE_FROM','ACTIVATION_DATE_TO','PK','PRODUCTION_CAPACITY','LAST_UPDATE_TIMESTAMP'])
 
 
-
+df_capacity_tot_final.filter(F.col('GEOKEY')==lista_province[0]).show()
 
 print('Export su DB')      
 # Export su DB
