@@ -10,6 +10,7 @@ from django.db import connection
 from zoneinfo import ZoneInfo
 import boto3
 from botocore.config import Config
+from django.utils.http import url_has_allowed_host_and_scheme
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -18,6 +19,9 @@ def homepage(request):
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
     
     for singola_simulazione in lista_simulazioni:
+        # cambio stato su 'Non completata' se siamo sullo stato 'In lavorazione' da più di 2gg
+        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.TIMESTAMP_ESECUZIONE < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
+            singola_simulazione.STATO = 'Non completata'
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
         if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
             singola_simulazione.STATO = 'In lavorazione'
@@ -378,8 +382,16 @@ def rimuovi_simulazione(request, id_simulazione):
     except:
         pass
 
-    next_url = request.GET.get('next', '/')  # fallback alla home
-    return redirect(next_url)
+    next_url = request.GET.get('next')
+
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect('/')
 
 
 # AJAX
