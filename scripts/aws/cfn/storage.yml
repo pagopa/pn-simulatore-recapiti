@@ -268,6 +268,18 @@ Resources:
         LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
         LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
+  
+  RimozioneDuplicatiDeclaredCapacityLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-simulatore-recapiti-Lambda-RimozioneDuplicatiDeclaredCapacity"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+        LogsKinesisSourceStreamArn: !Ref LogsKinesisSourceStreamArn
 
   SimulatorAuroraDbCluster:
     Type: AWS::CloudFormation::Stack
