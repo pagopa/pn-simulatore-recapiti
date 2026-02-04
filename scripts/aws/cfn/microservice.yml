@@ -1032,7 +1032,7 @@ Resources:
   RimozioneDuplicatiDeclaredCapacityLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-rimozioneduplicatideclaredcapacity-role"
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-rimozioneduplicatidc-role"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
