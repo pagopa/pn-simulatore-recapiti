@@ -42,7 +42,11 @@ def lambda_handler(event, context):
         '''
             MERGE INTO public."DECLARED_CAPACITY"
             USING public."DECLARED_CAPACITY_DELTA"
-            ON (public."DECLARED_CAPACITY"."PK" = public."DECLARED_CAPACITY_DELTA"."PK" AND
+            ON (public."DECLARED_CAPACITY"."GEOKEY" = public."DECLARED_CAPACITY_DELTA"."GEOKEY" AND
+                public."DECLARED_CAPACITY"."UNIFIED_DELIVERY_DRIVER" = public."DECLARED_CAPACITY_DELTA"."UNIFIED_DELIVERY_DRIVER" AND
+                public."DECLARED_CAPACITY"."PRODUCT_890" = public."DECLARED_CAPACITY_DELTA"."PRODUCT_890" AND
+                public."DECLARED_CAPACITY"."PRODUCT_AR" = public."DECLARED_CAPACITY_DELTA"."PRODUCT_AR" AND
+                public."DECLARED_CAPACITY"."PRODUCT_RS" = public."DECLARED_CAPACITY_DELTA"."PRODUCT_RS" AND
                 public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM" = public."DECLARED_CAPACITY_DELTA"."ACTIVATION_DATE_FROM") 
             --When records are matched, update the records if there is any change
             WHEN MATCHED AND public."DECLARED_CAPACITY"."LAST_UPDATE_TIMESTAMP" < public."DECLARED_CAPACITY_DELTA"."LAST_UPDATE_TIMESTAMP" 
@@ -76,3 +80,4 @@ def lambda_handler(event, context):
     conn.close()
 
     return {'statusCode': 200}
+ 
