@@ -40,7 +40,9 @@ def lambda_handler(event, context):
         '''
             MERGE INTO public."SENDER_LIMIT"
             USING public."SENDER_LIMIT_DELTA"
-            ON (public."SENDER_LIMIT"."PK" = public."SENDER_LIMIT_DELTA"."PK" 
+            ON (public."SENDER_LIMIT"."PA_ID" = public."SENDER_LIMIT_DELTA"."PA_ID"
+                AND public."SENDER_LIMIT"."PROVINCE" = public."SENDER_LIMIT_DELTA"."PROVINCE"
+                AND public."SENDER_LIMIT"."PRODUCT_TYPE" = public."SENDER_LIMIT_DELTA"."PRODUCT_TYPE"
                 AND public."SENDER_LIMIT"."DELIVERY_DATE" = public."SENDER_LIMIT_DELTA"."DELIVERY_DATE") 
             --When records are matched, update the records if there is any change
             WHEN MATCHED AND public."SENDER_LIMIT"."LAST_UPDATE_TIMESTAMP" < public."SENDER_LIMIT_DELTA"."LAST_UPDATE_TIMESTAMP" 
@@ -68,3 +70,4 @@ def lambda_handler(event, context):
     conn.close()
 
     return {'statusCode': 200}
+ 
