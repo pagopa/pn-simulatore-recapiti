@@ -1060,6 +1060,62 @@ Resources:
       Parameters:
         FunctionName: !Ref RimozioneDuplicatiDeclaredCapacityLambda
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+  
+  # Lambda RimozioneDuplicatiSenderLimit
+  RimozioneDuplicatiSenderLimitLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${MicroServiceUniqueName}-Lambda-RimozioneDuplicatiSenderLimit"
+      Runtime: python3.13
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt RimozioneDuplicatiSenderLimitLambdaRole.Arn
+      Code:
+        S3Bucket: !Ref MicroserviceBucketName
+        S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/RimozioneDuplicatiSenderLimit.zip"
+      Timeout: 300
+      MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
+      Environment:
+        Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+
+  RimozioneDuplicatiSenderLimitLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-lambda-rimozioneduplicatisl-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
+
+  RimozioneDuplicatiSenderLimitLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref RimozioneDuplicatiSenderLimitLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   # Glue Connection
   GlueNetworkConnection:
