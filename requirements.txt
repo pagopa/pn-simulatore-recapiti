@@ -13,7 +13,7 @@ charset-normalizer==3.4.3
 click==8.3.0
 colorama==0.4.6
 constantly==23.10.4
-cryptography==46.0.3
+cryptography==46.0.5
 daphne==4.2.1
 dash==3.2.0
 dash-bootstrap-components==2.0.4
