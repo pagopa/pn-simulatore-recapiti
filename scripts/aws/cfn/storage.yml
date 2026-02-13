@@ -66,6 +66,11 @@ Parameters:
     Default: simulatore-recapiti_svc
     NoEcho: true
 
+  RdsSimulatorReadOnlyUsername:
+    Type: String
+    Default: simulatore-recapiti_ro
+    NoEcho: true
+
   RdsSimulatorEngineVersion:
     Type: String
 
@@ -344,6 +349,25 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+
+  RdsReadOnlyUserSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${ProjectName}-simulatore-recapiti-db-svc-ro-user-credentials"
+      Description: !Sub "Credentials for simulatore-recapiti DB readonly user - ${ProjectName}"
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${RdsSimulatorReadOnlyUsername}"}'
+        GenerateStringKey: "password"
+        PasswordLength: 32
+        ExcludeCharacters: "/@\"'\\~?{}[]()"
+        ExcludePunctuation: true
+        IncludeSpace: false
+        RequireEachIncludedType: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-simulatore-recapiti-db-svc-ro-user"
+        - Key: Project
+          Value: !Ref ProjectName
 
 Outputs:
   RdsSimulatorEndpointAddress:
