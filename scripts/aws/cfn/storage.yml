@@ -353,7 +353,7 @@ Resources:
   RdsReadOnlyUserSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: !Sub "${ProjectName}-simulatore-recapiti-ro-user-credentials"
+      Name: !Sub "${ProjectName}-simulatore-recapiti-db-svc-ro-user-credentials"
       Description: !Sub "Credentials for simulatore-recapiti DB readonly user - ${ProjectName}"
       GenerateSecretString:
         SecretStringTemplate: !Sub '{"username": "${RdsSimulatorReadOnlyUsername}"}'
@@ -365,7 +365,7 @@ Resources:
         RequireEachIncludedType: true
       Tags:
         - Key: Name
-          Value: !Sub "${ProjectName}-simulatore-recapiti-ro-user"
+          Value: !Sub "${ProjectName}-simulatore-recapiti-db-svc-ro-user"
         - Key: Project
           Value: !Ref ProjectName
 
