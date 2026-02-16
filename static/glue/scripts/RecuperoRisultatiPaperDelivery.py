@@ -168,6 +168,7 @@ for data in lista_date:
         j=j+1
 
 
+
 print('Create Output DataFrame')
 # Filtro per output
 df_paperdel_tot_filtred=df_paperdel_tot.filter(F.col('workflowStep')=='EVALUATE_PRINT_CAPACITY')\
@@ -220,6 +221,21 @@ df_output_grafico_reg_recap.write \
     .mode("append") \
     .save()
 
+
+print('Export in S3 - Risultati dopo la 5 settimana')
+# Export in S3
+df_paperdel_tot_5week =  df_paperdel_tot_filtred(F.col('SETTIMANA_DELIVERY') > lista_date[4])
+prima_data = lista_date[0]
+anno_riferimento = prima_data[:4]
+mese_riferimento = prima_data[5:7]
+
+path = "s3://"+s3_bucket+"/output/risultati/" + anno_riferimento + "/" \
+                                                                        + mese_riferimento + "/oltre_5_settimane/" \
+                                                                        + "id" + str(id_simulazione)
+    
+
+df_paperdel_tot_5week.repartition(1).write.mode('overwrite').option("header",True).csv(path)
+
         
 if count_residui_ultima_settimana > 0:
     data = lista_date[-1]
@@ -269,16 +285,12 @@ if count_residui_ultima_settimana > 0:
         
         j=j+1
 
-
-    prima_data = lista_date[0]
-    anno_riferimento = prima_data[:4]
-    mese_riferimento = prima_data[5:7]
     
     path = "s3://"+s3_bucket+"/output/risultati/" + anno_riferimento + "/" \
                                                                         + mese_riferimento + "/residui/" \
-                                                                        + "id" + str(id_simulazione) + "_" + data
+                                                                        + "id" + str(id_simulazione) 
     
-    print('Export in S3')
+    print('Export in S3 - Residui')
     # Export in S3
     df_paperdel_res_tot.repartition(1).write.mode('overwrite').option("header",True).csv(path)
 
