@@ -224,7 +224,7 @@ df_output_grafico_reg_recap.write \
 
 print('Export in S3 - Risultati dopo la 5 settimana')
 # Export in S3
-df_paperdel_tot_5week =  df_paperdel_tot_filtred(F.col('SETTIMANA_DELIVERY') > lista_date[4])
+df_paperdel_tot_5week =  df_paperdel_tot_filtred.filter(F.col('SETTIMANA_DELIVERY') > lista_date[4])
 prima_data = lista_date[0]
 anno_riferimento = prima_data[:4]
 mese_riferimento = prima_data[5:7]
