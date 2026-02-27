@@ -214,7 +214,7 @@ def salva_simulazione(request):
                     # cattura capacità reale prima settimana di recapitista-recione-provincia
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente:
                         capacita_reale_precedente_prima_settimana = capacita_reale_attuale_prima_settimana
-                        capacita_reale_attuale_prima_settimana = singola_riga['capacita_reale']
+                        capacita_reale_attuale_prima_settimana = row['capacita_reale']
                     # capacità di default da aggiungere ad ogni recapitista-regione-provincia a partire dalla settimana successiva all'ultima specificata dall'utente
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente and recapregioneprovincia_precedente != None:
                         lista_nuove_capacita_da_salvare.append(
