@@ -144,8 +144,14 @@ def salva_simulazione(request):
             TIPO_SIMULAZIONE = tipo_simulazione
         )
         if stato != 'Bozza':
-            # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
-            create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+            try:
+                # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
+                create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+            except:
+                # eliminiamo il record appena inserito
+                id_simulazione_salvata.delete()
+                # ricreiamo la stessa eccezione originale
+                raise
         
 
     # MODIFICA SIMULAZIONE
@@ -174,7 +180,7 @@ def salva_simulazione(request):
                 remove_trigger_eventbridge_scheduler(id_simulazione_salvata.ID)
 
         elif stato_precedente == 'Bozza':
-            if stato == 'Schedulata':
+            if stato == 'Schedulata' or stato == 'In lavorazione':
                 # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
                 create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
 
@@ -214,7 +220,7 @@ def salva_simulazione(request):
                     # cattura capacità reale prima settimana di recapitista-recione-provincia
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente:
                         capacita_reale_precedente_prima_settimana = capacita_reale_attuale_prima_settimana
-                        capacita_reale_attuale_prima_settimana = singola_riga['capacita_reale']
+                        capacita_reale_attuale_prima_settimana = row['capacita_reale']
                     # capacità di default da aggiungere ad ogni recapitista-regione-provincia a partire dalla settimana successiva all'ultima specificata dall'utente
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente and recapregioneprovincia_precedente != None:
                         lista_nuove_capacita_da_salvare.append(
