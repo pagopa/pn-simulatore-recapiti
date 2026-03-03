@@ -64,8 +64,6 @@ def lambda_handler(event, context):
         '''
     )
     conn.commit()
-    cur.execute('DELETE FROM public."SENDER_LIMIT_DELTA";')
-    conn.commit()
     cur.close()
     conn.close()
 
