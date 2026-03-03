@@ -74,8 +74,6 @@ def lambda_handler(event, context):
         '''
     )
     conn.commit()
-    cur.execute('DELETE FROM public."DECLARED_CAPACITY_DELTA";')
-    conn.commit()
     cur.close()
     conn.close()
 

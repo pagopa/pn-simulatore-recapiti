@@ -389,18 +389,7 @@ Resources:
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource: !Ref SvcSimulatorUserSecretArn
-        - PolicyName: S3Access
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                  - s3:PutObject
-                Resource:
-                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}/*"
-                  - !Sub "arn:aws:s3:::${SimulatoreDataBucketName}"
+                
 
   CalcoloPrimaSettimanaLambda:
     Type: AWS::Lambda::Function
@@ -412,10 +401,18 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/CalcoloPrimaSettimana.zip"
-      Timeout: 3
+      Timeout: 300
       MemorySize: 128
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RdsSimulatorSecurityGroupId
+        SubnetIds: !Split [',', !Ref VPNServicesSubnetsIds]
       Environment:
         Variables:
+          DB_HOST: !Ref RdsSimulatorEndpointAddress
+          DB_PORT: !Ref RdsSimulatorPort
+          DB_NAME: !Ref RdsSimulatorDbName
+          secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           cutoff: !Ref LambdaCalcoloPrimaSettimanaCutOffDay
 
   CalcoloPrimaSettimanaLambdaRole:
@@ -431,6 +428,16 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref SvcSimulatorUserSecretArn
 
   AggiornaSimulazioneDBLambda:
     Type: AWS::Lambda::Function
