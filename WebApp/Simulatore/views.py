@@ -93,6 +93,7 @@ def nuova_simulazione(request, id_simulazione):
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
+    last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
     tipo_simulazione = 'Manuale'
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
@@ -191,7 +192,6 @@ def salva_simulazione(request):
         lista_old_capacita_modificate = lista_all_capacita_modificate.exclude(ACTIVATION_DATE_TO__isnull=True)
         if lista_old_capacita_modificate:
             # ci sono già capacità sul db e dobbiamo fare upsert
-            last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
             lista_all_capacita_modificate.filter(ACTIVATION_DATE_TO__isnull=True).delete() # rimuoviamo vecchie capacità di default
             lista_nuove_capacita_da_salvare = [] # nuove capacità di default + eventuali capacità aggiuntive
             lookup = {}
@@ -284,7 +284,7 @@ def salva_simulazione(request):
                             REGIONE = riga[2],
                             PRODUCT_890 = True if '890' in riga[3] else False,
                             PRODUCT_AR = True if 'AR' in riga[3] else False,
-                            LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
+                            LAST_UPDATE_TIMESTAMP = last_update_timestamp,
                             CAPACITY=riga[4],
                             SIMULAZIONE_ID = id_simulazione_salvata
                         )
@@ -297,7 +297,6 @@ def salva_simulazione(request):
                 table_capacita_simulate.objects.bulk_create(lista_nuove_capacita_da_salvare)
         else:
             # non ci sono capacità nella tabella CAPACITA_SIMULATE, dobbiamo effettuare l'insert
-            last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
             # scrittura sul db nella tabella CAPACITA_SIMULATE
             lista_capacita_da_salvare = []
             for recapitista, righe_tabella in capacita_json.items():
@@ -370,7 +369,35 @@ def salva_simulazione(request):
                 )           
             # inserimento sul db delle capacità modificate nella tabella CAPACITA_SIMULATE
             table_capacita_simulate.objects.bulk_create(lista_capacita_da_salvare)
-
+     
+        # recupero record su tabella DECLARED CAPACITY con prodotti RS (non AR e non 890) con ACTIVATION_DATE_FROM uguale al primo lunedì di simulazione
+        primo_lunedi_mese_corrente = get_first_week_parameter_for_step_function(mese_da_simulare)
+        lista_prodotti_rs = table_declared_capacity.objects.filter(PRODUCT_890=False, PRODUCT_AR=False, PRODUCT_RS=True, ACTIVATION_DATE_FROM=primo_lunedi_mese_corrente+' 00:00:00')
+        # inserimento su tabella CAPACITA_SIMULATE
+        lista_capacita_rs_da_salvare = []
+        for singola_capacita_rs in lista_prodotti_rs:
+            if tipo_capacita_da_modificare=='BAU' or tipo_capacita_da_modificare=='Combinata':
+                capacity_per_rs = singola_capacita_rs.CAPACITY
+            else:
+                capacity_per_rs = singola_capacita_rs.PEAK_CAPACITY
+            lista_capacita_rs_da_salvare.append(
+                table_capacita_simulate(
+                    UNIFIED_DELIVERY_DRIVER = singola_capacita_rs.UNIFIED_DELIVERY_DRIVER,
+                    ACTIVATION_DATE_FROM = primo_lunedi_mese_corrente+' 00:00:00',
+                    ACTIVATION_DATE_TO = None,
+                    CAPACITY = capacity_per_rs,
+                    SUM_MONTHLY_ESTIMATE = 0,
+                    SUM_WEEKLY_ESTIMATE = 0,
+                    REGIONE = None,
+                    COD_SIGLA_PROVINCIA = singola_capacita_rs.GEOKEY,
+                    PRODUCT_890 = False,
+                    PRODUCT_AR = False,
+                    LAST_UPDATE_TIMESTAMP = last_update_timestamp,
+                    SIMULAZIONE_ID = id_simulazione_salvata
+                )
+            )
+        table_capacita_simulate.objects.bulk_create(lista_capacita_rs_da_salvare)
+        
     # gestiamo il redirect dopo aver salvato la simulazione
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
