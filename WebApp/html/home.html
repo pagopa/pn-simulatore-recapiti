@@ -368,9 +368,9 @@
 <!-- funzione per ricondurre alla pagina confronto_risultati cliccando su "Confronta" nella modale -->
 <script>
     $(document).on('click', '.btn-confronto', function() {
-        const id1 = document.getElementById('value_id1').textContent;
-        const id2 = $(`#simulazione_selezionata_per_confronto_${id1}`).val();
-        const url = `/confronto_risultati/${id1}/${id2}/`;
+        const id1 = parseInt(document.getElementById('value_id1').textContent);
+        const id2 = parseInt($(`#simulazione_selezionata_per_confronto_${id1}`).val());
+        const url = `/confronto_risultati/${encodeURIComponent(id1)}/${encodeURIComponent(id2)}/`;
         if (id1!=null && id2!=null){
             window.location.href = url;
         }

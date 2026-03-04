@@ -10,6 +10,7 @@ from django.db import connection
 from zoneinfo import ZoneInfo
 import boto3
 from botocore.config import Config
+from django.utils.http import url_has_allowed_host_and_scheme
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -18,6 +19,9 @@ def homepage(request):
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
     
     for singola_simulazione in lista_simulazioni:
+        # cambio stato su 'Non completata' se siamo sullo stato 'In lavorazione' da più di 2gg
+        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.TIMESTAMP_ESECUZIONE < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
+            singola_simulazione.STATO = 'Non completata'
         # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
         if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
             singola_simulazione.STATO = 'In lavorazione'
@@ -89,6 +93,7 @@ def nuova_simulazione(request, id_simulazione):
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
+    last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
     tipo_simulazione = 'Manuale'
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = request.POST['descrizione_simulazione']
@@ -140,8 +145,14 @@ def salva_simulazione(request):
             TIPO_SIMULAZIONE = tipo_simulazione
         )
         if stato != 'Bozza':
-            # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
-            create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+            try:
+                # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
+                create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+            except:
+                # eliminiamo il record appena inserito
+                id_simulazione_salvata.delete()
+                # ricreiamo la stessa eccezione originale
+                raise
         
 
     # MODIFICA SIMULAZIONE
@@ -170,7 +181,7 @@ def salva_simulazione(request):
                 remove_trigger_eventbridge_scheduler(id_simulazione_salvata.ID)
 
         elif stato_precedente == 'Bozza':
-            if stato == 'Schedulata':
+            if stato == 'Schedulata' or stato == 'In lavorazione':
                 # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
                 create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
 
@@ -181,7 +192,6 @@ def salva_simulazione(request):
         lista_old_capacita_modificate = lista_all_capacita_modificate.exclude(ACTIVATION_DATE_TO__isnull=True)
         if lista_old_capacita_modificate:
             # ci sono già capacità sul db e dobbiamo fare upsert
-            last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
             lista_all_capacita_modificate.filter(ACTIVATION_DATE_TO__isnull=True).delete() # rimuoviamo vecchie capacità di default
             lista_nuove_capacita_da_salvare = [] # nuove capacità di default + eventuali capacità aggiuntive
             lookup = {}
@@ -210,7 +220,7 @@ def salva_simulazione(request):
                     # cattura capacità reale prima settimana di recapitista-recione-provincia
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente:
                         capacita_reale_precedente_prima_settimana = capacita_reale_attuale_prima_settimana
-                        capacita_reale_attuale_prima_settimana = singola_riga['capacita_reale']
+                        capacita_reale_attuale_prima_settimana = row['capacita_reale']
                     # capacità di default da aggiungere ad ogni recapitista-regione-provincia a partire dalla settimana successiva all'ultima specificata dall'utente
                     if recapregioneprovincia_precedente != recapregioneprovincia_corrente and recapregioneprovincia_precedente != None:
                         lista_nuove_capacita_da_salvare.append(
@@ -274,7 +284,7 @@ def salva_simulazione(request):
                             REGIONE = riga[2],
                             PRODUCT_890 = True if '890' in riga[3] else False,
                             PRODUCT_AR = True if 'AR' in riga[3] else False,
-                            LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),
+                            LAST_UPDATE_TIMESTAMP = last_update_timestamp,
                             CAPACITY=riga[4],
                             SIMULAZIONE_ID = id_simulazione_salvata
                         )
@@ -287,7 +297,6 @@ def salva_simulazione(request):
                 table_capacita_simulate.objects.bulk_create(lista_nuove_capacita_da_salvare)
         else:
             # non ci sono capacità nella tabella CAPACITA_SIMULATE, dobbiamo effettuare l'insert
-            last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
             # scrittura sul db nella tabella CAPACITA_SIMULATE
             lista_capacita_da_salvare = []
             for recapitista, righe_tabella in capacita_json.items():
@@ -360,7 +369,35 @@ def salva_simulazione(request):
                 )           
             # inserimento sul db delle capacità modificate nella tabella CAPACITA_SIMULATE
             table_capacita_simulate.objects.bulk_create(lista_capacita_da_salvare)
-
+     
+        # recupero record su tabella DECLARED CAPACITY con prodotti RS (non AR e non 890) con ACTIVATION_DATE_FROM uguale al primo lunedì di simulazione
+        primo_lunedi_mese_corrente = get_first_week_parameter_for_step_function(mese_da_simulare)
+        lista_prodotti_rs = table_declared_capacity.objects.filter(PRODUCT_890=False, PRODUCT_AR=False, PRODUCT_RS=True, ACTIVATION_DATE_FROM=primo_lunedi_mese_corrente+' 00:00:00')
+        # inserimento su tabella CAPACITA_SIMULATE
+        lista_capacita_rs_da_salvare = []
+        for singola_capacita_rs in lista_prodotti_rs:
+            if tipo_capacita_da_modificare=='BAU' or tipo_capacita_da_modificare=='Combinata':
+                capacity_per_rs = singola_capacita_rs.CAPACITY
+            else:
+                capacity_per_rs = singola_capacita_rs.PEAK_CAPACITY
+            lista_capacita_rs_da_salvare.append(
+                table_capacita_simulate(
+                    UNIFIED_DELIVERY_DRIVER = singola_capacita_rs.UNIFIED_DELIVERY_DRIVER,
+                    ACTIVATION_DATE_FROM = primo_lunedi_mese_corrente+' 00:00:00',
+                    ACTIVATION_DATE_TO = None,
+                    CAPACITY = capacity_per_rs,
+                    SUM_MONTHLY_ESTIMATE = 0,
+                    SUM_WEEKLY_ESTIMATE = 0,
+                    REGIONE = None,
+                    COD_SIGLA_PROVINCIA = singola_capacita_rs.GEOKEY,
+                    PRODUCT_890 = False,
+                    PRODUCT_AR = False,
+                    LAST_UPDATE_TIMESTAMP = last_update_timestamp,
+                    SIMULAZIONE_ID = id_simulazione_salvata
+                )
+            )
+        table_capacita_simulate.objects.bulk_create(lista_capacita_rs_da_salvare)
+        
     # gestiamo il redirect dopo aver salvato la simulazione
     if request.POST['stato'] == 'Bozza':
         return redirect("bozze")
@@ -378,8 +415,16 @@ def rimuovi_simulazione(request, id_simulazione):
     except:
         pass
 
-    next_url = request.GET.get('next', '/')  # fallback alla home
-    return redirect(next_url)
+    next_url = request.GET.get('next')
+
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect('/')
 
 
 # AJAX
