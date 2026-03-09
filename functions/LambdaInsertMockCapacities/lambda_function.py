@@ -141,7 +141,6 @@ def upload_csv_objects(s3_client, s3_file_key, source_bucket):
     lambda_delayer = boto3.client('lambda',config=config)
     source_key = '/'.join(s3_file_key.split('/')[:-1])
     source_filename = s3_file_key.split('/')[-1]
-    date_per_import_data = s3_file_key.split('/')[-2]
     # GET PRESIGNED URL
     uploadUrl, destination_filename = get_presigned_url_from_lambda(lambda_delayer,source_filename)
     # creiamo una copia dell'oggetto (che poi elimineremo) con il nome indicato dalla GET PRESIGNED URL
@@ -164,7 +163,7 @@ def upload_csv_objects(s3_client, s3_file_key, source_bucket):
     errori_presenti_insert = insert_mock_capacities_with_lambda(lambda_delayer,destination_filename)
     if errori_presenti_insert != 0:
         print("Errore durante l'operazione di INSERT_MOCK_CAPACITIES tramite la lambda pn-testDelayerLambda")
-        return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert}
+        raise Exception("Errore durante l'operazione di INSERT_MOCK_CAPACITIES tramite la lambda pn-testDelayerLambda")
 
     # cancelliamo la copia dell'oggetto sul bucket di progetto
     s3_client.delete_object(Bucket=source_bucket, Key=source_key+'/'+destination_filename)
@@ -175,7 +174,7 @@ def upload_csv_objects(s3_client, s3_file_key, source_bucket):
 def lambda_handler(event, context):
     # recuperiamo il numero totale di file da caricare
     lista_file_da_caricare = event["output_lambda_ListaFileImportData"]['Payload']['lista_file_csv']
-    numero_file_da_caricare = len(lista_file_da_caricare[0]['lista_file_csv_1']) + len(lista_file_da_caricare[1]['lista_file_csv_2']) + len(lista_file_da_caricare[2]['lista_file_csv_3']) + len(lista_file_da_caricare[3]['lista_file_csv_4']) + len(lista_file_da_caricare[4]['lista_file_csv_5'])
+    numero_file_da_caricare = len(lista_file_da_caricare[0]['lista_file_csv_1']) + len(lista_file_da_caricare[1]['lista_file_csv_2']) + len(lista_file_da_caricare[2]['lista_file_csv_3']) + len(lista_file_da_caricare[3]['lista_file_csv_4']) + len(lista_file_da_caricare[4]['lista_file_csv_5']) + len(lista_file_da_caricare[5]['lista_file_csv_6'])
     # recuperiamo i destination_filename dei file importati con IMPORT_DATA
     lista_file_csv_caricati = []
     source_bucket = os.environ['source_bucket']
@@ -209,21 +208,14 @@ def lambda_handler(event, context):
         if errori_presenti_insert != 0:
             print("Errore durante l'operazione di INSERT_MOCK_CAPACITIES tramite la lambda pn-testDelayerLambda")
             return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert}
-        
-        # aggiungiamo il nome del file caricato tramite la insert mock capacities nella lista_file_csv_caricati
-        lista_file_csv_caricati.append({'destination_filename': destination_filename})
-        print("File csv delle capacità di mock inserito correttamente ed aggiunto alla lista_file_csv_caricati")
-        
+        print("File csv delle capacità di mock inserito correttamente")
         # aggiungiamo le capacità di mock per cap, prodotte dal relativo job glue, recuperandole da s3
         objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=f'input/cap_capacities/id{id_simulazione_manuale}_{mese_simulazione}/')
         for obj in objects.get("Contents", []):
             if obj["Key"][-4:] == '.csv':
                 # carichiamo i csv nella destinazione recuperata attraverso la GET_PRESIGNED_URL ed effettuiamo l'operazione di INSERT_MOCK_CAPACITIES
                 destination_filename = upload_csv_objects(s3_client, obj["Key"], source_bucket)
-                # aggiungiamo alla lista_file_csv_caricati il nome del csv dei cap caricato tramite la INSERT_MOCK_CAPACITIES
-                lista_file_csv_caricati.append({'destination_filename':destination_filename})
-                print(f"File csv {obj["Key"]} dei cap inserito correttamente ed aggiunto alla lista_file_csv_caricati")
-        
+                print(f"File csv {obj["Key"]} dei cap inserito correttamente")
         return {'statusCode': 200, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':0}
             
     elif event['tipo_simulazione'] == 'Automatizzata':

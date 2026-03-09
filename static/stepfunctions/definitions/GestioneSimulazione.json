@@ -294,6 +294,48 @@
               "End": true
             }
           }
+        },
+        {
+          "StartAt": "MAP IMPORT DATA WEEK 6",
+          "States": {
+            "MAP IMPORT DATA WEEK 6": {
+              "Type": "Map",
+              "ItemProcessor": {
+                "ProcessorConfig": {
+                  "Mode": "INLINE"
+                },
+                "StartAt": "IMPORT DATA WEEK 6",
+                "States": {
+                  "IMPORT DATA WEEK 6": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::lambda:invoke",
+                    "Parameters": {
+                      "Payload.$": "$",
+                      "FunctionName": "${ImportDataLambdaArn}"
+                    },
+                    "Retry": [
+                      {
+                        "ErrorEquals": [
+                          "Lambda.ServiceException",
+                          "Lambda.AWSLambdaException",
+                          "Lambda.SdkClientException",
+                          "Lambda.TooManyRequestsException",
+                          "Exception"
+                        ],
+                        "IntervalSeconds": 1,
+                        "MaxAttempts": 6,
+                        "BackoffRate": 2
+                      }
+                    ],
+                    "End": true
+                  }
+                }
+              },
+              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[5].lista_file_csv_6",
+              "MaxConcurrency": 2,
+              "End": true
+            }
+          }
         }
       ],
       "ResultPath": null
