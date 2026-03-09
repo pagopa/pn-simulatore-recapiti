@@ -37,9 +37,12 @@ def get_lista_csv_source(s3_client,source_bucket,prefix_s3):
         lista_file_csv.append({"lista_file_csv_"+str(count):tmp_list})
         count+=1
 
-    # serve per fare in modo di avere sempre 5 settimane (se ne sono 4, la quinta la inseriamo vuota)
+    # serve per fare in modo di avere sempre 6 settimane. Se ne abbiamo di meno inseriamo le altre vuote
     if len(lista_settimane)==4:
-        lista_file_csv.append({"lista_file_csv_"+str(count):[]})
+        lista_file_csv.append({"lista_file_csv_5":[]})
+        lista_file_csv.append({"lista_file_csv_6":[]})
+    elif len(lista_settimane)==5:
+        lista_file_csv.append({"lista_file_csv_6":[]})
     return lista_file_csv
 
 
