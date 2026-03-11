@@ -37,6 +37,7 @@ class table_capacita_simulate(models.Model):
     PRODUCT_890 = models.BooleanField(null=True)
     PRODUCT_AR = models.BooleanField(null=True)
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    FLAG_DEFAULT = models.BooleanField(null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_SIMULATE'
@@ -48,6 +49,15 @@ class table_capacita_simulate(models.Model):
             models.Index(fields=['CAPACITY'], name='indice_capacity'),
             models.Index(fields=['LAST_UPDATE_TIMESTAMP'], name='indice_last_update_timestamp_3')
         ]
+    '''
+    FLAG_DEFAULT: serve per tracciare le modifiche dell'utente alle capacità reali tramite la WebApp
+    Regole FLAG_DEFAULT:
+        - per tipo capacità bau, settiamo FLAG_DEFAULT a False solo per recapitista-provincia-settimana in cui l'utente modifica la capacità
+        - per tipo capacità picco, settiamo FLAG_DEFAULT a False
+        - per tipo capacità combinata, settiamo FLAG_DEFAULT a False solo per recapitista-provincia-settimana in cui l'utente modifica la capacità
+        - per le capacità con ACTIVATION_DATE_TO NULL, settiamo False solo per tipo capacità picco
+        - altrimenti True
+    '''
     
 class table_capacita_simulate_delta(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -163,7 +173,6 @@ class table_cap_prov_reg(models.Model):
             models.Index(fields=['COD_SIGLA_PROVINCIA'], name='indice_cod_sigla_provincia_2')
         ]
 
-
 class table_output_grafico_ente(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
@@ -177,7 +186,6 @@ class table_output_grafico_ente(models.Model):
             models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id'),
             models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_settimana_delivery_2')
         ]
-
 
 class table_output_grafico_reg_recap(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -196,6 +204,24 @@ class table_output_grafico_reg_recap(models.Model):
             models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_settimana_delivery'),
             models.Index(fields=['COUNT_REQUEST'], name='indice_count_request')
         ]
+
+class table_capacita_simulate_cap(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
+    CAPACITY = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    GEOKEY = models.CharField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    class Meta:
+        db_table = 'CAPACITA_SIMULATE_CAP'
 
 
 # VISTA output_capacity_setting
@@ -297,6 +323,7 @@ class view_output_modified_capacity_setting(pg.View):
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     ORIGINAL_CAPACITY = models.IntegerField(null=True)
     MODIFIED_CAPACITY = models.IntegerField(null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
     PRODUCTION_CAPACITY = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
@@ -334,6 +361,7 @@ class view_output_modified_capacity_setting(pg.View):
             public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
             public."output_capacity_setting"."PROVINCIA",
             public."output_capacity_setting"."PRODUCTION_CAPACITY",
+            public."output_capacity_setting"."PEAK_CAPACITY",
             public."CAPACITA_SIMULATE"."PRODUCT_890",
             public."CAPACITA_SIMULATE"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",

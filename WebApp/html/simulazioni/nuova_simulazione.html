@@ -540,6 +540,29 @@
                                     `;
                         // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
                         resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
+                            var tipo_capacita_singola_riga = tipo_capacita_selezionata;
+                            if (resp.tipo_capacita_selezionata == 'BAU'){
+                                capacity = singola_capacity.capacity;
+                            }
+                            else if (resp.tipo_capacita_selezionata == 'Picco'){
+                                capacity = singola_capacity.peak_capacity;
+                            }
+                            else if (resp.tipo_capacita_selezionata == 'Combinata'){
+                                if (singola_capacity.post_weekly_estimate >= singola_capacity.capacity){
+                                    capacity = singola_capacity.peak_capacity;
+                                    tipo_capacita_singola_riga = 'Picco';
+                                }
+                                else {
+                                    capacity = singola_capacity.capacity;
+                                    tipo_capacita_singola_riga = 'BAU';
+                                }
+                            }
+                            if (singola_capacity.post_weekly_estimate == 0){
+                                original_capacity = '-';
+                            }
+                            else{
+                                original_capacity = capacity;
+                            }
                             if(singola_capacity.production_capacity != 0){
                                 production_capacity = singola_capacity.production_capacity;
                             }else{
@@ -553,10 +576,10 @@
                                                         <td>${singola_capacity.post_weekly_estimate}</td>
                                                         <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
                                                         <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
-                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: <span class="input_capacita_reale">${singola_capacity.original_capacity}</span></label></td>
+                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="${original_capacity}" maxlength="8" value="${capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')" onblur="checkMinValue(this)"><label class="m-0 p-0" style="font-size:12px">Capacità reale: <span class="input_capacita_reale">${original_capacity}</span></label></td>
                                                         <td>${production_capacity}</td>
                                                         <td></td>
-                                                        <td></td>
+                                                        <td><span class="input_tipo_capacita_singola_riga d-none">${tipo_capacita_singola_riga}</span></td>
                                                     </tr>
                             `;
                         });
@@ -603,7 +626,23 @@
 	}
 </script>
 
-<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità  -->
+<!-- Validazione al blur (quando l'utente perde il focus sull'input) -> se la capacità inserita dall'utente è vuota o minore della capacità reale, la funzione setta automaticamente la capacità reale -->
+<script>
+    function checkMinValue(input) {
+        const minValue = parseInt(input.getAttribute('min'));
+        if (input.value !== '') {
+            let value = parseInt(input.value);
+            if (value < minValue) {
+                input.value = minValue;
+            }
+        }
+        else{
+            input.value = minValue;
+        }
+    }
+</script>
+
+<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         if (document.querySelector('#tipo_capacita_da_modificare').value != '' && document.querySelector('#mese_da_simulare').value != ''){
@@ -652,6 +691,19 @@
                     } else{
                         valore_finePeriodoValidita = row.find('.input_finePeriodoValidita').val();
                     }
+                    // se postalizzazioni_settimanali == 0 siamo nel caso della nuova riga aggiunta con il '+' -> serve per settare FLAG_DEFAULT
+                    if (row.find('td').eq(3).text().trim() == 0){
+                        valore_tipo_capacita_singola_riga = 'BAU';
+                    }
+                    else{
+                        valore_tipo_capacita_singola_riga = row.find('.input_tipo_capacita_singola_riga').text();
+                    }
+                    if (row.find('.input_capacita_reale').text()=='-'){
+                        valore_capacita_reale = null;
+                    }
+                    else{
+                        valore_capacita_reale = row.find('.input_capacita_reale').text();
+                    }
 
                     let item = {
                         regione: row.find('td').eq(0).text().trim(),
@@ -662,7 +714,8 @@
                         inizioPeriodoValidita: valore_inizioPeriodoValidita,
                         finePeriodoValidita: valore_finePeriodoValidita,
                         capacita: row.find('.input_capacita').val(),
-                        capacita_reale: row.find('.input_capacita_reale').text(),
+                        capacita_reale: valore_capacita_reale,
+                        tipo_capacita_singola_riga: valore_tipo_capacita_singola_riga
                     };
                     data[gruppo].push(item);
                 });
@@ -830,35 +883,55 @@ function aggiungiRiga(button) {
     
     // Clona i primi 3 valori
     const celleUltimaRiga = ultimaRigaOriginale.querySelectorAll('td');
-    let capacita_reale_ultima_riga = celleUltimaRiga[6].textContent.split(" ");
-    capacita_reale_ultima_riga = capacita_reale_ultima_riga[capacita_reale_ultima_riga.length -1]
 
+    // Regione
     nuovaRiga.appendChild(tdText(celleUltimaRiga[0].textContent));
+    // Provincia
     nuovaRiga.appendChild(tdText(celleUltimaRiga[1].textContent));
+    // Product
     nuovaRiga.appendChild(tdText(celleUltimaRiga[2].textContent));
+    // Numero di post. settimanali
     nuovaRiga.appendChild(tdText('0'));
-
-    // TD con input date (static HTML, ok)
-    const tdInizio = document.createElement('td');
-    tdInizio.innerHTML = '<input type="date" class="form-control text-center input_inizioPeriodoValidita" onkeydown="return (event.keyCode!=13);">';
-    nuovaRiga.appendChild(tdInizio);
-
-    const tdFine = document.createElement('td');
-    tdFine.innerHTML = '<input type="date" class="form-control text-center input_finePeriodoValidita" onkeydown="return (event.keyCode!=13);">';
-    nuovaRiga.appendChild(tdFine);
+    // Inizio periodo di validità
+    if (righeTotali.length == 0){
+        data_fine_ultima_riga = celleUltimaRiga[5].textContent;
+    } else{
+        console.log(righeTotali[righeTotali.length - 1].querySelectorAll('td')[5].textContent);
+        data_fine_ultima_riga = righeTotali[righeTotali.length - 1].querySelectorAll('td')[5].textContent;
+    }
+    // convertiamo in Date (ricordiamo che i mesi partono da 0)
+    const data_split = (data_fine_ultima_riga).split('/');
+    const old_DateObj = new Date(data_split[2], data_split[1] - 1, data_split[0]);
+    // aggiungo 1 giorno
+    old_DateObj.setDate(old_DateObj.getDate() + 1);
+    nuovaRiga.appendChild(tdText(moment(old_DateObj).format('DD/MM/YYYY')));
+    // Fine periodo di validità
+    const nuova_domenica = old_DateObj.setDate(old_DateObj.getDate() + 6);
+    nuovaRiga.appendChild(tdText(moment(nuova_domenica).format('DD/MM/YYYY')));
 
     // TD capacità (parte dinamica via proprietà, NON HTML)
     const tdCapacita = document.createElement('td');
 
     const inputCap = document.createElement('input');
     inputCap.type = 'text';
+    inputCap.inputMode = 'numeric';
     inputCap.className = 'form-control text-center input_capacita';
-    inputCap.value = capacita_reale_ultima_riga;
+    inputCap.step = '1';
+    inputCap.maxLength = '8';
+    inputCap.value = '';
+    // disabilitiamo il tasto enter per evitare il submit della form
+    inputCap.onkeydown = function() {
+        return (event.keyCode!=13);
+    }
+    // rifiutiamo qualsiasi carattere che non sia un numero
+    inputCap.oninput = function() {
+        this.value = this.value.replace(/[^0-9]/g, '')
+    }
 
     const label = document.createElement('label');
     label.className = 'm-0 p-0';
     label.style.fontSize = '12px';
-    label.textContent = `Capacità reale: ${capacita_reale_ultima_riga}`;
+    label.textContent = `Capacità reale: -`;
 
     tdCapacita.appendChild(inputCap);
     tdCapacita.appendChild(label);
@@ -886,79 +959,16 @@ function aggiungiRiga(button) {
         // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
         $('.input_capacita').trigger('input');
     });
-
-    var data_fine_ultima_riga;
-    
-    if (righeTotali.length == 0){
-        data_fine_ultima_riga = celleUltimaRiga[5].textContent;
-    } else{
-        data_fine_ultima_riga = righeTotali[righeTotali.length - 1].querySelectorAll('td')[5].querySelector('input').value;
-    }
-
-    return [data_fine_ultima_riga,nuovaRiga]; // data fine ultima settimana da impostare come data minima in flatpickr
 }
 
 // Event listener per il bottone "Aggiungi riga"
 document.addEventListener('click', function(e) {
     if (e.target && e.target.id === 'aggiungi_riga_tabelle_step3') {
         e.preventDefault();
-        var array_dataminima_nuovariga = aggiungiRiga(e.target);
-        inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga);
+        aggiungiRiga(e.target);
         // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
         $('.input_capacita').trigger('input');
     }
 });
-</script>
-
-<!-- flatpickr per vincoli datepicker STEP 3: l'inizializzazione dei calendari datepicker (flatpickr) dev'essere fatta solo dopo aver caricato l'input con il relativo id -->
- <script>
-    function inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga){
-        const inputInizio = array_dataminima_nuovariga[1].querySelector('.input_inizioPeriodoValidita');
-        const inputFine = array_dataminima_nuovariga[1].querySelector('.input_finePeriodoValidita');
-        // convertiamo in Date (ricordiamo che i mesi partono da 0)
-        const data_split = array_dataminima_nuovariga[0].split('/');
-        const old_DateObj = new Date(data_split[2], data_split[1] - 1, data_split[0]);
-        // aggiungo 1 giorno
-        const defaultDateObj = new Date(old_DateObj);
-        defaultDateObj.setDate(defaultDateObj.getDate() + 1);
-        const finePicker = flatpickr(inputFine, {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            dateFormat: "d/m/Y",
-            disable: [
-                function(date) {
-                    // abilitiamo solo le domeniche (0)
-                    return !(date.getDay() === 0);
-                }
-            ],
-        });
-        const inizioPicker = flatpickr(inputInizio, {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            dateFormat: "d/m/Y",
-            minDate: array_dataminima_nuovariga[0],
-            maxDate: defaultDateObj,
-            defaultDate: defaultDateObj,
-            onReady: function(selectedDates) {
-                if (!selectedDates || selectedDates.length === 0) return;
-                const data_inizio = new Date(selectedDates[0]);
-                const data_fine = new Date(data_inizio);
-                data_fine.setDate(data_fine.getDate() + 6);
-                finePicker.set('minDate', data_fine);
-                finePicker.set('maxDate', data_fine);
-                finePicker.setDate(data_fine);
-            },
-            disable: [
-                function(date) {
-                    // abilitiamo solo i lunedì (1)
-                    return !(date.getDay() === 1);
-                }
-            ],
-        });
-    }
 </script>
 {% endblock %}
