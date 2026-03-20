@@ -108,7 +108,7 @@
                       }
                     },
                     "Next": "MERGE DB",
-                    "ResultPath": null
+                    "ResultPath": "$.output_jobGlue_DECLAREDCAPACITY"
                   },
                   "MERGE DB": {
                     "Type": "Task",
@@ -168,7 +168,8 @@
                         "--mese_simulazione.$": "$.mese_simulazione"
                       }
                     },
-                    "Next": "MERGE  DB"
+                    "Next": "MERGE  DB",
+                    "ResultPath": "$.output_jobGlue_SENDERLIMIT"
                   },
                   "MERGE  DB": {
                     "Type": "Task",
