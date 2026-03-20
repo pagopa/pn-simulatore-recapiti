@@ -29,7 +29,7 @@ def get_data_from_db(cur, query):
     return rows
 
 
-def get_used_capacity_from_lambda(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione):
+def get_used_capacity_from_lambda(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default):
     lambda_delayer = boto3.client('lambda')
     # inizializziamo la variabile che conterrà la lista di record da inserire sul db
     rows = []
@@ -54,7 +54,7 @@ def get_used_capacity_from_lambda(lista_settimane_processate, lista_province, li
                     except:
                         activation_date_from = ''
                         activation_date_to = ''
-                    rows.append([list(recapitista)[0],activation_date_from,activation_date_to,response_dict_body['declaredCapacity'],None,None,provincia[1],provincia[0],None,None,datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),id_simulazione])
+                    rows.append([list(recapitista)[0],activation_date_from,activation_date_to,response_dict_body['declaredCapacity'],None,None,provincia[1],provincia[0],None,None,datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),flag_default,id_simulazione])
     
     return rows
 
@@ -90,6 +90,60 @@ def get_second_monday_mese_successivo(data_string):
     secondo_lunedi = (primo_lunedi + timedelta(days=7)).strftime("%Y-%m-%d")
     return secondo_lunedi
 
+def recupero_lista_settimane_per_getusedcapacity(lista_settimane_processate):
+    second_monday_mese_successivo = get_second_monday_mese_successivo(lista_settimane_processate[0])
+    lista_settimane_per_getusedcapacity = []
+    flag_settimane_da_considerare = False
+    for singola_settimana in lista_settimane_processate:
+        if second_monday_mese_successivo == singola_settimana:
+            flag_settimane_da_considerare = True
+        if flag_settimane_da_considerare:
+            lista_settimane_per_getusedcapacity.append(singola_settimana)
+    return lista_settimane_per_getusedcapacity
+
+def delete_capacity(cur, conn, id_simulazione):
+    cur.execute(f'''
+        DELETE FROM public."CAPACITA_SIMULATE" WHERE "SIMULAZIONE_ID"={id_simulazione} AND "ACTIVATION_DATE_TO" IS NULL;
+    ''')
+    conn.commit()
+
+def merge_capacita_simulate_delta(cur, conn):
+    cur.execute(
+        '''
+            MERGE INTO public."CAPACITA_SIMULATE"
+            USING public."CAPACITA_SIMULATE_DELTA"
+            ON (public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE_DELTA"."UNIFIED_DELIVERY_DRIVER"
+                AND public."CAPACITA_SIMULATE"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE_DELTA"."SIMULAZIONE_ID"
+                AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM" = public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_FROM"
+                AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."CAPACITA_SIMULATE_DELTA"."COD_SIGLA_PROVINCIA") 
+            --When records are matched, update the records if there is any change
+            WHEN MATCHED AND public."CAPACITA_SIMULATE"."LAST_UPDATE_TIMESTAMP" < public."CAPACITA_SIMULATE_DELTA"."LAST_UPDATE_TIMESTAMP" 
+            THEN UPDATE SET 
+            "UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE_DELTA"."UNIFIED_DELIVERY_DRIVER", 
+            "ACTIVATION_DATE_FROM" = public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_FROM", "ACTIVATION_DATE_TO" = public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_TO", 
+            "CAPACITY" = public."CAPACITA_SIMULATE_DELTA"."CAPACITY", "SUM_MONTHLY_ESTIMATE" = public."CAPACITA_SIMULATE_DELTA"."SUM_MONTHLY_ESTIMATE", 
+            "SUM_WEEKLY_ESTIMATE" = public."CAPACITA_SIMULATE_DELTA"."SUM_WEEKLY_ESTIMATE", "REGIONE" = public."CAPACITA_SIMULATE_DELTA"."REGIONE", 
+            "COD_SIGLA_PROVINCIA" = public."CAPACITA_SIMULATE_DELTA"."COD_SIGLA_PROVINCIA", "PRODUCT_890" = public."CAPACITA_SIMULATE_DELTA"."PRODUCT_890", 
+            "PRODUCT_AR" = public."CAPACITA_SIMULATE_DELTA"."PRODUCT_AR", "SIMULAZIONE_ID" = public."CAPACITA_SIMULATE_DELTA"."SIMULAZIONE_ID",
+            "FLAG_DEFAULT" = public."CAPACITA_SIMULATE_DELTA"."FLAG_DEFAULT",
+            "LAST_UPDATE_TIMESTAMP" = public."CAPACITA_SIMULATE_DELTA"."LAST_UPDATE_TIMESTAMP"
+            WHEN NOT MATCHED 
+            THEN INSERT ("UNIFIED_DELIVERY_DRIVER" , "ACTIVATION_DATE_FROM", "ACTIVATION_DATE_TO" , 
+            "CAPACITY" , "SUM_MONTHLY_ESTIMATE", "SUM_WEEKLY_ESTIMATE", "REGIONE", 
+            "COD_SIGLA_PROVINCIA", "PRODUCT_890" , "PRODUCT_AR" , "SIMULAZIONE_ID", "FLAG_DEFAULT", "LAST_UPDATE_TIMESTAMP") 
+            VALUES 
+            (public."CAPACITA_SIMULATE_DELTA"."UNIFIED_DELIVERY_DRIVER", 
+            public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_FROM", public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_TO", 
+            public."CAPACITA_SIMULATE_DELTA"."CAPACITY", public."CAPACITA_SIMULATE_DELTA"."SUM_MONTHLY_ESTIMATE", 
+            public."CAPACITA_SIMULATE_DELTA"."SUM_WEEKLY_ESTIMATE", public."CAPACITA_SIMULATE_DELTA"."REGIONE", 
+            public."CAPACITA_SIMULATE_DELTA"."COD_SIGLA_PROVINCIA", public."CAPACITA_SIMULATE_DELTA"."PRODUCT_890", 
+            public."CAPACITA_SIMULATE_DELTA"."PRODUCT_AR", public."CAPACITA_SIMULATE_DELTA"."SIMULAZIONE_ID",
+            public."CAPACITA_SIMULATE_DELTA"."FLAG_DEFAULT", public."CAPACITA_SIMULATE_DELTA"."LAST_UPDATE_TIMESTAMP");
+        '''
+    )
+    conn.commit()
+    cur.execute('DELETE FROM public."CAPACITA_SIMULATE_DELTA";')
+    conn.commit()
 
 def lambda_handler(event, context):
     # recupero variabili d'ambiente
@@ -112,8 +166,10 @@ def lambda_handler(event, context):
     if tipo_simulazione == 'Automatizzata':
         # recupero parametro id_simulazione
         id_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['id_simulazione_automatizzata']
+        # FLAG_DEFAULT -> per l'automatizzata va settato sempre a True su tutte le capacità recuperate
+        flag_default = True
         # GET_USED_CAPACITY
-        rows = get_used_capacity_from_lambda(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione)
+        rows = get_used_capacity_from_lambda(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default)
         # scrittura sul db delle capacità recuperate con la GET_USED_CAPACITY
         insert_capacities_into_db(cur, rows, 'CAPACITA_SIMULATE')
         # commit dell'inserimento
@@ -123,58 +179,21 @@ def lambda_handler(event, context):
         # recupero parametro id_simulazione
         id_simulazione = event['id_simulazione_manuale']
         # la GET_USED_CAPACITY la lanciamo dalla seconda settimana del mese successivo in poi per le settimane processate dalla run algorithm
-        second_monday_mese_successivo = get_second_monday_mese_successivo(lista_settimane_processate[0])
-        lista_settimane_per_getusedcapacity = []
-        flag_settimane_da_considerare = False
-        for singola_settimana in lista_settimane_processate:
-            if second_monday_mese_successivo == singola_settimana:
-                flag_settimane_da_considerare = True
-            if flag_settimane_da_considerare:
-                lista_settimane_per_getusedcapacity.append(singola_settimana)
+        lista_settimane_per_getusedcapacity = recupero_lista_settimane_per_getusedcapacity(lista_settimane_processate)
+        # FLAG_DEFAULT -> se TIPO_CAPACITA=Picco settiamo False, altrimenti settiamo True
+        cur.execute('''SELECT "TIPO_CAPACITA" from public."SIMULAZIONE" where "ID"={id_simulazione};''')
+        tipo_capacita = cur.fetchall()
+        if tipo_capacita[0][0] == 'Picco':
+            flag_default = False
+        else:
+            flag_default = True
         # GET_USED_CAPACITY
-        rows = get_used_capacity_from_lambda(lista_settimane_per_getusedcapacity, lista_province, lista_recapitisti, id_simulazione)
+        rows = get_used_capacity_from_lambda(lista_settimane_per_getusedcapacity, lista_province, lista_recapitisti, id_simulazione, flag_default)
         # scrittura sul db delle capacità recuperate con la GET_USED_CAPACITY
         insert_capacities_into_db(cur, rows, 'CAPACITA_SIMULATE_DELTA')
-        # cancelliamo le capacità di default
-        cur.execute(f'''
-            DELETE FROM public."CAPACITA_SIMULATE" WHERE "SIMULAZIONE_ID"={id_simulazione} AND "ACTIVATION_DATE_TO" IS NULL;
-        ''')
-        conn.commit()
-        cur.execute(
-            '''
-                MERGE INTO public."CAPACITA_SIMULATE"
-                USING public."CAPACITA_SIMULATE_DELTA"
-                ON (public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE_DELTA"."UNIFIED_DELIVERY_DRIVER"
-                    AND public."CAPACITA_SIMULATE"."SIMULAZIONE_ID" = public."CAPACITA_SIMULATE_DELTA"."SIMULAZIONE_ID"
-                    AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM" = public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_FROM"
-                    AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."CAPACITA_SIMULATE_DELTA"."COD_SIGLA_PROVINCIA") 
-                --When records are matched, update the records if there is any change
-                WHEN MATCHED AND public."CAPACITA_SIMULATE"."LAST_UPDATE_TIMESTAMP" < public."CAPACITA_SIMULATE_DELTA"."LAST_UPDATE_TIMESTAMP" 
-                THEN UPDATE SET 
-                "UNIFIED_DELIVERY_DRIVER" = public."CAPACITA_SIMULATE_DELTA"."UNIFIED_DELIVERY_DRIVER", 
-                "ACTIVATION_DATE_FROM" = public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_FROM", "ACTIVATION_DATE_TO" = public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_TO", 
-                "CAPACITY" = public."CAPACITA_SIMULATE_DELTA"."CAPACITY", "SUM_MONTHLY_ESTIMATE" = public."CAPACITA_SIMULATE_DELTA"."SUM_MONTHLY_ESTIMATE", 
-                "SUM_WEEKLY_ESTIMATE" = public."CAPACITA_SIMULATE_DELTA"."SUM_WEEKLY_ESTIMATE", "REGIONE" = public."CAPACITA_SIMULATE_DELTA"."REGIONE", 
-                "COD_SIGLA_PROVINCIA" = public."CAPACITA_SIMULATE_DELTA"."COD_SIGLA_PROVINCIA", "PRODUCT_890" = public."CAPACITA_SIMULATE_DELTA"."PRODUCT_890", 
-                "PRODUCT_AR" = public."CAPACITA_SIMULATE_DELTA"."PRODUCT_AR", "SIMULAZIONE_ID" = public."CAPACITA_SIMULATE_DELTA"."SIMULAZIONE_ID",
-                "LAST_UPDATE_TIMESTAMP" = public."CAPACITA_SIMULATE_DELTA"."LAST_UPDATE_TIMESTAMP"
-                WHEN NOT MATCHED 
-                THEN INSERT ("UNIFIED_DELIVERY_DRIVER" , "ACTIVATION_DATE_FROM", "ACTIVATION_DATE_TO" , 
-                "CAPACITY" , "SUM_MONTHLY_ESTIMATE", "SUM_WEEKLY_ESTIMATE", "REGIONE", 
-                "COD_SIGLA_PROVINCIA", "PRODUCT_890" , "PRODUCT_AR" , "SIMULAZIONE_ID" ,"LAST_UPDATE_TIMESTAMP") 
-                VALUES 
-                (public."CAPACITA_SIMULATE_DELTA"."UNIFIED_DELIVERY_DRIVER", 
-                public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_FROM", public."CAPACITA_SIMULATE_DELTA"."ACTIVATION_DATE_TO", 
-                public."CAPACITA_SIMULATE_DELTA"."CAPACITY", public."CAPACITA_SIMULATE_DELTA"."SUM_MONTHLY_ESTIMATE", 
-                public."CAPACITA_SIMULATE_DELTA"."SUM_WEEKLY_ESTIMATE", public."CAPACITA_SIMULATE_DELTA"."REGIONE", 
-                public."CAPACITA_SIMULATE_DELTA"."COD_SIGLA_PROVINCIA", public."CAPACITA_SIMULATE_DELTA"."PRODUCT_890", 
-                public."CAPACITA_SIMULATE_DELTA"."PRODUCT_AR", public."CAPACITA_SIMULATE_DELTA"."SIMULAZIONE_ID",
-                public."CAPACITA_SIMULATE_DELTA"."LAST_UPDATE_TIMESTAMP");
-            '''
-        )
-        conn.commit()
-        cur.execute('DELETE FROM public."CAPACITA_SIMULATE_DELTA";')
-        conn.commit()
+        # cancelliamo le capacità con ACTIVATION_DATE_TO null ed effettuiamo la merge fra CAPACITA_SIMULATE e CAPACITA_SIMULATE_DELTA
+        delete_capacity(cur, conn, id_simulazione)
+        merge_capacita_simulate_delta(cur, conn)
     else:
         raise Exception('Parametro tipo_simulazione non valorizzato')
 

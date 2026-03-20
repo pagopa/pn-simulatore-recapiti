@@ -20,7 +20,7 @@ def get_ultima_data_estrazione(bucket_name, s3_client):
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/mm/dd_di_estrazione su S3")
+    raise Exception("Nessuna folder input/yyyy/mm/dd_di_estrazione su S3 creata negli ultimi 30 gg")
 
 
 def get_lista_csv_source(s3_client,source_bucket,prefix_s3):
@@ -29,6 +29,9 @@ def get_lista_csv_source(s3_client,source_bucket,prefix_s3):
     lista_file_csv = []
     count=1
     for singola_settimana in lista_settimane:
+        # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere le capacità dei CAP
+        if 'cap_capacities' in singola_settimana:
+            continue
         tmp_list = []
         objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=singola_settimana)
         for obj in objects.get("Contents", []):

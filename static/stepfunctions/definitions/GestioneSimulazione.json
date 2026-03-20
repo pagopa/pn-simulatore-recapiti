@@ -33,18 +33,18 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Next": "RECUPERO DECLARED CAPACITY CAP-S3",
+          "Next": "ASSEGNAZIONE PEAK CAPACITY CAP",
           "Variable": "$.tipo_simulazione",
           "StringEquals": "Manuale"
         }
       ],
       "Default": "RECUPERO FILE CSV PER IMPORT DATA"
     },
-    "RECUPERO DECLARED CAPACITY CAP-S3": {
+    "ASSEGNAZIONE PEAK CAPACITY CAP": {
       "Type": "Task",
       "Resource": "arn:aws:states:::glue:startJobRun.sync",
       "Parameters": {
-        "JobName": "${RecuperoDeclaredCapacityCAPS3GlueJobName}",
+        "JobName": "${AssegnazionePeakCapacityCAPGlueJobName}",
         "Arguments": {
           "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
           "--mese_simulazione.$": "$.mese_simulazione"

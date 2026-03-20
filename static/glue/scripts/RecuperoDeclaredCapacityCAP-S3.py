@@ -6,7 +6,7 @@ from awsglue.context import GlueContext
 from awsglue.job import Job
 
 ## @params: [JOB_NAME]
-args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_simulazione', 'id_simulazione_manuale', 'secretsManager_SecretId','jdbc_connection','s3_bucket'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_simulazione', 'secretsManager_SecretId','jdbc_connection','s3_bucket'])
 
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -89,7 +89,6 @@ def lambda_to_dict(cap,operationType,list_parameters):
 
 # Estrazione delle settimane a partire dalla data in input
 data_simulazione=args['mese_simulazione']
-id_simulazione_manuale=args['id_simulazione_manuale']
 
 # Richiamo della lambda per province e settimane
 schema_capacity = T.StructType() \
@@ -147,7 +146,24 @@ df_capacity_tot=df_capacity_tot.withColumn('activationDateFrom',F.to_timestamp(F
 
 
 print('Export in S3')
-path = "s3://"+s3_bucket+"/input/cap_capacities/id"+id_simulazione_manuale+"_"+data_simulazione
+id_timestamp=[["1"]]
+timestamp_df=spark.createDataFrame(id_timestamp,["id"])
+
+timestamp_df = timestamp_df.withColumn("current_timestamp_string",F.date_format(F.current_timestamp(), "yyyyMMdd"))
+
+anno_corrente = timestamp_df.collect()[0][1][:4]
+mese_corrente = timestamp_df.collect()[0][1][4:6]
+giorno_corrente = timestamp_df.collect()[0][1][6:8]
+
+anno_str = data_simulazione[:4]
+mese_str = data_simulazione[5:7]
+
+path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
+                                                          + mese_corrente + "/" \
+                                                          + giorno_corrente + "/" \
+                                                          + str(anno_str) + "-" + str(mese_str) + "/" \
+                                                          + 'cap_capacities'
+
 max_rows = 10000
 num_rows=df_capacity_tot.count()
 print(num_rows)

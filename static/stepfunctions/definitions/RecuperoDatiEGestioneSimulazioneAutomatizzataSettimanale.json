@@ -63,7 +63,8 @@
                         "--mese_simulazione.$": "$.mese_simulazione"
                       }
                     },
-                    "End": true
+                    "End": true,
+                    "ResultPath": null
                   },
                   "Skip PAPER DELIVERY": {
                     "Type": "Pass",
@@ -94,8 +95,20 @@
                         "--mese_simulazione.$": "$.mese_simulazione"
                       }
                     },
+                    "Next": "DECLARED CAPACITY CAP-S3",
+                    "ResultPath": null
+                  },
+                  "DECLARED CAPACITY CAP-S3": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
+                    "Parameters": {
+                      "JobName": "${RecuperoDeclaredCapacityCAPS3GlueJobName}",
+                      "Arguments": {
+                        "--mese_simulazione.$": "$.mese_simulazione"
+                      }
+                    },
                     "Next": "MERGE DB",
-                    "ResultPath": "$.output_jobGlue_DECLAREDCAPACITY"
+                    "ResultPath": null
                   },
                   "MERGE DB": {
                     "Type": "Task",
@@ -118,6 +131,7 @@
                         "JitterStrategy": "FULL"
                       }
                     ],
+                    "ResultPath": "$.output_lambda_MERGEDB",
                     "End": true
                   },
                   "Skip DECLARED CAPACITY": {
@@ -154,8 +168,7 @@
                         "--mese_simulazione.$": "$.mese_simulazione"
                       }
                     },
-                    "Next": "MERGE  DB",
-                    "ResultPath": "$.output_jobGlue_SENDERLIMIT"
+                    "Next": "MERGE  DB"
                   },
                   "MERGE  DB": {
                     "Type": "Task",
