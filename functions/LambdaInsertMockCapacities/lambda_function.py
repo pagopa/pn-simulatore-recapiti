@@ -7,6 +7,7 @@ import io
 import csv
 from datetime import timezone, date, timedelta
 from botocore.config import Config
+import math
 
 def get_db_credentials(secretsManager_SecretId):
     client = boto3.client("secretsmanager")
@@ -94,14 +95,15 @@ def upload_object_on_s3(db_rows, capacity_granularity, lambda_delayer, id_simula
         if row[5]!=None:
             row[5] = row[5].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
-    num_chunks = (len(db_rows) + 10000 - 1)
+    
     if capacity_granularity=='province':
         source_filename = 'mock_capacities_id'+id_simulazione_manuale
     else:
         source_filename = 'mock_capacities_cap_id'+id_simulazione_manuale
     
     lista_file_csv_caricati_su_s3 = []
-
+    max_rows = 10000
+    num_chunks=math.ceil(len(db_rows)/max_rows)
     for index in range(num_chunks):
         chunk = db_rows[index * 10000:(index + 1) * 10000]
         # GET PRESIGNED URL
@@ -125,20 +127,23 @@ def upload_object_on_s3(db_rows, capacity_granularity, lambda_delayer, id_simula
 
     return 0, lista_file_csv_caricati_su_s3
 
-def insert_mock_capacities_with_lambda(lambda_delayer,filename):
-    # INSERT MOCK CAPACITIES - testDelayerLambda
-    payload_lambda={
-        "operationType": "INSERT_MOCK_CAPACITIES",
-        "parameters": ["pn-PaperDeliveryDriverCapacitiesMock", filename]
-    }
-    response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
-    read_response = response_lambda['Payload'].read()
-    string_response = read_response.decode('utf-8')
-    response_dict = json.loads(string_response)
-    if response_dict['statusCode'] == 200:
-        return 0
-    else:
-        return 1
+def insert_mock_capacities_with_lambda(lambda_delayer,lista_filename_insertMockCapacities):
+    for filename in lista_filename_insertMockCapacities:
+        print(filename)
+        # INSERT MOCK CAPACITIES - testDelayerLambda
+        payload_lambda={
+            "operationType": "INSERT_MOCK_CAPACITIES",
+            "parameters": ["pn-PaperDeliveryDriverCapacitiesMock", filename]
+        }
+        response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
+        read_response = response_lambda['Payload'].read()
+        string_response = read_response.decode('utf-8')
+        response_dict = json.loads(string_response)
+        if response_dict['statusCode'] != 200:
+            print(response_dict)
+            return 1
+            
+    return 0
 
 def create_object_copy_on_s3(s3_client,source_bucket,obj_key,source_key,destination_filename):
     s3_client.copy_object(
@@ -195,42 +200,19 @@ def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale
     return 0
 
 def lambda_handler(event, context):
-    # recuperiamo il numero totale di file da caricare
-    lista_file_da_caricare = event["output_lambda_ListaFileImportData"]['Payload']['lista_file_csv']
-    numero_file_da_caricare = len(lista_file_da_caricare[0]['lista_file_csv_1']) + len(lista_file_da_caricare[1]['lista_file_csv_2']) + len(lista_file_da_caricare[2]['lista_file_csv_3']) + len(lista_file_da_caricare[3]['lista_file_csv_4']) + len(lista_file_da_caricare[4]['lista_file_csv_5']) + len(lista_file_da_caricare[5]['lista_file_csv_6'])
-    # recupero parametri d'ambiente dalla step function
-    source_bucket = os.environ['source_bucket']
-    # inizializzazione connessione verso s3
-    s3_client = boto3.client('s3')
-    # inizializzazione connessione lambda
     lambda_delayer=boto3.client('lambda')
-    # recuperiamo la lista dei file caricati tramite IMPORT DATA
-    lista_file_csv_caricati = []
-    objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix='StepFunction_ListaFileImportData/')
-    for obj in objects.get("Contents", []):
-        if obj["Key"][-4:] == '.csv':
-            lista_file_csv_caricati.append({'destination_filename':obj["Key"].split('/')[-1]})
-    # controlliamo se il numero di file da caricare è uguale al numero di file effettivamente caricati tramite IMPORT DATA
-    if len(lista_file_csv_caricati) != numero_file_da_caricare:
-        print(f"Il numero di file da caricare non coincide con il numero di file effettivamente caricati tramite IMPORT DATA (lista_file_csv_caricati: {lista_file_csv_caricati}, numero_file_da_caricare: {numero_file_da_caricare})")
-        return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':1}
 
-    if event["tipo_simulazione"] == 'Manuale':
-        # Manuale
-        # recupero parametri d'ambiente dalla step function
-        id_simulazione_manuale = event["id_simulazione_manuale"]
+    # Manuale
+    # recupero parametri d'ambiente dalla step function
+    id_simulazione_manuale = '90'
 
-        errori_presenti_insert_province = gestione_insert_mock_capacities('province', id_simulazione_manuale, lambda_delayer)
-        if errori_presenti_insert_province != 0:
-            return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert_province}
+    errori_presenti_insert_province = gestione_insert_mock_capacities('province', id_simulazione_manuale, lambda_delayer)
+    if errori_presenti_insert_province != 0:
+        return {'statusCode': 500, 'errori_presenti':errori_presenti_insert_province}
 
-        errori_presenti_insert_cap = gestione_insert_mock_capacities('CAP', id_simulazione_manuale, lambda_delayer)
-        if errori_presenti_insert_cap != 0:
-            return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert_cap}
+    errori_presenti_insert_cap = gestione_insert_mock_capacities('CAP', id_simulazione_manuale, lambda_delayer)
+    if errori_presenti_insert_cap != 0:
+        return {'statusCode': 500, 'errori_presenti':errori_presenti_insert_cap}
 
-        print(f"File csv delle capacità di mock per provincia e per CAP inseriti correttamente tramite INSERT_MOCK_CAPACITIES")
-        return {'statusCode': 200, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':0}
-            
-    elif event['tipo_simulazione'] == 'Automatizzata':
-        # Automatizzata
-        return {'statusCode': 200, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':0}
+    print(f"File csv delle capacità di mock per provincia e per CAP inseriti correttamente tramite INSERT_MOCK_CAPACITIES")
+    return {'statusCode': 200, 'errori_presenti':0}

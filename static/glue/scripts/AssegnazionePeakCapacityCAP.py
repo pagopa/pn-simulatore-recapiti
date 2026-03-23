@@ -29,7 +29,7 @@ secretsManager_SecretId = args['secretsManager_SecretId']
 jdbc_connection = args['jdbc_connection']
 s3_bucket = args['s3_bucket']
 mese_simulazione = args['mese_simulazione']
-id_simulazione_manuale = args['id_simulazione_manuale']
+id_simulazione_manuale = int(args['id_simulazione_manuale'])
 
 print('Lettura dati input avviata')
 ######################################
@@ -102,7 +102,7 @@ file_path = 's3://' + s3_bucket + '/'
 
 file_list = s3_client.list_objects_v2(
         Bucket=s3_bucket,
-        Prefix='input/' + prefix + mese_simulazione + '/cap_capacities/',
+        Prefix='input/' + prefix + mese_simulazione[:7] + '/cap_capacities/',
     )['Contents']
     
 # Creazione di un unico dataframe con append dei dataframe corrispondenti ai file
@@ -117,7 +117,7 @@ print('Lettura dati input completata')
 # Aggiunta della colonna della provincia al dataframe CAP capacities
 
 df_cap_capacities_prov = df_cap_capacities.join(df_cap_prov_reg, df_cap_capacities.geoKey == df_cap_prov_reg.CAP, how='left')\
-                                          .select(df_cap_capacities['*'],df_cap_prov_reg['CodSiglaProvincia'])
+                                          .select(df_cap_capacities['*'],df_cap_prov_reg['COD_SIGLA_PROVINCIA'])
 
 print('Aggiunta della colonna provincia su CAP Capacities completata')
 
@@ -146,7 +146,7 @@ def add_rows_cap(rows_type):
     
         # Individuazione dei record per la coppia provincia-recapitista nella CAP capacities e nella capacità simulate
         df_cap_capacities_prov_filtred = df_cap_capacities_prov.filter((F.col('unifiedDeliveryDriver')==recap_prov['UNIFIED_DELIVERY_DRIVER']) & 
-                                                                       (F.col('CodSiglaProvincia')==recap_prov['COD_SIGLA_PROVINCIA'])).collect()
+                                                                       (F.col('COD_SIGLA_PROVINCIA')==recap_prov['COD_SIGLA_PROVINCIA'])).collect()
 
         df_capacita_simulate_recap_prov = df_capacita_simulate_check_flag.filter((F.col('UNIFIED_DELIVERY_DRIVER')==recap_prov['UNIFIED_DELIVERY_DRIVER']) & 
                                                                          (F.col('COD_SIGLA_PROVINCIA')==recap_prov['COD_SIGLA_PROVINCIA'])).collect()
