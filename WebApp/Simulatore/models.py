@@ -15,7 +15,7 @@ class table_simulazione(models.Model):
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
     TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)
     MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)
-    TIPO_CAPACITA = models.CharField(max_length=25, null=True)
+    TIPO_CAPACITA = models.CharField(max_length=25, null=True)  # [BAU, Picco, Combinata, Produzione] -> Per le automatizzate settiamo "Produzione"
     TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
     class Meta:
         db_table = 'SIMULAZIONE'
@@ -72,6 +72,7 @@ class table_capacita_simulate_delta(models.Model):
     PRODUCT_890 = models.BooleanField(null=True)
     PRODUCT_AR = models.BooleanField(null=True)
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    FLAG_DEFAULT = models.BooleanField(null=True)
     SIMULAZIONE_ID = models.IntegerField(null=True)
     class Meta:
         db_table = 'CAPACITA_SIMULATE_DELTA'
@@ -211,13 +212,8 @@ class table_capacita_simulate_cap(models.Model):
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
     CAPACITY = models.IntegerField(null=True)
-    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
-    SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
-    REGIONE = models.CharField(max_length=50, null=True)
-    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
     GEOKEY = models.CharField(max_length=5, null=True)
-    PRODUCT_890 = models.BooleanField(null=True)
-    PRODUCT_AR = models.BooleanField(null=True)
     LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
@@ -321,9 +317,9 @@ class view_output_modified_capacity_setting(pg.View):
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
     ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
     ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
-    ORIGINAL_CAPACITY = models.IntegerField(null=True)
-    MODIFIED_CAPACITY = models.IntegerField(null=True)
-    PEAK_CAPACITY = models.IntegerField(null=True)
+    CAPACITY = models.IntegerField(null=True) # contiene la capacità reale di bau
+    MODIFIED_CAPACITY = models.IntegerField(null=True) # contiene la capacità specificata dall'utente tramite il modulo della Nuova simulazione
+    PEAK_CAPACITY = models.IntegerField(null=True) # contiene la capacità reale di picco
     PRODUCTION_CAPACITY = models.IntegerField(null=True)
     SUM_WEEKLY_ESTIMATE = models.IntegerField(null=True)
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
@@ -350,7 +346,7 @@ class view_output_modified_capacity_setting(pg.View):
             CASE 
                 WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."CAPACITY"
                 ELSE 0
-            END AS "ORIGINAL_CAPACITY",
+            END AS "CAPACITY",
             public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
             CASE 
                 WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."CAPACITA_SIMULATE"."SUM_WEEKLY_ESTIMATE"
