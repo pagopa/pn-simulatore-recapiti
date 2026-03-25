@@ -11,6 +11,9 @@ from zoneinfo import ZoneInfo
 import boto3
 from botocore.config import Config
 from django.utils.http import url_has_allowed_host_and_scheme
+import csv
+from django.http import HttpResponse
+from django.views.decorators.gzip import gzip_page
 import locale
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
@@ -351,7 +354,9 @@ def remove_trigger_eventbridge_scheduler(id_simulazione):
 
 def recupero_parametri_salva_simulazione(request):
     nome_simulazione = request.POST['nome_simulazione']
-    descrizione_simulazione = request.POST['descrizione_simulazione']
+    descrizione_simulazione = None
+    if request.POST['descrizione_simulazione'] in request.POST:
+        descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
         if request.POST['inlineRadioOptions'] == 'now':
             timestamp_esecuzione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
@@ -667,6 +672,53 @@ def gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_updat
             )
         )
     table_capacita_simulate.objects.bulk_create(lista_capacita_rs_da_salvare)
+
+
+
+@gzip_page # utile per comprimere la risposta
+def download_capacita_per_provincia(request, id_simulazione):
+    datetime_now = datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None).strftime("%Y%m%d")
+    # creiamo la response con header csv
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="CapacitaPerProvincia_id{id_simulazione}_{datetime_now}.csv"'
+    # creiamo il writer csv
+    writer = csv.writer(response, delimiter=';')
+    # header del csv
+    writer.writerow(['unifiedDeliveryDriver','geoKey','capacity','peakCapacity','activationDateFrom','activationDateTo','products'])
+    # recuperiamo i recod sul db
+    queryset = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+    # scriviamo sul file con chunk_size=1000
+    for row in queryset.iterator(chunk_size=1000):
+        formtted_row = elaborazione_capacita_per_provincia(row)
+        writer.writerow([
+            formtted_row['UNIFIED_DELIVERY_DRIVER'],
+            formtted_row['COD_SIGLA_PROVINCIA'],
+            formtted_row['CAPACITY'],
+            formtted_row['CAPACITY'],
+            formtted_row['ACTIVATION_DATE_FROM'],
+            formtted_row['ACTIVATION_DATE_TO'],
+            formtted_row['products']
+        ])
+    return response
+
+def elaborazione_capacita_per_provincia(row):
+    # formattiamo il product
+    product_list = ''
+    if row['PRODUCT_890'] == True:
+        product_list += '890,'
+    if row['PRODUCT_AR'] == True:
+        product_list += 'AR,'
+    product_list += 'RS'
+    # rimuoviamo gli ultimi 2 elementi da ogni riga recuperata dal db (product_890 e product_AR)
+    del row['PRODUCT_890']
+    del row['PRODUCT_AR']
+    # aggiungiamo la stringa creata per il prodotto
+    row['products'] = product_list
+    # adattiamo la data al formato ISO 8601 in UTC -> yyyy-mm-ddTHH:MM:SS.000Z
+    row['ACTIVATION_DATE_FROM'] = row['ACTIVATION_DATE_FROM'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    if row['ACTIVATION_DATE_TO']!=None:
+        row['ACTIVATION_DATE_TO'] = row['ACTIVATION_DATE_TO'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    return row
 
 
 # ERROR PAGES
