@@ -394,7 +394,6 @@
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}`);
-            console.log(response);
             if (!response.ok) {
                 throw new Error('Errore nel download');
             }
@@ -402,7 +401,7 @@
             const blob = await response.blob();
             // crteiamo l'URL per il download
             const url = window.URL.createObjectURL(blob);
-            const button_fittizio = document.createElement('button_fittizio');
+            const button_fittizio = document.createElement('a');
             button_fittizio.href = url;
             // recuperiamo il nome del file dagli header
             button_fittizio.download = response.headers.get('Content-Disposition').match(/filename="(.+)"/)[1];
