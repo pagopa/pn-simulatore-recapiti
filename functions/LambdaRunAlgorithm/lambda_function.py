@@ -1,9 +1,33 @@
+"""
+AWS Lambda che si occupa di effettuare l'operazione di RUN_ALGORITHM
+
+Trigger:
+    Step function pn-simulatore-recapiti-sf-GestioneSimulazione
+
+Input:
+    settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato yyyy-mm-dd, utile per calcolare la successiva settimana da processare
+    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-mm-dd
+    tipo_simulazione: 'Automatizzata' o 'Manuale'
+
+Output:
+    settimana_processata_RUN_ALGORITHM: fornisce alla LambdaGetPaperDeliveryResidui la settimana corrente appena processata tramite l'operazione di RUN_ALGORITHM nel formato yyyy-mm-dd
+"""
 import json
 import boto3
 import os
 from datetime import datetime, timedelta
 
 def run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity):
+    """
+    Effettuiamo l'operazione di RUN_ALGORITHM
+
+    Args:
+        settimana_da_processare (string): parametro da dare in input alla RUN_ALGORITHM, nel formato yyyy-mm-dd, per specificare la settimana da processare
+        nome_tabella_capacity (string): nome della tabella delle capacità settata sulla base del tipo di simulazione (Automatizzata o Manuale)
+
+    Returns:
+        int: HTTP status codes
+    """
     lambda_delayer = boto3.client('lambda')
     # RUN ALGORITHM - testDelayerLambda
     payload_lambda={
@@ -27,7 +51,6 @@ def run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity):
     
 
 def lambda_handler(event, context):
-
     # se siamo nelle iterazioni successive alla prima recuperiamo l'ultima settimana processata dai parametri di output di questa stessa lambda nella precedente iterazione, altrimenti prendiamo la settimana dal parametro 'mese_simulazione'
     try:
         settimana_da_processare = event["output_lambda_RUNALGORITHM"]['Payload']['settimana_processata_RUN_ALGORITHM']

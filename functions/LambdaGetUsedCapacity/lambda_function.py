@@ -1,3 +1,15 @@
+"""
+AWS Lambda che viene invocata a valle del ciclo di RUN_ALGORITHM e recupera le capacità utilizzate andandole a salvare sul db
+
+Trigger:
+    Step function pn-simulatore-recapiti-sf-GestioneSimulazione
+
+Input:
+    lista_settimane_processate
+    tipo_simulazione: 'Automatizzata' o 'Manuale'
+    id_simulazione_automatizzata: valorizzata con l'id di simulazione in caso di simulazione 'Automatizzata'
+    id_simulazione_manuale: valorizzata con l'id di simulazione in caso di simulazione 'Manuale'
+"""
 import json
 import boto3
 import os
@@ -5,14 +17,35 @@ import pg8000
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-def get_db_credentials(secretsManager_SecretId):
+def recupero_credenziali_db(secretsManager_SecretId):
+    """
+    Recupera le credenziali di connessione al db salvate sul secret manager
+
+    Args:
+        secretsManager_SecretId (string): arn dell'istanza secret manager che contiene le credenziali del db
+
+    Returns:
+        dict: credenziali del db recuperate dal secret manager
+    """
     client = boto3.client("secretsmanager")
     response = client.get_secret_value(SecretId=secretsManager_SecretId)
     response_SecretString = json.loads(response['SecretString'])
     return response_SecretString
 
 
-def get_connection(db_host, db_name, db_port, creds):
+def connessione_db(db_host, db_name, db_port, creds):
+    """
+    Crea la connessione al db
+
+    Args:
+        db_host (string): server del db
+        db_name (string): nome del db
+        db_port (string): porta del db
+        creds (string): contiene le credenziali del db recuperate dal secret manager
+
+    Returns:
+        pg8000.legacy.Connection: istanza di connessione al db
+    """
     conn = pg8000.connect(
         host=db_host,
         database=db_name,
@@ -23,13 +56,36 @@ def get_connection(db_host, db_name, db_port, creds):
     return conn
 
 
-def get_data_from_db(cur, query):
+def recupero_dati_db(cur, query):
+    """
+    Recupero dati sul db attraverso una query fornita in input
+
+    Args:
+        cur (pg8000.legacy.Cursor): cursor per query su db
+        query (string): testo della query da inviare al db
+
+    Returns:
+        list: record db recuperati dalla query
+    """
     cur.execute(query)
     rows = cur.fetchall()
     return rows
 
 
-def get_used_capacity_from_lambda(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default):
+def recupero_used_capacity(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default):
+    """
+    Recupero della capacità utilizzata dalla RUN_ALGORITHM, tramite la GET_USED_CAPACITY, e processing per conseguente salvataggio sul db
+
+    Args:
+        lista_settimane_processate (list): lista delle settimane processate dalla RUN_ALGORITHM
+        lista_province (list of tuple): lista di tuple provincia-regione
+        lista_recapitisti (list): lista dei recapitisti
+        id_simulazione (string): identificativo univoco della simulazione sul db
+        flag_default (bool): flag che indica se è stata utilizzata una capacità di BAU o di picco
+
+    Returns:
+        list: record db recuperati dalla query e processati in vista del conseguente salvataggio sul db
+    """
     lambda_delayer = boto3.client('lambda')
     # inizializziamo la variabile che conterrà la lista di record da inserire sul db
     rows = []
@@ -59,7 +115,15 @@ def get_used_capacity_from_lambda(lista_settimane_processate, lista_province, li
     return rows
 
 
-def insert_capacities_into_db(cur, rows, destination_table):
+def inserimento_used_capacity_db(cur, rows, destination_table):
+    """
+    Inserimento delle capacità utilizzate dalla RUN_ALGORITHM nella destination_table sul db
+
+    Args:
+        cur (pg8000.legacy.Cursor): cursor per query su db
+        rows (list): lista di record da inserire nella destination_table sul db
+        destination_table (string): tabella all'interno della quale faremo l'inserimento
+    """
     #query
     insert_query = f"""
         INSERT INTO public."{destination_table}" ("UNIFIED_DELIVERY_DRIVER","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","SUM_MONTHLY_ESTIMATE","SUM_WEEKLY_ESTIMATE","REGIONE","COD_SIGLA_PROVINCIA","PRODUCT_890","PRODUCT_AR","LAST_UPDATE_TIMESTAMP","SIMULAZIONE_ID")
@@ -68,7 +132,16 @@ def insert_capacities_into_db(cur, rows, destination_table):
     cur.executemany(insert_query, rows)
 
 
-def get_second_monday_mese_successivo(data_string):
+def calcolo_secondo_lunedi_mese_successivo(data_string):
+    """
+    Calcoliamo il secondo lunedì del mese successivo rispetto alla data fornita in input
+
+    Args:
+        data_string (string): primo lunedì processato dalla RUN_ALGORITHM nel formato yyyy-mm-dd
+
+    Returns:
+        string: secondo lunedì del mese successivo nel formato yyyy-mm-dd
+    """
     # from string to datetime
     d = datetime.strptime(data_string, "%Y-%m-%d")
     # aumentiamo il mese di 1
@@ -91,7 +164,16 @@ def get_second_monday_mese_successivo(data_string):
     return secondo_lunedi
 
 def recupero_lista_settimane_per_getusedcapacity(lista_settimane_processate):
-    second_monday_mese_successivo = get_second_monday_mese_successivo(lista_settimane_processate[0])
+    """
+    Calcoliamo per quali settimane, fra quelle processate, dobbiamo recuperare la used capacity -> da requisito, per simulazioni manuali, le settimane per le quali fare la getusedcapacity sono quelle dalla seconda del mese successivo in poi
+
+    Args:
+        lista_settimane_processate (list): ogni elemento della lista è una stringa con una data (nel formato yyyy-mm-dd) del lunedì della settimana processata dalla RUN_ALGORITHM
+
+    Returns:
+        list: settimane per le quali chiamare la GET_USED_CAPACITY
+    """
+    second_monday_mese_successivo = calcolo_secondo_lunedi_mese_successivo(lista_settimane_processate[0])
     lista_settimane_per_getusedcapacity = []
     flag_settimane_da_considerare = False
     for singola_settimana in lista_settimane_processate:
@@ -101,13 +183,28 @@ def recupero_lista_settimane_per_getusedcapacity(lista_settimane_processate):
             lista_settimane_per_getusedcapacity.append(singola_settimana)
     return lista_settimane_per_getusedcapacity
 
-def delete_capacity(cur, conn, id_simulazione):
+def rimozione_capacity(cur, conn, id_simulazione):
+    """
+    Cancelliamo le capacità con ACTIVATION_DATE_TO null dalla tabella del db denominata "CAPACITA_SIMULATE"
+
+    Args:
+        cur (pg8000.legacy.Cursor): cursor per query su db
+        conn (pg8000.legacy.Connection): istanza di connessione al db che ci serve per committare l'operazione di delete che effettuiamo
+        id_simulazione (string): identificativo univoco della simulazione sul db
+    """
     cur.execute(f'''
         DELETE FROM public."CAPACITA_SIMULATE" WHERE "SIMULAZIONE_ID"={id_simulazione} AND "ACTIVATION_DATE_TO" IS NULL;
     ''')
     conn.commit()
 
 def merge_capacita_simulate_delta(cur, conn):
+    """
+    Merge fra le tabelle del db denominate "CAPACITA_SIMULATE" e "CAPACITA_SIMULATE_DELTA"
+
+    Args:
+        cur (pg8000.legacy.Cursor): cursor per query su db
+        conn (pg8000.legacy.Connection): istanza di connessione al db che ci serve per committare l'operazione di delete che effettuiamo
+    """
     cur.execute(
         '''
             MERGE INTO public."CAPACITA_SIMULATE"
@@ -154,14 +251,14 @@ def lambda_handler(event, context):
     lista_settimane_processate = event["output_lambda_CountResidui"]['Payload']['lista_settimane_processate']
     tipo_simulazione = event["tipo_simulazione"]
     # recupero credenziali da SecretsManager
-    creds = get_db_credentials(secretsManager_SecretId)
+    creds = recupero_credenziali_db(secretsManager_SecretId)
     # connessione db
-    conn = get_connection(db_host, db_name, db_port, creds)
+    conn = connessione_db(db_host, db_name, db_port, creds)
     cur = conn.cursor()
     # recupero lista_province e lista_recapitisti dal db
-    lista_province = get_data_from_db(cur, 'SELECT DISTINCT "COD_SIGLA_PROVINCIA","REGIONE" FROM public."CAP_PROV_REG";')
-    lista_province = [( r[0], r[1] ) for r in lista_province] # lista di dizionari con chiave provincia e valore regione
-    lista_recapitisti = get_data_from_db(cur, 'SELECT DISTINCT "UNIFIED_DELIVERY_DRIVER" FROM public."DECLARED_CAPACITY";')
+    lista_province = recupero_dati_db(cur, 'SELECT DISTINCT "COD_SIGLA_PROVINCIA","REGIONE" FROM public."CAP_PROV_REG";')
+    lista_province = [( r[0], r[1] ) for r in lista_province] # a partire dai record recuperati dal db creo una lista di tuple formate da provincia e regione
+    lista_recapitisti = recupero_dati_db(cur, 'SELECT DISTINCT "UNIFIED_DELIVERY_DRIVER" FROM public."DECLARED_CAPACITY";')
     
     if tipo_simulazione == 'Automatizzata':
         # recupero parametro id_simulazione
@@ -169,9 +266,9 @@ def lambda_handler(event, context):
         # FLAG_DEFAULT -> per l'automatizzata va settato sempre a True su tutte le capacità recuperate
         flag_default = True
         # GET_USED_CAPACITY
-        rows = get_used_capacity_from_lambda(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default)
+        rows = recupero_used_capacity(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default)
         # scrittura sul db delle capacità recuperate con la GET_USED_CAPACITY
-        insert_capacities_into_db(cur, rows, 'CAPACITA_SIMULATE')
+        inserimento_used_capacity_db(cur, rows, 'CAPACITA_SIMULATE')
         # commit dell'inserimento
         conn.commit()
 
@@ -188,11 +285,11 @@ def lambda_handler(event, context):
         else:
             flag_default = True
         # GET_USED_CAPACITY
-        rows = get_used_capacity_from_lambda(lista_settimane_per_getusedcapacity, lista_province, lista_recapitisti, id_simulazione, flag_default)
+        rows = recupero_used_capacity(lista_settimane_per_getusedcapacity, lista_province, lista_recapitisti, id_simulazione, flag_default)
         # scrittura sul db delle capacità recuperate con la GET_USED_CAPACITY
-        insert_capacities_into_db(cur, rows, 'CAPACITA_SIMULATE_DELTA')
+        inserimento_used_capacity_db(cur, rows, 'CAPACITA_SIMULATE_DELTA')
         # cancelliamo le capacità con ACTIVATION_DATE_TO null ed effettuiamo la merge fra CAPACITA_SIMULATE e CAPACITA_SIMULATE_DELTA
-        delete_capacity(cur, conn, id_simulazione)
+        rimozione_capacity(cur, conn, id_simulazione)
         merge_capacita_simulate_delta(cur, conn)
     else:
         raise Exception('Parametro tipo_simulazione non valorizzato')

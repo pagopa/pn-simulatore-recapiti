@@ -1,10 +1,34 @@
+"""
+AWS Lambda che si occupa di recuperare la lista dei file da importare tramite l'operazione IMPORT_DATA
+
+Trigger:
+    Step function pn-simulatore-recapiti-sf-GestioneSimulazione
+
+Input:
+    settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato yyyy-mm-dd, utile per calcolare la successiva settimana da processare
+    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-mm-dd
+    tipo_simulazione: 'Automatizzata' o 'Manuale'
+
+Output:
+    lista_file_csv: fornisce alla LambdaInsertMockCapacities la lista dei file assegnati all'IMPORT_DATA per il caricamento
+"""
 import json
 import boto3
 import os
 from datetime import date, timedelta
 
 
-def get_ultima_data_estrazione(bucket_name, s3_client):
+def recupero_ultima_data_estrazione(bucket_name, s3_client):
+    """
+    Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
+
+    Args:
+        bucket_name (string): nome del bucket s3 di progetto
+        s3_client (botocore.client.S3): connessione ad s3
+
+    Returns:
+        string: prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA
+    """
     target_date = date.today()
 
     for _ in range(30):  # limite di sicurezza a 30 gg
@@ -23,7 +47,18 @@ def get_ultima_data_estrazione(bucket_name, s3_client):
     raise Exception("Nessuna folder input/yyyy/mm/dd_di_estrazione su S3 creata negli ultimi 30 gg")
 
 
-def get_lista_csv_source(s3_client,source_bucket,prefix_s3):
+def recupero_lista_csv_sorgente(s3_client,source_bucket,prefix_s3):
+    """
+    Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
+
+    Args:
+        s3_client (botocore.client.S3): connessione ad s3
+        source_bucket (string): bucket sorgente contenente i file csv sorgenti da importare successivamente trmaite l'operazione di IMPORT_DATA
+        prefix_s3 (string): prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA 
+
+    Returns:
+        list: lista dei file su cui effettuare sui quali effettuare l'operazione di IMPORT_DATA
+    """
     objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix='input/'+prefix_s3, Delimiter="/")
     lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
     lista_file_csv = []
@@ -57,10 +92,10 @@ def lambda_handler(event, context):
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     # recuperiamo il path s3 per prendere i csv delle postalizzazioni
-    prefix_s3_settimana_estrazione = get_ultima_data_estrazione(source_bucket, s3_client)
+    prefix_s3_settimana_estrazione = recupero_ultima_data_estrazione(source_bucket, s3_client)
     # recuperiamo la lista dei csv delle postalizzazioni
     full_prefix = prefix_s3_settimana_estrazione+mese_simulazione+'/'
-    lista_file_csv = get_lista_csv_source(s3_client,source_bucket,full_prefix)
+    lista_file_csv = recupero_lista_csv_sorgente(s3_client,source_bucket,full_prefix)
     
     if len(lista_file_csv) != 0:
 

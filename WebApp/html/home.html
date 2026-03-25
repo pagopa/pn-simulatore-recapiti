@@ -21,7 +21,7 @@
                 <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
                 <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}🟢{% elif simulazione.STATO == 'In lavorazione' %}🕛{% elif simulazione.STATO == 'Schedulata' %}📅{% elif simulazione.STATO == 'Non completata' %}🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.NOME}}</td>
-                <td style="text-align:center;">{{simulazione.DESCRIZIONE}}</td>
+                <td style="text-align:center;">{{simulazione.DESCRIZIONE|default_if_none:''}}</td>
                 <td style="text-align:left;">
                     <!-- REGOLE VISUALIZZAZIONI BOTTONI -->
                         <!--
@@ -48,11 +48,10 @@
                                 </div>
                                 <div class="modal-body text-start">
                                     <div class="container">
-                                        <br>
                                         <div class="row justify-content-center">
                                             <div class="col offset-md-2">
                                                 <p><b>Nome simulazione</b>: {{simulazione.NOME}}</p>
-                                                <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE}}</p>
+                                                <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE|default_if_none:'-'}}</p>
                                                 <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</p>
                                             </div>
                                             <div class="col">
@@ -62,6 +61,14 @@
                                             </div>
                                         </div>
                                         <br>
+                                        <div class="row text-center">
+                                            {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
+                                            <div class="col">
+                                                <p class="mb-0" onclick="download_capacita_per_provincia('{{simulazione.ID}}')"><i class="fa-solid fa-file-csv fa-2xl zoom-in" style="cursor: pointer;" title="Download csv"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per province</label>
+                                            </div>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -183,6 +190,9 @@
 		</div>
 	</div>
 </div>
+
+<!--spinner che parte quando l'utente clicca sul tasto "download csv"-->
+<div id="spinner_loading"></div>
 {% endblock content %}
 
 
@@ -377,4 +387,38 @@
     });
 </script>
 
+<script>
+    async function download_capacita_per_provincia(id_simulazione) {
+        // avvio spinner
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        try {
+            // richiesta backend
+            const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}`);
+            console.log(response);
+            if (!response.ok) {
+                throw new Error('Errore nel download');
+            }
+            // convertiamo la risposta in blob
+            const blob = await response.blob();
+            // crteiamo l'URL per il download
+            const url = window.URL.createObjectURL(blob);
+            const button_fittizio = document.createElement('button_fittizio');
+            button_fittizio.href = url;
+            // recuperiamo il nome del file dagli header
+            button_fittizio.download = response.headers.get('Content-Disposition').match(/filename="(.+)"/)[1];
+            document.body.appendChild(button_fittizio);
+            button_fittizio.click();
+            // pulizia
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(button_fittizio);
+            // rimozione spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+        } catch (error) {
+            console.error('Errore:', error);
+            // rimozione spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+            alert('Errore durante il download');
+        }
+    }
+</script>
 {% endblock %}

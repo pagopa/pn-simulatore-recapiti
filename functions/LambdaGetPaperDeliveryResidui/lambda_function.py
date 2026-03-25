@@ -1,10 +1,33 @@
+"""
+AWS Lambda che gestisce il ciclo di RUN_ALGORITHM andando ad aggiornare la lista delle settimane processate, calcolando se continuare a lanciare o meno la RUN_ALGORITHM
+
+Trigger:
+    Step function pn-simulatore-recapiti-sf-GestioneSimulazione
+
+Input:
+    settimana_processata_RUN_ALGORITHM: indica la settimana di simulazione processata dalla RUN_ALGORITHM nello step precedente
+    lista_settimane_processate: lista delle settimane già processate, da aggiornare aggiungendo la settimana appena processata dalla RUN_ALGORITHM
+
+Output:
+    lista_settimane_processate: lista settimane già processate
+    continuare_run_algorithm: 1 per continuare a lanciare la RUN_ALGORITHM, 0 per fermarsi
+    count_residui_ultima_settimana: conteggio dei residui con un max si 1000. Questo conteggio serve per capire se continuare a lanciare la RUN_ALGORITHM (se ci troviamo dopo la prima settimana del mese successivo) o fermarsi
+"""
 import json
 from datetime import datetime, timedelta
 import boto3
 
+def conta_residui(lambda_delayer, settimana_processata):
+    """
+    Recupera i residui tramite l'operazione GET_PAPER_DELIVERY. Non ci importa capire quanti residui sono ma solamente se ci sono o meno una chiamata per capire se ci sono o meno
 
+    Args:
+        lambda_delayer (botocore.client.Lambda): connessione alla lambda
+        settimana_processata (string): data nel formato yyyy-mm-dd corrispondente al lunedì della settimana processata, da dare in input all'operazione GET_PAPER_DELIVERY
 
-def get_count_residui(lambda_delayer, settimana_processata):
+    Returns:
+        int: conteggio residui
+    """
     # GET_PAPER_DELIVERY - testDelayerLambda
     payload_lambda={
         "operationType": "GET_PAPER_DELIVERY",
@@ -21,7 +44,16 @@ def get_count_residui(lambda_delayer, settimana_processata):
     return count_items
 
 
-def get_first_monday_2_mesi_successivi(data_string):
+def calcolo_primo_lunedi_due_mesi_successivi(data_string):
+    """
+    Calcoliamo il primo lunedì di due mesi successivi rispetto alla data fornita in input
+
+    Args:
+        data_string (string): primo lunedì processato dalla RUN_ALGORITHM nel formato yyyy-mm-dd
+
+    Returns:
+        string: primo lunedì di due mesi successivi nel formato yyyy-mm-dd
+    """
     # from string to datetime
     d = datetime.strptime(data_string, "%Y-%m-%d")
     # aumentiamo il mese di 2
@@ -57,7 +89,7 @@ def lambda_handler(event, context):
         lista_settimane_processate = []
     
     # recuperiamo i residui
-    count_residui_settimana_processata = get_count_residui(lambda_delayer, settimana_processata_RUN_ALGORITHM)
+    count_residui_settimana_processata = conta_residui(lambda_delayer, settimana_processata_RUN_ALGORITHM)
     if count_residui_settimana_processata < 1000:
         print(f'Dopo aver processato la settimana {settimana_processata_RUN_ALGORITHM} i residui sono: {count_residui_settimana_processata}')
     else:
@@ -72,7 +104,7 @@ def lambda_handler(event, context):
         if count_residui_settimana_processata==0 and datetime.strptime(lista_settimane_processate[0], "%Y-%m-%d").month != datetime.strptime(lista_settimane_processate[-1], "%Y-%m-%d").month:
             continuare_run_algorithm = 0
         else:
-            primo_lunedi_2_mesi_successivi = get_first_monday_2_mesi_successivi(lista_settimane_processate[0])
+            primo_lunedi_2_mesi_successivi = calcolo_primo_lunedi_due_mesi_successivi(lista_settimane_processate[0])
             if primo_lunedi_2_mesi_successivi == lista_settimane_processate[-1]:
                 continuare_run_algorithm = 0
             else:
