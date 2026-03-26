@@ -19,6 +19,9 @@ locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
 def homepage(request):
+    """
+    Homepage che coincide con la pagina di riepilogo delle simulazioni effettuate
+    """
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
     
     for singola_simulazione in lista_simulazioni:
@@ -50,16 +53,28 @@ def homepage(request):
 
 
 def risultati(request, id_simulazione):
+    """
+    Pagina gestita utilizzando DASH che mostra i risultati di una simulazione
+    """
     return render(request, "Simulatore/dashboard_risultati.html")
 
 def confronto_risultati(request, id1, id2):
+    """
+    Pagina gestita utilizzando DASH che mostra i risultati a confronto di due simulazioni
+    """
     return render(request, "Simulatore/dashboard_confronto_risultati.html")
 
 
 def calendario(request):
+    """
+    Pagina che mostra il calendario delle simulazioni
+    """
     return render(request, "calendario/calendario.html")
 
 def bozze(request):
+    """
+    Pagina che mostra le simulazioni in uno stato di bozza
+    """
     lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
     context = {
         'lista_bozze': lista_bozze
@@ -67,8 +82,11 @@ def bozze(request):
     return render(request, "simulazioni/bozze.html", context)
 
 def nuova_simulazione(request, id_simulazione):
+    """
+    Pagina che permette all'utente di inserire una nuova simulazione
+    """
     # Mese da simulare
-    lista_mesi = get_mesi_distinct()
+    lista_mesi = recupero_lista_mesi_simulazione_univoci()
 
     lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
 
@@ -96,18 +114,21 @@ def nuova_simulazione(request, id_simulazione):
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
+    """
+    Pagina di salvataggio di una simulazione
+    """
     last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
     tipo_simulazione = 'Manuale'
-    # recupero parametri dalla pagina html nuova_simulazione
-    nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json = recupero_parametri_salva_simulazione(request)
+    # recupero parametri dalla pagina html
+    nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json = recupero_parametri_input_utente(request)
 
     # salvataggio simulazione sul db (tabella SIMULAZIONE)
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
         # nuova simulazione o new_from_old
-        id_simulazione_salvata = nuova_simulazione_salvataggio_db(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
+        id_simulazione_salvata = salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
     else:
         # simulazione esistente che viene modificata
-        id_simulazione_salvata = modifica_simulazione_aggiornamento_db(request.POST['id_simulazione'],nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
+        id_simulazione_salvata = aggiornamento_db_simulazione_esistente(request.POST['id_simulazione'],nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
 
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
         # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
@@ -115,10 +136,10 @@ def salva_simulazione(request):
         lista_old_capacita_modificate = lista_all_capacita_modificate.exclude(ACTIVATION_DATE_TO__isnull=True)
         if lista_old_capacita_modificate:
             # ci sono già capacità sul db, dobbiamo effettuare upsert
-            upsert_capacity_db(lista_all_capacita_modificate,lista_old_capacita_modificate,tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata)
+            upsert_capacita_db(lista_all_capacita_modificate,lista_old_capacita_modificate,tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata)
         else:
             # non ci sono capacità nella tabella CAPACITA_SIMULATE, dobbiamo effettuare l'insert
-            insert_new_capacity_db(tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata)
+            inserimento_nuove_capacita_db(tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata)
         # aggiunta prodotti RS nella tabella CAPACITA_SIMULATE recuperandoli dalla tabella DECLARED_CAPACITY
         gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_update_timestamp,id_simulazione_salvata)
         
@@ -130,8 +151,11 @@ def salva_simulazione(request):
         return redirect("home")
 
 def rimuovi_simulazione(request, id_simulazione):
+    """
+    Rimuove una simulazione esistente a partire dall'id_simulazione
+    """
     # rimozione trigger eventbridge scheduler presente
-    remove_trigger_eventbridge_scheduler(id_simulazione)
+    rimuovi_trigger_eventbridge_scheduler(id_simulazione)
     # il try-catch serve per evitare che .get non trovi nulla dando errore
     try:
         simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
@@ -153,7 +177,18 @@ def rimuovi_simulazione(request, id_simulazione):
 
 
 # AJAX
-def ajax_get_capacita_from_mese_and_tipo(request):
+def ajax_recupero_capacita(request):
+    """
+    Questa funzione viene invocata tramite tecnologia AJAX e ci permette di recuperare le capacità
+
+    Args:
+        request (django.core.handlers.wsgi.WSGIRequest): oggetto creato da Django a partire dalla richiesta HTTP grezza che arriva dal server web e contiene l'input dell'utente
+        
+    Returns:
+        bool: indica se stiamo recuperando le capacità per una nuova simulazione o vogliamo recuperare quelle di una simulazione esistente
+        list of dict: contiene gli elementi da disporre nelle tabelle nello STEP 3 della pagina 'nuova_simulazione'
+        string: BAU, Picco, Combinata, Produzione
+    """
     # recuperiamo gli input dell'utente nello step 1 della nuova simulazione
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
     tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
@@ -241,7 +276,16 @@ def ajax_get_capacita_from_mese_and_tipo(request):
 
 
 
-def ajax_get_simulazioni_da_confrontare(request):
+def ajax_recupero_simulazioni_da_confrontare(request):
+    """
+    Questa funzione viene invocata tramite tecnologia AJAX e ci permette di recuperare le simulazioni da confrontare a partire da un id_simulazione ed un mese_simulazione 
+
+    Args:
+        request (django.core.handlers.wsgi.WSGIRequest): oggetto creato da Django a partire dalla richiesta HTTP grezza che arriva dal server web e contiene l'input dell'utente
+        
+    Returns:
+        list: simulazioni confrontabili
+    """
     id_simulazione = request.GET['id_simulazione']
     mese_simulazione = request.GET['mese_simulazione']
     lista_simulazioni_da_confrontare = list(table_simulazione.objects.filter(STATO='Lavorata',MESE_SIMULAZIONE=mese_simulazione).exclude(ID=id_simulazione).values())
@@ -249,7 +293,16 @@ def ajax_get_simulazioni_da_confrontare(request):
 
 
 
-def get_province(request):
+def recupero_province(request):
+    """
+    Questa funzione recupera le province a partire da una regione selezionata dall'utente
+
+    Args:
+        request (django.core.handlers.wsgi.WSGIRequest): oggetto creato da Django a partire dalla richiesta HTTP grezza che arriva dal server web e contiene l'input dell'utente
+        
+    Returns:
+        list: province recuperate a partire da una regione selezionata
+    """
     regione = request.GET.get('regione')
     if regione:
         lista_province = list(table_cap_prov_reg.objects.filter(REGIONE=regione).values_list('PROVINCIA', flat=True).distinct().order_by('PROVINCIA'))
@@ -257,8 +310,13 @@ def get_province(request):
     return JsonResponse([], safe=False)
 
 
-def get_mesi_distinct():
-    #Recuperiamo la lista dei mesi che l'utente può scegliere fornendo il formato mostrato nel seguente esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026')]
+def recupero_lista_mesi_simulazione_univoci():
+    """
+    Questa funzione recupera la lista dei mesi univoci che l'utente può scegliere per creare una nuova simulazione
+
+    Returns:
+        list of tuple: mesi univoci dove il primo elmento della tupla è nel formato yyyy-mm mentre il secondo elemento della tupla contiene il mese scritto per esteso e l'anno in formato yyyy
+    """
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'YYYY-MM') as anno_mese
@@ -269,11 +327,20 @@ def get_mesi_distinct():
         for row in cursor.fetchall():
             data_formattata = datetime.strptime(row[0], '%Y-%m').date().strftime("%B %Y").capitalize()
             lista_mesi.append((row[0],data_formattata))
-        return lista_mesi #formato di esempio: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
+        return lista_mesi #esempio lista_mesi: [('2026-02', 'Febbraio 2026'), ('2026-03', 'Marzo 2026'), ('2026-04', 'Aprile 2026'), ('2026-05', 'Maggio 2026')]
 
 
 
-def get_first_week_parameter_for_step_function(data_string):
+def calcolo_prima_settimana(data_string):
+    """
+    Questa funzione calcola il primo lunedì del mese corrente da considerare per la simulazione
+    
+    Args:
+        data_string (string): anno-mese (formato yyyy-mm) dal quale partire per calcolare la prima settimana
+
+    Returns:
+        string: data del primo lunedì del mese da considerare, formato yyyy-mm-dd
+    """
     # from string to datetime
     dt = datetime.strptime(data_string, "%Y-%m")
     # prendiamo il primo giorno del mese
@@ -288,8 +355,14 @@ def get_first_week_parameter_for_step_function(data_string):
 
 
 
-def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
-    settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
+def crea_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
+    """
+    Questa funzione crea un nuovo trigger eventbridge scheduler su AWS
+    
+    Args:
+        id_simulazione (string): identificativo univoco della simulazione di riferimento
+    """
+    settimana_del_mese_simulazione = calcolo_prima_settimana(mese_da_simulare)
     config = Config(retries={'mode': 'standard', 'max_attempts': 10})
     client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
@@ -316,8 +389,14 @@ def create_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_
     ) 
 
 
-def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
-    settimana_del_mese_simulazione = get_first_week_parameter_for_step_function(mese_da_simulare)
+def modifica_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_trigger, timestamp_esecuzione):
+    """
+    Questa funzione modifica un trigger eventbridge scheduler esistente su AWS
+    
+    Args:
+        id_simulazione (string): identificativo univoco della simulazione di riferimento
+    """
+    settimana_del_mese_simulazione = calcolo_prima_settimana(mese_da_simulare)
     config = Config(retries={'mode': 'standard', 'max_attempts': 10})
     client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
@@ -343,7 +422,13 @@ def edit_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_tr
         ActionAfterCompletion="DELETE"
     )
 
-def remove_trigger_eventbridge_scheduler(id_simulazione):
+def rimuovi_trigger_eventbridge_scheduler(id_simulazione):
+    """
+    Questa funzione rimuove il trigger eventbridge scheduler su AWS
+    
+    Args:
+        id_simulazione (string): identificativo univoco della simulazione di riferimento
+    """
     config = Config(retries={'mode': 'standard', 'max_attempts': 10})
     client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     try:
@@ -352,7 +437,23 @@ def remove_trigger_eventbridge_scheduler(id_simulazione):
     except:
         pass
 
-def recupero_parametri_salva_simulazione(request):
+def recupero_parametri_input_utente(request):
+    """
+    Questa funzione gestisce il recupero dei parametri specificati dall'utente
+    
+    Args:
+        request (django.core.handlers.wsgi.WSGIRequest): oggetto creato da Django a partire dalla richiesta HTTP grezza che arriva dal server web e contiene l'input dell'utente
+
+    Returns:
+        string: nome della simulazione inserito dall'utente
+        string: descrizione della simulazione inserita dall'utente
+        string: datetime now nel formato yyyy-mm-dd HH:MM:SS
+        string: schedule o now
+        string: Bozza o Schedulata-Inlavorazione
+        string: mese della simulazione scelto dall'utente, formato yyyy-mm
+        string: BAU, Picco o Combinata
+        dict: capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
+    """
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = None
     if request.POST['descrizione_simulazione'] in request.POST:
@@ -390,7 +491,23 @@ def recupero_parametri_salva_simulazione(request):
         capacita_json = {}
     return nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json
 
-def nuova_simulazione_salvataggio_db(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
+def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
+    """
+    Questa funzione gestisce il caso di inserimento sul db di una nuova simulazione
+    
+    Args:
+        nome_simulazione (string): nome della simulazione da salvare sul db
+        descrizione_simulazione (string): descrizione della simulazione da salvare sul db
+        stato (string): stato della simulazione da salvare sul db
+        tipo_trigger (string): tipo trigger della simulazione da salvare sul db
+        timestamp_esecuzione (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        mese_da_simulare (string): mese della simulazione da salvare sul db, formato yyyy-mm
+        tipo_capacita_da_modificare (string): tipo capacità modificata della simulazione da salvare sul db
+        tipo_simulazione (string): tipo trigger della simulazione da salvare sul db
+
+    Returns:
+        int: identificativo univoco della simulazione salvata
+    """
     # salvataggio nuova simulazione sul DB
     id_simulazione_salvata = table_simulazione.objects.create(
         NOME = nome_simulazione,
@@ -406,7 +523,7 @@ def nuova_simulazione_salvataggio_db(nome_simulazione,descrizione_simulazione,st
         # try-except inserito perché potrebbero esserci errori durante la creazione del trigger eventbridge scheduler che non dipendono dalla webapp
         try:
             # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
-            create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+            crea_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
         except:
             # eliminiamo il record appena inserito
             id_simulazione_salvata.delete()
@@ -415,7 +532,24 @@ def nuova_simulazione_salvataggio_db(nome_simulazione,descrizione_simulazione,st
     return id_simulazione_salvata
 
 
-def modifica_simulazione_aggiornamento_db(id_simulazione,nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
+def aggiornamento_db_simulazione_esistente(id_simulazione,nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
+    """
+    Questa funzione gestisce il caso di aggiornamento sul db di una simulazione esistente
+    
+    Args:
+        id_simulazione (int): identificativo univoco della simulazione da modificare
+        nome_simulazione (string): nome della simulazione aggiornato da salvare sul db
+        descrizione_simulazione (string): descrizione della simulazione aggiornato da salvare sul db
+        stato (string): stato della simulazione aggiornato da salvare sul db
+        tipo_trigger (string): tipo trigger della simulazione aggiornato da salvare sul db
+        timestamp_esecuzione (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        mese_da_simulare (string): mese della simulazione aggiornato da salvare sul db, formato yyyy-mm
+        tipo_capacita_da_modificare (string): tipo capacità modificata della simulazione aggiornato da salvare sul db
+        tipo_simulazione (string): tipo trigger della simulazione aggiornato da salvare sul db
+
+    Returns:
+        int: identificativo univoco della simulazione modificata
+    """
     # modifica simulazione sul DB
     simulazione_da_modificare = table_simulazione.objects.get(ID = id_simulazione)
     stato_precedente = simulazione_da_modificare.STATO
@@ -432,18 +566,29 @@ def modifica_simulazione_aggiornamento_db(id_simulazione,nome_simulazione,descri
     if stato_precedente == 'Schedulata':
         if stato == 'Schedulata':
             # modificare trigger evendbridge scheduler one-shot esistente che avvia la Step Function
-            edit_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+            modifica_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
         elif stato == 'Bozza':
             # rimozione trigger eventbridge scheduler presente
-            remove_trigger_eventbridge_scheduler(id_simulazione_salvata.ID)
+            rimuovi_trigger_eventbridge_scheduler(id_simulazione_salvata.ID)
     elif stato_precedente == 'Bozza':
         if stato == 'Schedulata' or stato == 'In lavorazione':
             # creare nuovo trigger evendbridge scheduler one-shot che avvia la Step Function
-            create_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
+            crea_trigger_eventbridge_scheduler(id_simulazione_salvata.ID, mese_da_simulare, tipo_trigger, timestamp_esecuzione)
     return id_simulazione_salvata
 
 
-def upsert_capacity_db(lista_all_capacita_modificate,lista_old_capacita_modificate,tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata):
+def upsert_capacita_db(lista_all_capacita_modificate,lista_old_capacita_modificate,tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata):
+    """
+    Questa funzione aggiorna sul db le capacità scelte dall'utente
+    
+    Args:
+        lista_all_capacita_modificate (list): lista capacità già presenti sul db, recuperate dalla tabella del db denominata 'CAPACITA_SIMULATE'
+        lista_old_capacita_modificate (list): lista_all_capacita_modificate escluse le capacità con ACTIVATION_DATE_TO settata a NULL
+        tipo_capacita_da_modificare (string): BAU, Picco o Combinata
+        capacita_json (dict): capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
+        last_update_timestamp (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        id_simulazione_salvata (int): identificativo univoco della simulazione di riferimento
+    """
     lista_all_capacita_modificate.filter(ACTIVATION_DATE_TO__isnull=True).delete() # rimuoviamo vecchie capacità con ACTIVATION_DATE_TO NULL
     lista_nuove_capacita_da_salvare = [] # nuove capacità con ACTIVATION_DATE_TO NULL + eventuali capacità aggiuntive
     lookup = {}
@@ -560,7 +705,16 @@ def upsert_capacity_db(lista_all_capacita_modificate,lista_old_capacita_modifica
         table_capacita_simulate.objects.bulk_create(lista_nuove_capacita_da_salvare)
 
 
-def insert_new_capacity_db(tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata):
+def inserimento_nuove_capacita_db(tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata):
+    """
+    Questa funzione inserisce sul db le capacità scelte dall'utente
+    
+    Args:
+        tipo_capacita_da_modificare (string): BAU, Picco o Combinata
+        capacita_json (dict): capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
+        last_update_timestamp (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        id_simulazione_salvata (int): identificativo univoco della simulazione di riferimento
+    """
     # scrittura sul db nella tabella CAPACITA_SIMULATE
     lista_capacita_da_salvare = []
     for recapitista, righe_tabella in capacita_json.items():
@@ -644,8 +798,17 @@ def insert_new_capacity_db(tipo_capacita_da_modificare,capacita_json,last_update
 
 
 def gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_update_timestamp,id_simulazione_salvata):
+    """
+    Questa funzione permette di aggiungere i prodotti RS nella tabella del db denominata 'CAPACITA_SIMULATE' recuperandoli dalla tabella del db denominata 'DECLARED_CAPACITY'
+
+    Args:
+        mese_da_simulare (string): mese di riferimento della simulazione, formato yyyy-mm
+        tipo_capacita_da_modificare (string): BAU, Picco o Combinata
+        last_update_timestamp (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        id_simulazione_salvata (int): identificativo univoco della simulazione di riferimento
+    """
     # recupero record su tabella DECLARED CAPACITY con prodotti RS (non AR e non 890) con ACTIVATION_DATE_FROM uguale al primo lunedì di simulazione
-    primo_lunedi_mese_corrente = get_first_week_parameter_for_step_function(mese_da_simulare)
+    primo_lunedi_mese_corrente = calcolo_prima_settimana(mese_da_simulare)
     lista_prodotti_rs = table_declared_capacity.objects.filter(PRODUCT_890=False, PRODUCT_AR=False, PRODUCT_RS=True, ACTIVATION_DATE_FROM=primo_lunedi_mese_corrente+' 00:00:00')
     # inserimento su tabella CAPACITA_SIMULATE
     lista_capacita_rs_da_salvare = []
@@ -677,6 +840,15 @@ def gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_updat
 
 @gzip_page # utile per comprimere la risposta
 def download_capacita_per_provincia(request, id_simulazione):
+    """
+    Questa funzione viene chiamata quando l'utente vuole scaricare le capacità per provincia in formato csv. A partire dall'id_simulazione, vengono recuperate le capacità scelte dall'utente e creato il csv
+
+    Args:
+        id_simulazione (string): identificativo univoco della simulazione
+
+    Returns:
+        django.http.response.HttpResponse: contiene nome file, stream dell'oggett e url per il download
+    """
     datetime_now = datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None).strftime("%Y%m%d")
     # creiamo la response con header csv
     response = HttpResponse(content_type='text/csv')
@@ -702,6 +874,15 @@ def download_capacita_per_provincia(request, id_simulazione):
     return response
 
 def elaborazione_capacita_per_provincia(row):
+    """
+    Questa funzione riceve in input un dizionario, elabora alcuni campi (products, ACTIVATION_DATE_FROM e ACTIVATION_DATE_TO) e ritorna il dizionario modificato
+
+    Args:
+        row (dict): riga estratta dalla tabella del db denominata
+
+    Returns:
+        dict: input al quale sono stati rimossi gli oggetti 'PRODUCT_890' e 'PRODUCT_AR', aggiunto l'oggetto 'products' e modificati gli oggetti 'ACTIVATION_DATE_FROM' e 'ACTIVATION_DATE_TO'
+    """
     # formattiamo il product
     product_list = ''
     if row['PRODUCT_890'] == True:

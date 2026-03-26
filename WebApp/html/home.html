@@ -141,7 +141,7 @@
                                     <span class="d-none" id="value_id1"></span>
                                     <!-- Capacità recuperate da db -->
                                     <div class="text-center" id="spinner"></div>
-                                    <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_get_simulazioni_da_confrontare' %}></span>
+                                    <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_recupero_simulazioni_da_confrontare' %}></span>
                                     </div>
                                     <div class="modal-footer">
                                         <button class="btn btn-primary btn-confronto" href="#">Confronta</button>
@@ -337,9 +337,16 @@
 	});
 </script>
 
-<!-- jQuery/Ajax per select simulazioni da confrontare -->
+
 <script>
     function simulazioni_da_confrontare_ajax(id_simulazione,mese_simulazione) {
+        /*
+        Funzione jQuery/Ajax per select simulazioni da confrontare
+
+        Args:
+            id_simulazione (string): identificativo univoco della simulazione di riferimento
+            mese_simulazione (string): mese della simulazione, formato yyyy-mm
+        */
         var content = document.getElementById(`simulazioni_recuperate_da_db_${id_simulazione}`);
         var content_id_simulazione = document.getElementById('value_id1');
         // puliamo lo spazio dove andremo ad iniettare il codice html
@@ -375,9 +382,11 @@
     }
 </script>
 
-<!-- funzione per ricondurre alla pagina confronto_risultati cliccando su "Confronta" nella modale -->
 <script>
     $(document).on('click', '.btn-confronto', function() {
+        /*
+        Funzione per ricondurre alla pagina confronto_risultati cliccando su "Confronta" nella modale
+        */
         const id1 = parseInt(document.getElementById('value_id1').textContent);
         const id2 = parseInt($(`#simulazione_selezionata_per_confronto_${id1}`).val());
         const url = `/confronto_risultati/${encodeURIComponent(id1)}/${encodeURIComponent(id2)}/`;
@@ -389,11 +398,15 @@
 
 <script>
     async function download_capacita_per_provincia(id_simulazione) {
+        /*
+        Funzione che permette il download delle capacità per provincia cliccando sul relativo button presente nella modal di dettaglio di una simulazione 
+        */
         // avvio spinner
         document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}`);
+            console.log(response);
             if (!response.ok) {
                 throw new Error('Errore nel download');
             }
