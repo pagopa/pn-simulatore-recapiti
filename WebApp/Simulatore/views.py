@@ -844,15 +844,15 @@ def gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_updat
 @gzip_page # utile per comprimere la risposta
 def download_capacita_per_provincia(request, id_simulazione, recupero_capacita_modificate):
     """
-    Questa funzione viene chiamata quando l'utente vuole scaricare le capacità per provincia in formato csv. A partire dall'id_simulazione, vengono recuperate le capacità scelte dall'utente e creato il csv
+    Questa funzione viene chiamata quando l'utente vuole scaricare in formato csv le capacità per provincia (in toto o solamente quelle modificate), partendo dall'id_simulazione tramite il quale vengono recuperate le capacità per provincia
 
     Args:
         id_simulazione (string): identificativo univoco della simulazione
+        recupero_capacita_modificate (string): ['true'/'false'] che permette di discriminare se fornire all'utente un csv di tutte le capacità per provincia o solamente di quelle modificate
 
     Returns:
         django.http.response.HttpResponse: contiene nome file, stream dell'oggett e url per il download
     """
-    datetime_now = datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None).strftime("%Y%m%d")
     # creiamo la response con header csv
     response = HttpResponse(content_type='text/csv')
     if recupero_capacita_modificate == 'true':
@@ -918,14 +918,14 @@ def download_capacita_per_cap(request, id_simulazione):
         id_simulazione (string): identificativo univoco della simulazione
 
     Returns:
-        dict: presigned url del file csv su S3 + nome del file
+        dict: presigned_url del file csv su S3; se non trovato ritorna 'None' come valore per la chiave presigned_url
     """    
     # creazione istanza client s3
     config = Config(retries={'mode': 'standard', 'max_attempts': 10})
     s3_client = boto3.client("s3", region_name="eu-south-1", endpoint_url="https://s3.eu-south-1.amazonaws.com", config=config)
     # recupero simulazione dal db a partire dall'id_simulazione
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
-    # recupero nome file da scaricare sul bucket s3
+    # recuperiamo dal bucket s3 la key del file csv target
     file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE)
     filename = f"CapacitaPerCAP_id{id_simulazione}.csv"
     if file_key != 'None':
@@ -946,14 +946,17 @@ def download_capacita_per_cap(request, id_simulazione):
 
 def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuzione_simulazione, mese_simulazione):
     """
-    Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto partendo, per la ricerca della data, dal giorno della simulazione (fino ad massimo di sicurezza di 30 gg precedenti alla data di esecuzione della simulazione)
+    Recuperiamo dal bucket s3 la key del file csv target
 
     Args:
         bucket_name (string): nome del bucket s3 di progetto
         s3_client (botocore.client.S3): connessione ad s3
+        id_simulazione (int): identificativo univoco della simulazione sul db
+        timestamp_esecuzione_simulazione (datetime): timestamp di esecuzione della simulazione, formato YYYY-MM-DD HH:mm:ss
+        mese_simulazione (string): mese di simulazione, formato "YYYY-MM"
 
     Returns:
-        string: prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA
+        string: key del file csv recuperato dal bucket; se non trovato ritorna 'None'
     """
 
     for _ in range(30):  # limite di sicurezza a 30 gg
