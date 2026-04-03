@@ -45,7 +45,7 @@ def lambda_presigned_url(lambda_delayer, source_filename):
     key = response_dict_body['key']
     return uploadUrl, key
 
-def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_key,destination_filename):
+def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_path,destination_filename):
     """
     Creiamo una copia del file csv che successivamente importeremo tramite la IMPORT_DATA con il nome indicato dalla GET_PRESIGNED_URL
 
@@ -53,14 +53,14 @@ def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_key,destination_filenam
         s3_client (botocore.client.S3): connessione ad s3
         bucket_s3 (string): bucket di interesse
         obj_key (string): chiave dell'oggetto sorgente
-        source_key (string): chiave dell'oggetto sorgente senza nome file
+        source_path (string): chiave dell'oggetto sorgente senza nome file
         destination_filename (string): nome del file fornito dalla GET_PRESIGNED_URL
 
     """
     s3_client.copy_object(
         Bucket=bucket_s3,
         CopySource={"Bucket": bucket_s3, "Key": obj_key},
-        Key=source_key + '/' + destination_filename
+        Key=source_path + '/' + destination_filename
     )
 
 class S3BodyWrapper:
@@ -111,15 +111,15 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     """
     config = Config(read_timeout=900) # allungato a 15 minuti
     lambda_delayer = boto3.client('lambda',config=config)
-    source_key = '/'.join(s3_file_key.split('/')[:-1])
+    source_path = '/'.join(s3_file_key.split('/')[:-1])
     source_filename = s3_file_key.split('/')[-1]
     date_per_import_data = s3_file_key.split('/')[-2]
     # GET PRESIGNED URL
     uploadUrl, destination_filename = lambda_presigned_url(lambda_delayer,source_filename)
     # creiamo una copia dell'oggetto (che poi elimineremo) con il nome indicato dalla GET PRESIGNED URL
-    crea_copia_csv_s3(s3_client,source_bucket,s3_file_key,source_key,destination_filename)
+    crea_copia_csv_s3(s3_client,source_bucket,s3_file_key,source_path,destination_filename)
     # otteniamo l'oggetto S3 come streaming body
-    response = s3_client.get_object(Bucket=source_bucket, Key=source_key+'/'+destination_filename)
+    response = s3_client.get_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
     body = response["Body"]
     size = response["ContentLength"]
     streaming_body = S3BodyWrapper(body, size)
@@ -136,7 +136,7 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     lambda_import_data(lambda_delayer,destination_filename, date_per_import_data)
 
     # cancelliamo la copia dell'oggetto sul bucket di progetto
-    s3_client.delete_object(Bucket=source_bucket, Key=source_key+'/'+destination_filename)
+    s3_client.delete_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
 
     return destination_filename
 

@@ -6,7 +6,7 @@ from awsglue.context import GlueContext
 from awsglue.job import Job
 
 ## @params: [JOB_NAME]
-args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_simulazione', 'id_simulazione_manuale', 'secretsManager_SecretId','jdbc_connection','s3_bucket'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'mese_simulazione', 'id_simulazione_manuale', 'secretsManager_SecretId','jdbc_connection','s3_bucket'])
 
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -22,6 +22,7 @@ import pyspark.sql.types as T
 import ast
 import json
 import datetime
+import math
 
 
 # recupero parametri d'ambiente del job
@@ -54,12 +55,12 @@ df_cap_prov_reg = spark.read \
 
 
 # CAPACITA_SIMULATE
-db_table = 'public."CAPACITA_SIMULATE"'
+query_db_capacita_simulate = f"""SELECT * FROM public."CAPACITA_SIMULATE" WHERE "SIMULAZIONE_ID"={id_simulazione_manuale}"""
 
 df_capacita_simulate = spark.read \
     .format("jdbc") \
     .option("url", jdbc_connection) \
-    .option("dbtable", db_table) \
+    .option("query",query_db_capacita_simulate) \
     .option("user", response_SecretString['username']) \
     .option("password", response_SecretString['password']) \
     .option("driver", "org.postgresql.Driver") \
@@ -100,16 +101,14 @@ schema_cap_capacities = T.StructType() \
 # Individuazione lista dei file csv con le capacità dei CAP nel path apposito
 file_path = 's3://' + s3_bucket + '/'
 
-file_list = s3_client.list_objects_v2(
-        Bucket=s3_bucket,
-        Prefix='input/' + prefix + mese_simulazione[:7] + '/cap_capacities/',
-    )['Contents']
+file_list = s3_client.list_objects_v2(Bucket=s3_bucket,Prefix='input/' + prefix + mese_simulazione[:7] + '/cap_capacities/')['Contents']
     
 # Creazione di un unico dataframe con append dei dataframe corrispondenti ai file
 df_cap_capacities = spark.createDataFrame(spark.sparkContext.emptyRDD(), schema_cap_capacities)
 for item in file_list:
     df_cap_capacities_part=spark.read.option("delimiter", ";").option("header",True).csv(file_path + item['Key'], schema=schema_cap_capacities)
     df_cap_capacities = df_cap_capacities.union(df_cap_capacities_part)
+
 
 print('Lettura dati input completata')
 
@@ -146,7 +145,7 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
     list_capacita_simulate_recap_prov = df_capacita_simulate_recap_prov.collect()
 
     df_cap_capacities_prov_filtred = df_cap_capacities_prov.filter((F.col('unifiedDeliveryDriver')==recap_prov['UNIFIED_DELIVERY_DRIVER']) & 
-                                                                   (F.col('CodSiglaProvincia')==recap_prov['COD_SIGLA_PROVINCIA'])).collect()
+                                                                   (F.col('COD_SIGLA_PROVINCIA')==recap_prov['COD_SIGLA_PROVINCIA'])).collect()
 
     # Per ogni coppia provincia-recapitista, osservazione dei flag
     conteggio_recap_prov = df_capacita_simulate_recap_prov.count()
@@ -155,6 +154,7 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
   
     # CASO 1: Se tutti i flag sono true, tengo il record e scelgo la capacità di BAU
     if conteggio_recap_prov == conteggio_recap_prov_true:
+
         for row_cap in df_cap_capacities_prov_filtred:
             data_adding_row = {'unifiedDeliveryDriver': row_cap['unifiedDeliveryDriver'],
                                  'geoKey': row_cap['geoKey'],
@@ -163,13 +163,14 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
                                  'activationDateFrom': row_cap['activationDateFrom'],
                                  'activationDateTo': row_cap['activationDateTo'],
                                  'products': row_cap['products'],
-                                 'CodSiglaProvincia': row_cap['CodSiglaProvincia']}
+                                 'CodSiglaProvincia': row_cap['COD_SIGLA_PROVINCIA']}
             
             data_adding_rows.append(data_adding_row)
 
     
     # CASO 2: Se tutti i flag sono false, tengo il record e scelgo la capacità di picco
     if conteggio_recap_prov == conteggio_recap_prov_false:
+
         for row_cap in df_cap_capacities_prov_filtred:
             data_adding_row = {'unifiedDeliveryDriver': row_cap['unifiedDeliveryDriver'],
                                  'geoKey': row_cap['geoKey'],
@@ -178,13 +179,13 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
                                  'activationDateFrom': row_cap['activationDateFrom'],
                                  'activationDateTo': row_cap['activationDateTo'],
                                  'products': row_cap['products'],
-                                 'CodSiglaProvincia': row_cap['CodSiglaProvincia']}
+                                 'CodSiglaProvincia': row_cap['COD_SIGLA_PROVINCIA']}
             
             data_adding_rows.append(data_adding_row)
 
     # CASO 3: Se non tutti i flag sono uguali, splitto il record per tutte le settimane e scelgo la capacità di BAU per i true e picco per i false
     if conteggio_recap_prov != conteggio_recap_prov_false and conteggio_recap_prov != conteggio_recap_prov_true:
-        
+
         # Aggiunta di un record con la corretta capacità per ogni CAP-settimana presente in CAP capacities, in base ad ogni settimana della capacità simulate
         for row_cap in df_cap_capacities_prov_filtred:
             
@@ -199,32 +200,46 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
                                      'activationDateFrom': row_capsim['ACTIVATION_DATE_FROM'],
                                      'activationDateTo': row_capsim['ACTIVATION_DATE_TO'],
                                      'products': row_cap['products'],
-                                     'CodSiglaProvincia': row_cap['CodSiglaProvincia']}
+                                     'CodSiglaProvincia': row_cap['COD_SIGLA_PROVINCIA']}
                 
                 data_adding_rows.append(data_adding_row)
 
     
 df_cap_capacities_final_stg = spark.createDataFrame(data_adding_rows, schema=schema_adding_rows)
 
+
 # Per le coppie provincia-recapitista che non si trovano in Capacità simulate, lascio i record invariati in CAP capacities
 df_cap_capacities_nocapsim = df_cap_capacities_prov.join(df_capacita_simulate,
-                                        (df_cap_capacities_prov.CodSiglaProvincia==df_capacita_simulate.COD_SIGLA_PROVINCIA) & 
+                                        (df_cap_capacities_prov.COD_SIGLA_PROVINCIA==df_capacita_simulate.COD_SIGLA_PROVINCIA) & 
                                         (df_cap_capacities_prov.unifiedDeliveryDriver==df_capacita_simulate.UNIFIED_DELIVERY_DRIVER),'left')\
                                         .select(df_cap_capacities_prov['*'])\
                                         .filter(df_capacita_simulate['CAPACITY'].isNull())
 
 df_cap_capacities_final = df_cap_capacities_final_stg.union(df_cap_capacities_nocapsim)
 
-df_cap_capacities_final = df_cap_capacities_final.withColumnRenamed('unifiedDeliveryDriver','UNIFIED_DELIVERY_DRIVER')\
+df_cap_capacities_final_db = df_cap_capacities_final.withColumnRenamed('unifiedDeliveryDriver','UNIFIED_DELIVERY_DRIVER')\
                                                  .withColumnRenamed('geoKey','GEOKEY')\
                                                  .withColumnRenamed('capacity','CAPACITY')\
                                                  .withColumnRenamed('peakCapacity','PEAK_CAPACITY')\
                                                  .withColumnRenamed('activationDateFrom','ACTIVATION_DATE_FROM')\
                                                  .withColumnRenamed('activationDateTo','ACTIVATION_DATE_TO')\
                                                  .withColumn('LAST_UPDATE_TIMESTAMP',F.current_timestamp())\
-                                                 .withColumn('SIMULAZIONE_ID',F.lit('1'))\
+                                                 .withColumn('SIMULAZIONE_ID',F.lit(id_simulazione_manuale))\
                                                  .select('UNIFIED_DELIVERY_DRIVER','ACTIVATION_DATE_FROM','ACTIVATION_DATE_TO','CAPACITY','PEAK_CAPACITY','GEOKEY','LAST_UPDATE_TIMESTAMP','SIMULAZIONE_ID')
 
+df_cap_capacities_final_s3 = df_cap_capacities_final.withColumn('products',F.lit(None).cast(T.StringType()))\
+                                                    .select('unifiedDeliveryDriver','geoKey','capacity','peakCapacity','activationDateFrom','activationDateTo','products')
+
+
+print('Export su S3')
+export_path_s3_partitioned = 's3://'+s3_bucket+'/input/' + prefix + mese_simulazione[:7] + '/cap_capacities/id_'+ str(id_simulazione_manuale) + '/partitioned/'
+export_path_s3_unified = 's3://'+s3_bucket+'/input/' + prefix + mese_simulazione[:7] + '/cap_capacities/id_'+ str(id_simulazione_manuale) + '/unified/'
+max_rows = 10000
+num_rows=df_cap_capacities_final_s3.count()
+print(num_rows)
+part=math.ceil(num_rows/max_rows)
+df_cap_capacities_final_s3.repartition(part).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_partitioned)
+df_cap_capacities_final_s3.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_unified)
 
 
 print('Export su DB')      
@@ -232,7 +247,7 @@ print('Export su DB')
  
 db_table='public."CAPACITA_SIMULATE_CAP"'
  
-df_cap_capacities_final.write \
+df_cap_capacities_final_db.write \
     .format("jdbc") \
     .option("url", jdbc_connection) \
     .option("dbtable", db_table) \

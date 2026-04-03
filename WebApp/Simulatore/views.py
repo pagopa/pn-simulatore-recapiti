@@ -45,7 +45,9 @@ def homepage(request):
                 simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__year=monday_current_week.year,TIMESTAMP_ESECUZIONE__month=monday_current_week.month).order_by("-TIMESTAMP_ESECUZIONE").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
-
+        # Button download capacità per CAP -> controllo è già stato creato il file csv dei CAP su S3 (dal momento che andiamo a scrivere sul db dopo aver scritto su S3)
+        if singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
+            singola_simulazione.check_capacita_cap_presenti = table_capacita_simulate_cap.objects.filter(SIMULAZIONE_ID=singola_simulazione.ID).exists()
     context = {
         'lista_simulazioni': lista_simulazioni
     }
@@ -130,15 +132,15 @@ def salva_simulazione(request):
         # simulazione esistente che viene modificata
         id_simulazione_salvata = aggiornamento_db_simulazione_esistente(request.POST['id_simulazione'],nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
 
+    # salvataggio sul db capacità modificate dall'utente (tabella CAPACITÀ SIMULATE)
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
-        # SALVATAGGIO CAPACITÀ MODIFICATE DALL'UTENTE
         lista_all_capacita_modificate = table_capacita_simulate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
         lista_old_capacita_modificate = lista_all_capacita_modificate.exclude(ACTIVATION_DATE_TO__isnull=True)
         if lista_old_capacita_modificate:
             # ci sono già capacità sul db, dobbiamo effettuare upsert
             upsert_capacita_db(lista_all_capacita_modificate,lista_old_capacita_modificate,tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata)
         else:
-            # non ci sono capacità nella tabella CAPACITA_SIMULATE, dobbiamo effettuare l'insert
+            # non ci sono capacità nella tabella CAPACITA_SIMULATE, dobbiamo effettuare l'insert perché ci troviamo in una nuova simulazione
             inserimento_nuove_capacita_db(tipo_capacita_da_modificare,capacita_json,last_update_timestamp,id_simulazione_salvata)
         # aggiunta prodotti RS nella tabella CAPACITA_SIMULATE recuperandoli dalla tabella DECLARED_CAPACITY
         gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_update_timestamp,id_simulazione_salvata)
@@ -852,7 +854,7 @@ def download_capacita_per_provincia(request, id_simulazione):
     datetime_now = datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None).strftime("%Y%m%d")
     # creiamo la response con header csv
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="CapacitaPerProvincia_id{id_simulazione}_{datetime_now}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="CapacitaPerProvincia_id{id_simulazione}.csv"'
     # creiamo il writer csv
     writer = csv.writer(response, delimiter=';')
     # header del csv
@@ -899,7 +901,75 @@ def elaborazione_capacita_per_provincia(row):
     row['ACTIVATION_DATE_FROM'] = row['ACTIVATION_DATE_FROM'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
     if row['ACTIVATION_DATE_TO']!=None:
         row['ACTIVATION_DATE_TO'] = row['ACTIVATION_DATE_TO'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-    return row
+    return row 
+
+def download_capacita_per_cap(request, id_simulazione):
+    """
+    Questa funzione viene chiamata quando l'utente vuole scaricare le capacità per CAP in formato csv. A partire dall'id_simulazione, viene creato un presigned URL del file csv su S3 che viene messo a disposizione dell'utente per il download
+
+    Args:
+        id_simulazione (string): identificativo univoco della simulazione
+
+    Returns:
+        dict: presigned url del file csv su S3 + nome del file
+    """    
+    # creazione istanza client s3
+    s3_client = boto3.client('s3')
+    print('s3_client creato')
+    # recupero simulazione dal db a partire dall'id_simulazione
+    simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
+    print('simulazione_selezionata recuperata')
+    # recupero nome file da scaricare sul bucket s3
+    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, simulazione_selezionata.TIMESTAMP_ESECUZIONE)
+    print('file_key recuperato', file_key)
+    filename = f"CapacitaPerCAP_id{id_simulazione}.csv"
+    if file_key != 'None':
+        # generazione presigned_url per permettere all'utente di scaricare il file
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': BUCKET_NAME,
+                'Key': file_key,
+                "ResponseContentDisposition": f'inline; filename={filename}', # inseriamo questa riga per cambiare il nome del file quando l'utente effettua il download
+                "ResponseContentType": 'text/csv'
+            },
+            ExpiresIn=300  # seconds
+        )
+        print('presigned_url recuperato', presigned_url)
+        return {presigned_url: presigned_url, filename: filename}
+    else:
+        print('presigned_url non presente')
+        return {presigned_url: 'None', filename: 'None'}
+
+
+
+def recupero_filekey_s3(bucket_name, s3_client, target_date):
+    """
+    Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
+
+    Args:
+        bucket_name (string): nome del bucket s3 di progetto
+        s3_client (botocore.client.S3): connessione ad s3
+
+    Returns:
+        string: prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA
+    """
+
+    for _ in range(30):  # limite di sicurezza a 30 gg
+        prefix = target_date.strftime("%Y/%m/%d/")
+        response = s3_client.list_objects_v2(
+            Bucket=bucket_name,
+            Prefix='input/'+prefix,
+            MaxKeys=1
+        )
+        # se la cartella esiste, ritorno il file key
+        if 'Contents' in response:
+            return response['Contents'][0]['Key']
+        # altrimenti vado al giorno precedente
+        target_date -= timedelta(days=1)
+    # se non viene trovata alcuna cartella corrispondente
+    return 'None'
+
 
 
 # ERROR PAGES

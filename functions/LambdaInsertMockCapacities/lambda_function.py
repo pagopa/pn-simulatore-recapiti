@@ -104,6 +104,65 @@ def recupero_dati_db(id_simulazione, tabella_sorgente):
     return rows
 
 
+def recupero_ultima_data_estrazione(bucket_name, s3_client):
+    """
+    Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
+
+    Args:
+        bucket_name (string): nome del bucket s3 di progetto
+        s3_client (botocore.client.S3): connessione ad s3
+
+    Returns:
+        string: prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA
+    """
+    target_date = date.today()
+
+    for _ in range(30):  # limite di sicurezza a 30 gg
+        prefix = target_date.strftime("%Y/%m/%d/")
+        response = s3_client.list_objects_v2(
+            Bucket=bucket_name,
+            Prefix='input/'+prefix,
+            MaxKeys=1
+        )
+        # se la cartella esiste, ritorno la key fino alla data dell'ultimo recupero dati
+        if 'Contents' in response:
+            return 'input/'+prefix
+        # altrimenti vado al giorno precedente
+        target_date -= timedelta(days=1)
+    # se non viene trovata alcuna cartella corrispondente
+    raise Exception("Nessuna folder input/yyyy/mm/dd_di_estrazione su S3 creata negli ultimi 30 gg")
+
+def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_path,destination_filename):
+    """
+    Creiamo una copia del file csv che successivamente importeremo tramite la IMPORT_DATA con il nome indicato dalla GET_PRESIGNED_URL
+
+    Args:
+        s3_client (botocore.client.S3): connessione ad s3
+        bucket_s3 (string): bucket di interesse
+        obj_key (string): chiave dell'oggetto sorgente sul bucket
+        source_path (string): chiave dell'oggetto sorgente senza nome file
+        destination_filename (string): nome del file fornito dalla GET_PRESIGNED_URL
+
+    """
+    s3_client.copy_object(
+        Bucket=bucket_s3,
+        CopySource={"Bucket": bucket_s3, "Key": obj_key},
+        Key=source_path + '/' + destination_filename
+    )
+
+class S3BodyWrapper:
+    """
+    Wrap dello stream originale leggendo i dati tramite la read() e recuperando la lunghezza del file tramite la __len__()    
+    """
+    def __init__(self, body, length):
+        self.body = body
+        self.length = length
+    def read(self, amt=None):
+        return self.body.read(amt)
+    def __len__(self):
+        return self.length
+
+
 def lambda_presigned_url(lambda_delayer, source_filename):
     """
     Generiamo il presigned URL utilizzando la GET_PRESIGNED_URL
@@ -132,13 +191,12 @@ def lambda_presigned_url(lambda_delayer, source_filename):
     key = response_dict_body['key']
     return uploadUrl, key
 
-def caricamento_csv(db_rows, capacity_granularity, lambda_delayer, id_simulazione_manuale):
+def caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale):
     """
     Questa funzione gestisce le operazioni di GET_PRESIGNED_URL e caricamento del file csv nel presigned url, con le relative operazioni a corredo
 
     Args:
         db_rows (list): lista dei record delle capacità recuperati dal db per creare il file csv da caricare nel presigned url 
-        capacity_granularity (string): indica se le capacità sono a livello di provincia o a livello di CAP
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
         id_simulazione_manuale (string): identificativo univoco della simulazione sul db
 
@@ -150,15 +208,14 @@ def caricamento_csv(db_rows, capacity_granularity, lambda_delayer, id_simulazion
     for row in db_rows:
         # formattiamo il product
         product_list = ''
-        if capacity_granularity=='province':
-            if row[-2] == True:
-                product_list += '890,'
-            if row[-1] == True:
-                product_list += 'AR,'
-            product_list += 'RS'
-            # rimuoviamo gli ultimi 2 elementi da ogni riga recuperata dal db (product_890 e product_AR)
-            del row[-2]
-            del row[-1]
+        if row[-2] == True:
+            product_list += '890,'
+        if row[-1] == True:
+            product_list += 'AR,'
+        product_list += 'RS'
+        # rimuoviamo gli ultimi 2 elementi da ogni riga recuperata dal db (product_890 e product_AR)
+        del row[-2]
+        del row[-1]
         # aggiungiamo la stringa creata per il prodotto
         row.append(product_list)
         # adattiamo la data al formato ISO 8601 in UTC -> yyyy-mm-ddTHH:MM:SS.000Z
@@ -166,12 +223,9 @@ def caricamento_csv(db_rows, capacity_granularity, lambda_delayer, id_simulazion
         if row[5]!=None:
             row[5] = row[5].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
-    if capacity_granularity=='province':
-        source_filename = 'mock_capacities_id'+id_simulazione_manuale
-    else:
-        source_filename = 'mock_capacities_cap_id'+id_simulazione_manuale
+    source_filename = 'mock_capacities_id'+id_simulazione_manuale
     
-    lista_file_csv_caricati_su_s3 = []
+    lista_csv_caricati_su_s3 = []
     max_rows = 10000
     num_chunks=math.ceil(len(db_rows)/max_rows)
     for index in range(num_chunks):
@@ -191,11 +245,62 @@ def caricamento_csv(db_rows, capacity_granularity, lambda_delayer, id_simulazion
         )
         if put_response.status_code != 200:
             print("Errore durante l'operazione di caricamento del file sul presigned url di s3")
-            return 1, lista_file_csv_caricati_su_s3
+            return 1, lista_csv_caricati_su_s3
         else:
-            lista_file_csv_caricati_su_s3.append(destination_filename)
+            lista_csv_caricati_su_s3.append(destination_filename)
 
-    return 0, lista_file_csv_caricati_su_s3
+    return 0, lista_csv_caricati_su_s3
+
+
+def caricamento_csv_cap(s3_client, source_bucket, id_simulazione_manuale, lambda_delayer, mese_simulazione):
+    """
+    Questa funzione gestisce le operazioni di copia e GET_PRESIGNED_URL, con le relative operazioni a corredo
+
+    Args:
+        s3_client (botocore.client.S3): connessione ad s3
+        source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di INSERT_MOCK_CAPACITIES
+        id_simulazione_manuale (string): identificativo univoco della simulazione sul db
+        lambda_delayer (botocore.client.Lambda): connessione alla lambda
+        mese_simulazione (string): mese di simulazione, formato "yyyy-mm"
+
+    Returns:
+        int: esito operazioni (0 se non ci sono errori, 1 se ci sono errori)
+        list: lista dei file csv caricati su s3 da inserire successivamenteo tramite la INSERT_MOCK_CAPACITIES
+    """
+    # recuperiamo il path s3 per prendere i csv dei cap
+    prefix_s3_settimana_estrazione = recupero_ultima_data_estrazione(source_bucket, s3_client)
+    full_prefix = prefix_s3_settimana_estrazione + mese_simulazione + '/cap_capacities/id_' + id_simulazione_manuale + '/partitioned/'
+    lista_file_csv_cap_caricati_su_s3 = []
+    objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=full_prefix)
+    for obj in objects.get("Contents", []):
+        if obj["Key"][-4:] == '.csv':
+            source_filename = obj["Key"].split('/')[-1]
+            # GET PRESIGNED URL
+            uploadUrl, destination_filename = lambda_presigned_url(lambda_delayer,source_filename)
+            # creiamo una copia dell'oggetto (che poi elimineremo) con il nome indicato dalla GET PRESIGNED URL
+            crea_copia_csv_s3(s3_client,source_bucket,obj["Key"],full_prefix,destination_filename)
+            # otteniamo l'oggetto S3 come streaming body
+            response = s3_client.get_object(Bucket=source_bucket, Key=full_prefix+'/'+destination_filename)
+            body = response["Body"]
+            size = response["ContentLength"]
+            streaming_body = S3BodyWrapper(body, size)
+            # upload dell'oggetto sul bucket S3 indicato dal presigned url
+            put_response = requests.put(
+                uploadUrl,
+                data=streaming_body,
+                timeout=300
+            )
+            if put_response.status_code not in (200, 201, 204):
+                raise Exception(put_response.text)
+
+            # cancelliamo la copia dell'oggetto sul bucket di progetto
+            s3_client.delete_object(Bucket=source_bucket, Key=full_prefix+'/'+destination_filename)
+            
+            lista_file_csv_cap_caricati_su_s3.append(destination_filename)
+
+    return 0, lista_file_csv_cap_caricati_su_s3
+
+
 
 def lambda_insert_mock_capacities(lambda_delayer,lista_filename_insertMockCapacities):
     """
@@ -236,7 +341,7 @@ class S3BodyWrapper:
         return self.length
 
 
-def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale, lambda_delayer):
+def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale, lambda_delayer, s3_client, source_bucket, mese_simulazione):
     """
     Questa funzione gestisce le operazioni di recupero dati delle capacità dal db ed INSERT_MOCK_CAPACITIES, con le relative operazioni a corredo
 
@@ -244,20 +349,25 @@ def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale
         capacity_granularity (string): indica se le capacità sono a livello di provincia o a livello di CAP
         id_simulazione_manuale (string): identificativo univoco della simulazione sul db
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
+        s3_client (botocore.client.S3): connessione ad s3
+        source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di INSERT_MOCK_CAPACITIES
+        mese_simulazione (string): mese di simulazione, formato "yyyy-mm"
 
     Returns:
         int: esito operazioni (0 se non ci sono errori, 1 se ci sono errori)
     """
-    # recupero dati dal db per creare csv da dare alla INSERT_MOCK_CAPACITIES
+    # recupero dati dal db per creare csv da dare alla INSERT_MOCK_CAPACITIES + upload file sul presigned url
     if capacity_granularity=='province':
         db_rows = recupero_dati_db(id_simulazione_manuale,'CAPACITA_SIMULATE')
+        errori_presenti_upload, lista_filename_insertMockCapacities = caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale)
+        if errori_presenti_upload != 0:
+            print(f"Errore durante l'operazione di caricamento delle prov sul presigned url di s3")
+            return errori_presenti_upload
     else:
-        db_rows = recupero_dati_db(id_simulazione_manuale,'CAPACITA_SIMULATE_CAP')
-    # upload file sul presigned url
-    errori_presenti_upload, lista_filename_insertMockCapacities = caricamento_csv(db_rows, capacity_granularity, lambda_delayer, id_simulazione_manuale)
-    if errori_presenti_upload != 0:
-        print(f"Errore durante l'operazione di caricamento del file {capacity_granularity} sul presigned url di s3")
-        return errori_presenti_upload
+        errori_presenti_upload, lista_filename_insertMockCapacities = caricamento_csv_cap(s3_client, source_bucket, id_simulazione_manuale, lambda_delayer, mese_simulazione)
+        if errori_presenti_upload != 0:
+            print(f"Errore durante l'operazione di caricamento dei cap sul presigned url di s3")
+            return errori_presenti_upload
     # INSERT MOCK CAPACITIES
     errori_presenti_insert = lambda_insert_mock_capacities(lambda_delayer,lista_filename_insertMockCapacities)
     if errori_presenti_insert != 0:
@@ -271,6 +381,7 @@ def lambda_handler(event, context):
     numero_file_da_caricare = len(lista_file_da_caricare[0]['lista_file_csv_1']) + len(lista_file_da_caricare[1]['lista_file_csv_2']) + len(lista_file_da_caricare[2]['lista_file_csv_3']) + len(lista_file_da_caricare[3]['lista_file_csv_4']) + len(lista_file_da_caricare[4]['lista_file_csv_5']) + len(lista_file_da_caricare[5]['lista_file_csv_6'])
     # recupero parametri d'ambiente dalla step function
     source_bucket = os.environ['source_bucket']
+    mese_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-mm-dd ma a noi interessa solamente yyyy-mm
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     # inizializzazione connessione lambda
@@ -291,11 +402,11 @@ def lambda_handler(event, context):
         # recupero parametri d'ambiente dalla step function
         id_simulazione_manuale = event["id_simulazione_manuale"]
 
-        errori_presenti_insert_province = gestione_insert_mock_capacities('province', id_simulazione_manuale, lambda_delayer)
+        errori_presenti_insert_province = gestione_insert_mock_capacities('province', id_simulazione_manuale, lambda_delayer, s3_client, source_bucket, mese_simulazione)
         if errori_presenti_insert_province != 0:
             return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert_province}
 
-        errori_presenti_insert_cap = gestione_insert_mock_capacities('CAP', id_simulazione_manuale, lambda_delayer)
+        errori_presenti_insert_cap = gestione_insert_mock_capacities('CAP', id_simulazione_manuale, lambda_delayer, s3_client, source_bucket, mese_simulazione)
         if errori_presenti_insert_cap != 0:
             return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert_cap}
 

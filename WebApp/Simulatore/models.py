@@ -218,6 +218,9 @@ class table_capacita_simulate_cap(models.Model):
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_SIMULATE_CAP'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_4')
+        ]
 
 
 # VISTA output_capacity_setting

@@ -38,7 +38,7 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client):
             Prefix='input/'+prefix,
             MaxKeys=1
         )
-        # se la cartella esiste, ritorno la data
+        # se la cartella esiste, ritorno la key (senza "input/") fino alla data dell'ultimo recupero dati
         if 'Contents' in response:
             return prefix
         # altrimenti vado al giorno precedente
@@ -53,7 +53,7 @@ def recupero_lista_csv_sorgente(s3_client,source_bucket,prefix_s3):
 
     Args:
         s3_client (botocore.client.S3): connessione ad s3
-        source_bucket (string): bucket sorgente contenente i file csv sorgenti da importare successivamente trmaite l'operazione di IMPORT_DATA
+        source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di IMPORT_DATA
         prefix_s3 (string): prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA 
 
     Returns:

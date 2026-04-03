@@ -182,6 +182,9 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN = os.getenv('ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN')
 STEP_FUNCTION_ARN = os.getenv('STEP_FUNCTION_ARN')
 
+# variabile d'ambiente per bucket S3
+BUCKET_NAME = os.getenv('BUCKET_NAME')
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
