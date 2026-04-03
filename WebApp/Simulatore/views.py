@@ -23,6 +23,8 @@ def homepage(request):
     Homepage che coincide con la pagina di riepilogo delle simulazioni effettuate
     """
     lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
+    # recupero la lista degli id simulazione che hanno capacità simulate per CAP -> serve per capire su quali simulazioni mostrare il button download capacità per CAP 
+    lista_idsimulazione_capacita_cap_disponibili = table_capacita_simulate_cap.objects.all().values_list('SIMULAZIONE_ID', flat=True).distinct()
     
     for singola_simulazione in lista_simulazioni:
         # cambio stato su 'Non completata' se siamo sullo stato 'In lavorazione' da più di 2gg
@@ -45,11 +47,10 @@ def homepage(request):
                 simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__year=monday_current_week.year,TIMESTAMP_ESECUZIONE__month=monday_current_week.month).order_by("-TIMESTAMP_ESECUZIONE").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
-        # Button download capacità per CAP -> controllo è già stato creato il file csv dei CAP su S3 (dal momento che andiamo a scrivere sul db dopo aver scritto su S3)
-        if singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
-            singola_simulazione.check_capacita_cap_presenti = table_capacita_simulate_cap.objects.filter(SIMULAZIONE_ID=singola_simulazione.ID).exists()
+
     context = {
-        'lista_simulazioni': lista_simulazioni
+        'lista_simulazioni': lista_simulazioni,
+        'lista_idsimulazione_capacita_cap_disponibili': lista_idsimulazione_capacita_cap_disponibili
     }
     return render(request, "home.html", context)
 
@@ -458,7 +459,7 @@ def recupero_parametri_input_utente(request):
     """
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = None
-    if request.POST['descrizione_simulazione'] in request.POST:
+    if 'descrizione_simulazione' in request.POST:
         descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
         if request.POST['inlineRadioOptions'] == 'now':
@@ -841,7 +842,7 @@ def gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_updat
 
 
 @gzip_page # utile per comprimere la risposta
-def download_capacita_per_provincia(request, id_simulazione):
+def download_capacita_per_provincia(request, id_simulazione, recupero_capacita_modificate):
     """
     Questa funzione viene chiamata quando l'utente vuole scaricare le capacità per provincia in formato csv. A partire dall'id_simulazione, vengono recuperate le capacità scelte dall'utente e creato il csv
 
@@ -854,15 +855,21 @@ def download_capacita_per_provincia(request, id_simulazione):
     datetime_now = datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None).strftime("%Y%m%d")
     # creiamo la response con header csv
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="CapacitaPerProvincia_id{id_simulazione}.csv"'
+    if recupero_capacita_modificate == 'true':
+        response['Content-Disposition'] = f'attachment; filename="CapacitaModificatePerProvincia_id{id_simulazione}.csv"'
+    else:
+        response['Content-Disposition'] = f'attachment; filename="CapacitaPerProvincia_id{id_simulazione}.csv"'
     # creiamo il writer csv
     writer = csv.writer(response, delimiter=';')
     # header del csv
     writer.writerow(['unifiedDeliveryDriver','geoKey','capacity','peakCapacity','activationDateFrom','activationDateTo','products'])
-    # recuperiamo i recod sul db
-    queryset = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+    # recuperiamo i record dal db
+    if recupero_capacita_modificate == 'true':
+        lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione, FLAG_DEFAULT=False).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+    else:
+        lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
     # scriviamo sul file con chunk_size=1000
-    for row in queryset.iterator(chunk_size=1000):
+    for row in lista_capacita.iterator(chunk_size=1000):
         formtted_row = elaborazione_capacita_per_provincia(row)
         writer.writerow([
             formtted_row['UNIFIED_DELIVERY_DRIVER'],
@@ -921,7 +928,7 @@ def download_capacita_per_cap(request, id_simulazione):
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
     print('simulazione_selezionata recuperata')
     # recupero nome file da scaricare sul bucket s3
-    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, simulazione_selezionata.TIMESTAMP_ESECUZIONE)
+    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, simulazione_selezionata.TIMESTAMP_ESECUZIONE, id_simulazione)
     print('file_key recuperato', file_key)
     filename = f"CapacitaPerCAP_id{id_simulazione}.csv"
     if file_key != 'None':
@@ -944,7 +951,7 @@ def download_capacita_per_cap(request, id_simulazione):
 
 
 
-def recupero_filekey_s3(bucket_name, s3_client, target_date):
+def recupero_filekey_s3(bucket_name, s3_client, target_date, id_simulazione):
     """
     Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
 
@@ -960,7 +967,7 @@ def recupero_filekey_s3(bucket_name, s3_client, target_date):
         prefix = target_date.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
-            Prefix='input/'+prefix,
+            Prefix=f'input/{prefix}/cap_capacities/id_{id_simulazione}/unified/',
             MaxKeys=1
         )
         # se la cartella esiste, ritorno il file key

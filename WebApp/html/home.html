@@ -64,10 +64,14 @@
                                         <div class="row text-center">
                                             {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
                                             <div class="col">
-                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_provincia('{{simulazione.ID}}')" style="cursor: pointer;"></i></p>
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_provincia('{{simulazione.ID}}',false)" style="cursor: pointer;"></i></p>
                                                 <label style="font-size: 12px;">Download capacità per provincia</label>
                                             </div>
-                                            {% if simulazione.check_capacita_cap_presenti == True %}
+                                            <div class="col">
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_provincia('{{simulazione.ID}}',true)" style="cursor: pointer;"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per provincia modificate</label>
+                                            </div>
+                                            {% if simulazione.ID in lista_idsimulazione_capacita_cap_disponibili %}
                                             <div class="col">
                                                 <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_cap('{{simulazione.ID}}')" style="cursor: pointer;"></i></p>
                                                 <label style="font-size: 12px;">Download capacità per CAP</label>
@@ -403,7 +407,7 @@
 </script>
 
 <script>
-    async function download_async_capacita_per_provincia(id_simulazione) {
+    async function download_async_capacita_per_provincia(id_simulazione, recupero_capacita_modificate) {
         /*
         Funzione che permette il download delle capacità per provincia cliccando sul relativo button presente nella modal di dettaglio di una simulazione manuale
         */
@@ -411,7 +415,7 @@
         document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
         try {
             // richiesta backend
-            const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}`);
+            const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}/${recupero_capacita_modificate}`);
             if (!response.ok) {
                 throw new Error('Errore nel download, riprovare!');
             }
@@ -449,16 +453,22 @@
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_cap/${id_simulazione}`);
+            console.log('456')
             if (response['presigned_url'] != 'None' && response['filename'] != 'None'){
+                console.log('458')
                 const button_fittizio = document.createElement('a');
                 // recuperiamo l'url del presigned url dalla response
                 button_fittizio.href = response['presigned_url'];
+                console.log('462')
                 // recuperiamo il nome del file dalla response
                 button_fittizio.download = response['filename'];
+                console.log('465')
                 document.body.appendChild(button_fittizio);
                 button_fittizio.click();
+                console.log('468')
                 // pulizia
                 document.body.removeChild(button_fittizio);
+                console.log('471')
                 // rimozione spinner
                 document.getElementById("spinner_loading").innerHTML = '';
             }
