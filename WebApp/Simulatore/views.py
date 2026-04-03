@@ -965,11 +965,12 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
         prefix = timestamp_esecuzione_simulazione.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
-            Prefix=f'input/{prefix}mese_simulazione/cap_capacities/id_{id_simulazione}/unified/',
+            Prefix=f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/',
             MaxKeys=1
         )
         # se la cartella esiste, ritorno il file key
         if 'Contents' in response:
+            print(prefix, prefix)
             return response['Contents'][0]['Key']
         # altrimenti vado al giorno precedente
         timestamp_esecuzione_simulazione -= timedelta(days=1)
