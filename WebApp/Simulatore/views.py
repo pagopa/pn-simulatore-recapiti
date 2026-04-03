@@ -914,7 +914,8 @@ def download_capacita_per_cap(request, id_simulazione):
         dict: presigned url del file csv su S3 + nome del file
     """    
     # creazione istanza client s3
-    s3_client = boto3.client('s3')
+    config = Config(retries={'mode': 'standard', 'max_attempts': 10})
+    s3_client = boto3.client("s3", region_name="eu-south-1", config=config)
     print('s3_client creato')
     # recupero simulazione dal db a partire dall'id_simulazione
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
