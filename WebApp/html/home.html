@@ -453,24 +453,8 @@
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_cap/${id_simulazione}`);
-            console.log('456')
-            if (response['presigned_url'] != 'None' && response['filename'] != 'None'){
-                console.log('458')
-                const button_fittizio = document.createElement('a');
-                // recuperiamo l'url del presigned url dalla response
-                button_fittizio.href = response['presigned_url'];
-                console.log('462')
-                // recuperiamo il nome del file dalla response
-                button_fittizio.download = response['filename'];
-                console.log('465')
-                document.body.appendChild(button_fittizio);
-                button_fittizio.click();
-                console.log('468')
-                // pulizia
-                document.body.removeChild(button_fittizio);
-                console.log('471')
-                // rimozione spinner
-                document.getElementById("spinner_loading").innerHTML = '';
+            if (response != 'None'){
+                window.location.href = response;
             }
             else{
                 throw new Error('Errore nel download, riprovare!');

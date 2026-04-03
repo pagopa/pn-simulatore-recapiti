@@ -938,16 +938,16 @@ def download_capacita_per_cap(request, id_simulazione):
             Params={
                 'Bucket': BUCKET_NAME,
                 'Key': file_key,
-                "ResponseContentDisposition": f'inline; filename={filename}', # inseriamo questa riga per cambiare il nome del file quando l'utente effettua il download
+                "ResponseContentDisposition": f'attachment; filename={filename}', # inseriamo questa riga per cambiare il nome del file quando l'utente effettua il download
                 "ResponseContentType": 'text/csv'
             },
             ExpiresIn=300  # seconds
         )
         print('presigned_url recuperato', presigned_url)
-        return {presigned_url: presigned_url, filename: filename}
+        return presigned_url
     else:
         print('presigned_url non presente')
-        return {presigned_url: 'None', filename: 'None'}
+        return 'None'
 
 
 
