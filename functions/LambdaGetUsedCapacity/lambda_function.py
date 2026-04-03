@@ -137,10 +137,10 @@ def calcolo_secondo_lunedi_mese_successivo(data_string):
     Calcoliamo il secondo lunedì del mese successivo rispetto alla data fornita in input
 
     Args:
-        data_string (string): primo lunedì processato dalla RUN_ALGORITHM nel formato yyyy-mm-dd
+        data_string (string): primo lunedì processato dalla RUN_ALGORITHM nel formato YYYY-MM-DD
 
     Returns:
-        string: secondo lunedì del mese successivo nel formato yyyy-mm-dd
+        string: secondo lunedì del mese successivo nel formato YYYY-MM-DD
     """
     # from string to datetime
     d = datetime.strptime(data_string, "%Y-%m-%d")
@@ -168,7 +168,7 @@ def recupero_lista_settimane_per_getusedcapacity(lista_settimane_processate):
     Calcoliamo per quali settimane, fra quelle processate, dobbiamo recuperare la used capacity -> da requisito, per simulazioni manuali, le settimane per le quali fare la getusedcapacity sono quelle dalla seconda del mese successivo in poi
 
     Args:
-        lista_settimane_processate (list): ogni elemento della lista è una stringa con una data (nel formato yyyy-mm-dd) del lunedì della settimana processata dalla RUN_ALGORITHM
+        lista_settimane_processate (list): ogni elemento della lista è una stringa con una data (nel formato YYYY-MM-DD) del lunedì della settimana processata dalla RUN_ALGORITHM
 
     Returns:
         list: settimane per le quali chiamare la GET_USED_CAPACITY

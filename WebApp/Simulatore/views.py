@@ -318,7 +318,7 @@ def recupero_lista_mesi_simulazione_univoci():
     Questa funzione recupera la lista dei mesi univoci che l'utente può scegliere per creare una nuova simulazione
 
     Returns:
-        list of tuple: mesi univoci dove il primo elmento della tupla è nel formato yyyy-mm mentre il secondo elemento della tupla contiene il mese scritto per esteso e l'anno in formato yyyy
+        list of tuple: mesi univoci dove il primo elmento della tupla è nel formato YYYY-MM mentre il secondo elemento della tupla contiene il mese scritto per esteso e l'anno in formato YYYY
     """
     with connection.cursor() as cursor:
         cursor.execute("""
@@ -339,10 +339,10 @@ def calcolo_prima_settimana(data_string):
     Questa funzione calcola il primo lunedì del mese corrente da considerare per la simulazione
     
     Args:
-        data_string (string): anno-mese (formato yyyy-mm) dal quale partire per calcolare la prima settimana
+        data_string (string): anno-mese (formato YYYY-MM) dal quale partire per calcolare la prima settimana
 
     Returns:
-        string: data del primo lunedì del mese da considerare, formato yyyy-mm-dd
+        string: data del primo lunedì del mese da considerare, formato YYYY-MM-DD
     """
     # from string to datetime
     dt = datetime.strptime(data_string, "%Y-%m")
@@ -370,7 +370,7 @@ def crea_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tipo_tr
     client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
     payload = {
-        "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+        "mese_simulazione": settimana_del_mese_simulazione, # formato YYYY-MM-DD
         "id_simulazione_manuale": str(id_simulazione),
         "tipo_simulazione": "Manuale"
     }
@@ -404,7 +404,7 @@ def modifica_trigger_eventbridge_scheduler(id_simulazione, mese_da_simulare, tip
     client = boto3.client("scheduler", region_name="eu-south-1", config=config)
     # parametri da passare alla step function
     payload = {
-        "mese_simulazione": settimana_del_mese_simulazione, # formato yyyy-mm-dd
+        "mese_simulazione": settimana_del_mese_simulazione, # formato YYYY-MM-DD
         "id_simulazione_manuale": str(id_simulazione),
         "tipo_simulazione": "Manuale"
     }
@@ -450,10 +450,10 @@ def recupero_parametri_input_utente(request):
     Returns:
         string: nome della simulazione inserito dall'utente
         string: descrizione della simulazione inserita dall'utente
-        string: datetime now nel formato yyyy-mm-dd HH:MM:SS
+        string: datetime now nel formato YYYY-MM-DD HH:mm:ss
         string: schedule o now
         string: Bozza o Schedulata-Inlavorazione
-        string: mese della simulazione scelto dall'utente, formato yyyy-mm
+        string: mese della simulazione scelto dall'utente, formato YYYY-MM
         string: BAU, Picco o Combinata
         dict: capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
     """
@@ -503,8 +503,8 @@ def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,st
         descrizione_simulazione (string): descrizione della simulazione da salvare sul db
         stato (string): stato della simulazione da salvare sul db
         tipo_trigger (string): tipo trigger della simulazione da salvare sul db
-        timestamp_esecuzione (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
-        mese_da_simulare (string): mese della simulazione da salvare sul db, formato yyyy-mm
+        timestamp_esecuzione (string): datetime now nel formato YYYY-MM-DD HH:mm:ss
+        mese_da_simulare (string): mese della simulazione da salvare sul db, formato YYYY-MM
         tipo_capacita_da_modificare (string): tipo capacità modificata della simulazione da salvare sul db
         tipo_simulazione (string): tipo trigger della simulazione da salvare sul db
 
@@ -545,8 +545,8 @@ def aggiornamento_db_simulazione_esistente(id_simulazione,nome_simulazione,descr
         descrizione_simulazione (string): descrizione della simulazione aggiornato da salvare sul db
         stato (string): stato della simulazione aggiornato da salvare sul db
         tipo_trigger (string): tipo trigger della simulazione aggiornato da salvare sul db
-        timestamp_esecuzione (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
-        mese_da_simulare (string): mese della simulazione aggiornato da salvare sul db, formato yyyy-mm
+        timestamp_esecuzione (string): datetime now nel formato YYYY-MM-DD HH:mm:ss
+        mese_da_simulare (string): mese della simulazione aggiornato da salvare sul db, formato YYYY-MM
         tipo_capacita_da_modificare (string): tipo capacità modificata della simulazione aggiornato da salvare sul db
         tipo_simulazione (string): tipo trigger della simulazione aggiornato da salvare sul db
 
@@ -589,7 +589,7 @@ def upsert_capacita_db(lista_all_capacita_modificate,lista_old_capacita_modifica
         lista_old_capacita_modificate (list): lista_all_capacita_modificate escluse le capacità con ACTIVATION_DATE_TO settata a NULL
         tipo_capacita_da_modificare (string): BAU, Picco o Combinata
         capacita_json (dict): capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
-        last_update_timestamp (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        last_update_timestamp (string): datetime now nel formato YYYY-MM-DD HH:mm:ss
         id_simulazione_salvata (int): identificativo univoco della simulazione di riferimento
     """
     lista_all_capacita_modificate.filter(ACTIVATION_DATE_TO__isnull=True).delete() # rimuoviamo vecchie capacità con ACTIVATION_DATE_TO NULL
@@ -715,7 +715,7 @@ def inserimento_nuove_capacita_db(tipo_capacita_da_modificare,capacita_json,last
     Args:
         tipo_capacita_da_modificare (string): BAU, Picco o Combinata
         capacita_json (dict): capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
-        last_update_timestamp (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        last_update_timestamp (string): datetime now nel formato YYYY-MM-DD HH:mm:ss
         id_simulazione_salvata (int): identificativo univoco della simulazione di riferimento
     """
     # scrittura sul db nella tabella CAPACITA_SIMULATE
@@ -805,9 +805,9 @@ def gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_updat
     Questa funzione permette di aggiungere i prodotti RS nella tabella del db denominata 'CAPACITA_SIMULATE' recuperandoli dalla tabella del db denominata 'DECLARED_CAPACITY'
 
     Args:
-        mese_da_simulare (string): mese di riferimento della simulazione, formato yyyy-mm
+        mese_da_simulare (string): mese di riferimento della simulazione, formato YYYY-MM
         tipo_capacita_da_modificare (string): BAU, Picco o Combinata
-        last_update_timestamp (string): datetime now nel formato yyyy-mm-dd HH:MM:SS
+        last_update_timestamp (string): datetime now nel formato YYYY-MM-DD HH:mm:ss
         id_simulazione_salvata (int): identificativo univoco della simulazione di riferimento
     """
     # recupero record su tabella DECLARED CAPACITY con prodotti RS (non AR e non 890) con ACTIVATION_DATE_FROM uguale al primo lunedì di simulazione
@@ -904,7 +904,7 @@ def elaborazione_capacita_per_provincia(row):
     del row['PRODUCT_AR']
     # aggiungiamo la stringa creata per il prodotto
     row['products'] = product_list
-    # adattiamo la data al formato ISO 8601 in UTC -> yyyy-mm-ddTHH:MM:SS.000Z
+    # adattiamo la data al formato ISO 8601 in UTC -> YYYY-MM-DDTHH:mm:ss.000Z
     row['ACTIVATION_DATE_FROM'] = row['ACTIVATION_DATE_FROM'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
     if row['ACTIVATION_DATE_TO']!=None:
         row['ACTIVATION_DATE_TO'] = row['ACTIVATION_DATE_TO'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
@@ -928,7 +928,7 @@ def download_capacita_per_cap(request, id_simulazione):
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
     print('simulazione_selezionata recuperata')
     # recupero nome file da scaricare sul bucket s3
-    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, simulazione_selezionata.TIMESTAMP_ESECUZIONE, id_simulazione)
+    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE)
     print('file_key recuperato', file_key)
     filename = f"CapacitaPerCAP_id{id_simulazione}.csv"
     if file_key != 'None':
@@ -949,11 +949,9 @@ def download_capacita_per_cap(request, id_simulazione):
         print('presigned_url non presente')
         return 'None'
 
-
-
-def recupero_filekey_s3(bucket_name, s3_client, target_date, id_simulazione):
+def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuzione_simulazione, mese_simulazione):
     """
-    Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
+    Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto partendo, per la ricerca della data, dal giorno della simulazione (fino ad massimo di sicurezza di 30 gg precedenti alla data di esecuzione della simulazione)
 
     Args:
         bucket_name (string): nome del bucket s3 di progetto
@@ -964,17 +962,17 @@ def recupero_filekey_s3(bucket_name, s3_client, target_date, id_simulazione):
     """
 
     for _ in range(30):  # limite di sicurezza a 30 gg
-        prefix = target_date.strftime("%Y/%m/%d/")
+        prefix = timestamp_esecuzione_simulazione.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
-            Prefix=f'input/{prefix}cap_capacities/id_{id_simulazione}/unified/',
+            Prefix=f'input/{prefix}mese_simulazione/cap_capacities/id_{id_simulazione}/unified/',
             MaxKeys=1
         )
         # se la cartella esiste, ritorno il file key
         if 'Contents' in response:
             return response['Contents'][0]['Key']
         # altrimenti vado al giorno precedente
-        target_date -= timedelta(days=1)
+        timestamp_esecuzione_simulazione -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
     return 'None'
 

@@ -7,7 +7,7 @@ Trigger:
 Input:
     tipo_simulazione: 'Automatizzata' o 'Manuale'
     id_simulazione_manuale: valorizzata con l'id di simulazione in caso di simulazione 'Manuale', vuota per simulazione 'Automatizzata'
-    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-mm-dd
+    mese_simulazione: prima settimana del mese di simulazione, nel formato YYYY-MM-DD
 
 Output:
     id_simulazione_automatizzata: id della simulazione creata sul db solo nel caso in cui tipo_simulazione=='Automatizzata', altrimenti torna '-'
@@ -61,7 +61,7 @@ def connessione_db(db_host, db_name, db_port, creds):
 
 def lambda_handler(event, context):    
     if event['tipo_simulazione'] == 'Automatizzata':
-        settimana_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-mm-dd ma a noi interessa solamente yyyy-mm
+        settimana_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato YYYY-MM-DD ma a noi interessa solamente YYYY-MM
         # calcoliamo il datetime now
         start_timestamp_esecuzione_simulazione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
         # recupero variabili d'ambiente

@@ -5,7 +5,7 @@ Trigger:
     Step function pn-simulatore-recapiti-sf-RecuperoDati-Weekly
 
 Input:
-    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-mm-dd
+    mese_simulazione: prima settimana del mese di simulazione, nel formato YYYY-MM-DD
 """
 import json
 import boto3

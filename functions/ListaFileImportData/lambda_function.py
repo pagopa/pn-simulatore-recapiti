@@ -5,8 +5,8 @@ Trigger:
     Step function pn-simulatore-recapiti-sf-GestioneSimulazione
 
 Input:
-    settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato yyyy-mm-dd, utile per calcolare la successiva settimana da processare
-    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-mm-dd
+    settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato YYYY-MM-DD, utile per calcolare la successiva settimana da processare
+    mese_simulazione: prima settimana del mese di simulazione, nel formato YYYY-MM-DD
     tipo_simulazione: 'Automatizzata' o 'Manuale'
 
 Output:
@@ -44,7 +44,7 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client):
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/mm/dd_di_estrazione su S3 creata negli ultimi 30 gg")
+    raise Exception("Nessuna folder input/YYYY/MM/DD_di_estrazione su S3 creata negli ultimi 30 gg")
 
 
 def recupero_lista_csv_sorgente(s3_client,source_bucket,prefix_s3):
@@ -88,7 +88,7 @@ def recupero_lista_csv_sorgente(s3_client,source_bucket,prefix_s3):
 def lambda_handler(event, context):
     # recupero variabili d'ambiente
     source_bucket = os.environ['source_bucket']
-    mese_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-mm-dd ma a noi interessa solamente yyyy-mm
+    mese_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato YYYY-MM-DD ma a noi interessa solamente YYYY-MM
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     # recuperiamo il path s3 per prendere i csv delle postalizzazioni

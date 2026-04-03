@@ -23,7 +23,7 @@ def conta_residui(lambda_delayer, settimana_processata):
 
     Args:
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
-        settimana_processata (string): data nel formato yyyy-mm-dd corrispondente al lunedì della settimana processata, da dare in input all'operazione GET_PAPER_DELIVERY
+        settimana_processata (string): data nel formato YYYY-MM-DD corrispondente al lunedì della settimana processata, da dare in input all'operazione GET_PAPER_DELIVERY
 
     Returns:
         int: conteggio residui
@@ -49,10 +49,10 @@ def calcolo_primo_lunedi_due_mesi_successivi(data_string):
     Calcoliamo il primo lunedì di due mesi successivi rispetto alla data fornita in input
 
     Args:
-        data_string (string): primo lunedì processato dalla RUN_ALGORITHM nel formato yyyy-mm-dd
+        data_string (string): primo lunedì processato dalla RUN_ALGORITHM nel formato YYYY-MM-DD
 
     Returns:
-        string: primo lunedì di due mesi successivi nel formato yyyy-mm-dd
+        string: primo lunedì di due mesi successivi nel formato YYYY-MM-DD
     """
     # from string to datetime
     d = datetime.strptime(data_string, "%Y-%m-%d")

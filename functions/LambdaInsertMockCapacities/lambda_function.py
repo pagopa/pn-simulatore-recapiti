@@ -130,7 +130,7 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client):
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/mm/dd_di_estrazione su S3 creata negli ultimi 30 gg")
+    raise Exception("Nessuna folder input/YYYY/MM/DD_di_estrazione su S3 creata negli ultimi 30 gg")
 
 def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_path,destination_filename):
     """
@@ -218,7 +218,7 @@ def caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale):
         del row[-1]
         # aggiungiamo la stringa creata per il prodotto
         row.append(product_list)
-        # adattiamo la data al formato ISO 8601 in UTC -> yyyy-mm-ddTHH:MM:SS.000Z
+        # adattiamo la data al formato ISO 8601 in UTC -> YYYY-MM-DDTHH:mm:ss.000Z
         row[4] = row[4].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
         if row[5]!=None:
             row[5] = row[5].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
@@ -261,7 +261,7 @@ def caricamento_csv_cap(s3_client, source_bucket, id_simulazione_manuale, lambda
         source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di INSERT_MOCK_CAPACITIES
         id_simulazione_manuale (string): identificativo univoco della simulazione sul db
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
-        mese_simulazione (string): mese di simulazione, formato "yyyy-mm"
+        mese_simulazione (string): mese di simulazione, formato "YYYY-MM"
 
     Returns:
         int: esito operazioni (0 se non ci sono errori, 1 se ci sono errori)
@@ -351,7 +351,7 @@ def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
         s3_client (botocore.client.S3): connessione ad s3
         source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di INSERT_MOCK_CAPACITIES
-        mese_simulazione (string): mese di simulazione, formato "yyyy-mm"
+        mese_simulazione (string): mese di simulazione, formato "YYYY-MM"
 
     Returns:
         int: esito operazioni (0 se non ci sono errori, 1 se ci sono errori)
@@ -381,7 +381,7 @@ def lambda_handler(event, context):
     numero_file_da_caricare = len(lista_file_da_caricare[0]['lista_file_csv_1']) + len(lista_file_da_caricare[1]['lista_file_csv_2']) + len(lista_file_da_caricare[2]['lista_file_csv_3']) + len(lista_file_da_caricare[3]['lista_file_csv_4']) + len(lista_file_da_caricare[4]['lista_file_csv_5']) + len(lista_file_da_caricare[5]['lista_file_csv_6'])
     # recupero parametri d'ambiente dalla step function
     source_bucket = os.environ['source_bucket']
-    mese_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-mm-dd ma a noi interessa solamente yyyy-mm
+    mese_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato YYYY-MM-DD ma a noi interessa solamente YYYY-MM
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     # inizializzazione connessione lambda

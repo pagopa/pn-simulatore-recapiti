@@ -5,12 +5,12 @@ Trigger:
     Step function pn-simulatore-recapiti-sf-GestioneSimulazione
 
 Input:
-    settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato yyyy-mm-dd, utile per calcolare la successiva settimana da processare
-    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-mm-dd
+    settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato YYYY-MM-DD, utile per calcolare la successiva settimana da processare
+    mese_simulazione: prima settimana del mese di simulazione, nel formato YYYY-MM-DD
     tipo_simulazione: 'Automatizzata' o 'Manuale'
 
 Output:
-    settimana_processata_RUN_ALGORITHM: fornisce alla LambdaGetPaperDeliveryResidui la settimana corrente appena processata tramite l'operazione di RUN_ALGORITHM nel formato yyyy-mm-dd
+    settimana_processata_RUN_ALGORITHM: fornisce alla LambdaGetPaperDeliveryResidui la settimana corrente appena processata tramite l'operazione di RUN_ALGORITHM nel formato YYYY-MM-DD
 """
 import json
 import boto3
@@ -22,7 +22,7 @@ def run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity):
     Effettuiamo l'operazione di RUN_ALGORITHM
 
     Args:
-        settimana_da_processare (string): parametro da dare in input alla RUN_ALGORITHM, nel formato yyyy-mm-dd, per specificare la settimana da processare
+        settimana_da_processare (string): parametro da dare in input alla RUN_ALGORITHM, nel formato YYYY-MM-DD, per specificare la settimana da processare
         nome_tabella_capacity (string): nome della tabella delle capacità settata sulla base del tipo di simulazione (Automatizzata o Manuale)
 
     Returns:

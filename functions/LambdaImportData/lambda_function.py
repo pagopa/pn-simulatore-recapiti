@@ -83,7 +83,7 @@ def lambda_import_data(lambda_delayer,filename,date_per_import_data):
     Args:
     lambda_delayer (botocore.client.Lambda): connessione alla lambda
     filename (string): nome del file da importare da dare in input all'operazione di IMPORT_DATA
-    date_per_import_data (string): settimana, nel formato yyyy-mm-dd, da dare in input all'operazione di IMPORT_DATA
+    date_per_import_data (string): settimana, nel formato YYYY-MM-DD, da dare in input all'operazione di IMPORT_DATA
     """
     # IMPORT DATA - testDelayerLambda
     payload_lambda={
