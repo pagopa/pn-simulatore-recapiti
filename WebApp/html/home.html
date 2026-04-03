@@ -453,15 +453,15 @@
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_cap/${id_simulazione}`);
-            // stop spinner
-            document.getElementById("spinner_loading").innerHTML = '';
-            if (response != 'None'){
-                window.location.href = response;
+            const data = await response.json();
+            if (data['presigned_url'] != 'None'){
+                window.location.href =  data.presigned_url;
+                // stop spinner
+                document.getElementById("spinner_loading").innerHTML = '';
             }
             else{
-                alert('Errore durante il download, riprovare!');
+                throw new Error('Errore nel download, riprovare!');
             }
-
         } catch (error) {
             console.error('Errore:', error);
             // stop spinner

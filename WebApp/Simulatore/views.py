@@ -923,13 +923,10 @@ def download_capacita_per_cap(request, id_simulazione):
     # creazione istanza client s3
     config = Config(retries={'mode': 'standard', 'max_attempts': 10})
     s3_client = boto3.client("s3", region_name="eu-south-1", endpoint_url="https://s3.eu-south-1.amazonaws.com", config=config)
-    print('s3_client creato')
     # recupero simulazione dal db a partire dall'id_simulazione
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
-    print('simulazione_selezionata recuperata')
     # recupero nome file da scaricare sul bucket s3
     file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE)
-    print('file_key recuperato', file_key)
     filename = f"CapacitaPerCAP_id{id_simulazione}.csv"
     if file_key != 'None':
         # generazione presigned_url per permettere all'utente di scaricare il file
@@ -943,11 +940,9 @@ def download_capacita_per_cap(request, id_simulazione):
             },
             ExpiresIn=300  # seconds
         )
-        print('presigned_url recuperato', presigned_url)
-        return presigned_url
+        return JsonResponse({'presigned_url':presigned_url})
     else:
-        print('presigned_url non presente')
-        return 'None'
+        return JsonResponse({'presigned_url':'None'})
 
 def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuzione_simulazione, mese_simulazione):
     """
@@ -970,7 +965,6 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
         )
         # se la cartella esiste, ritorno il file key
         if 'Contents' in response:
-            print(prefix, prefix)
             return response['Contents'][0]['Key']
         # altrimenti vado al giorno precedente
         timestamp_esecuzione_simulazione -= timedelta(days=1)
