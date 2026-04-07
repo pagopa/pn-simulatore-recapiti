@@ -13,8 +13,8 @@ class table_simulazione(models.Model):
     DESCRIZIONE = models.TextField(null=True)
     STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata, Bozza]
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
-    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)
-    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)
+    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True) # formato YYYY-MM-DD HH:mm:ss
+    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato YYYY-MM
     TIPO_CAPACITA = models.CharField(max_length=25, null=True)  # [BAU, Picco, Combinata, Produzione] -> Per le automatizzate settiamo "Produzione"
     TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
     class Meta:
@@ -218,6 +218,9 @@ class table_capacita_simulate_cap(models.Model):
     SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
     class Meta:
         db_table = 'CAPACITA_SIMULATE_CAP'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_4')
+        ]
 
 
 # VISTA output_capacity_setting

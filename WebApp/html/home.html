@@ -64,9 +64,19 @@
                                         <div class="row text-center">
                                             {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
                                             <div class="col">
-                                                <p class="mb-0" onclick="download_capacita_per_provincia('{{simulazione.ID}}')"><i class="fa-solid fa-file-csv fa-2xl zoom-in" style="cursor: pointer;" title="Download csv"></i></p>
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_provincia('{{simulazione.ID}}',false)" style="cursor: pointer;"></i></p>
                                                 <label style="font-size: 12px;">Download capacità per provincia</label>
                                             </div>
+                                            <div class="col">
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_provincia('{{simulazione.ID}}',true)" style="cursor: pointer;"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per provincia modificate</label>
+                                            </div>
+                                            {% if simulazione.ID in lista_idsimulazione_capacita_cap_disponibili %}
+                                            <div class="col">
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_cap('{{simulazione.ID}}')" style="cursor: pointer;"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per CAP</label>
+                                            </div>
+                                            {% endif %}
                                             {% endif %}
                                         </div>
                                     </div>
@@ -397,39 +407,76 @@
 </script>
 
 <script>
-    async function download_capacita_per_provincia(id_simulazione) {
+    async function download_async_capacita_per_provincia(id_simulazione, recupero_capacita_modificate) {
         /*
-        Funzione che permette il download delle capacità per provincia cliccando sul relativo button presente nella modal di dettaglio di una simulazione 
+        Funzione che permette il download delle capacità per provincia cliccando sul relativo button presente nella modal di dettaglio di una simulazione manuale
+        
+        Args:
+            id_simulazione (string): identificativo univoco della simulazione di riferimento
+            recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per provincia o solamente di quelle modificate
         */
-        // avvio spinner
+        // start spinner
         document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
         try {
             // richiesta backend
-            const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}`);
-            console.log(response);
+            const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}/${recupero_capacita_modificate}`);
             if (!response.ok) {
-                throw new Error('Errore nel download');
+                throw new Error('Errore nel download, riprovare!');
             }
             // convertiamo la risposta in blob
             const blob = await response.blob();
-            // crteiamo l'URL per il download
+            // creiamo l'URL per il download
             const url = window.URL.createObjectURL(blob);
             const button_fittizio = document.createElement('a');
             button_fittizio.href = url;
-            // recuperiamo il nome del file dagli header
+            // recuperiamo il nome del file dall'header
             button_fittizio.download = response.headers.get('Content-Disposition').match(/filename="(.+)"/)[1];
             document.body.appendChild(button_fittizio);
+            // facciamo partire il download con un click simulato 
             button_fittizio.click();
-            // pulizia
+            // pulizia ambiente
             window.URL.revokeObjectURL(url);
             document.body.removeChild(button_fittizio);
-            // rimozione spinner
+            // stop spinner
             document.getElementById("spinner_loading").innerHTML = '';
         } catch (error) {
             console.error('Errore:', error);
-            // rimozione spinner
+            // stop spinner
             document.getElementById("spinner_loading").innerHTML = '';
-            alert('Errore durante il download');
+            alert('Errore durante il download, riprovare!');
+        }
+    }
+</script>
+
+<script>
+    async function download_async_capacita_per_cap(id_simulazione) {
+        /*
+        Funzione che permette il download delle capacità per CAP cliccando sul relativo button presente nella modal di dettaglio di una simulazione manuale
+
+        Args:
+            id_simulazione (string): identificativo univoco della simulazione di riferimento
+        */
+        // start spinner
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        try {
+            // richiesta backend
+            const response = await fetch(`/download_capacita_per_cap/${id_simulazione}`);
+            // convertiamo la richiesta in json
+            const data = await response.json();
+            if (data.presigned_url != 'None'){
+                // facciamo partire il download del csv
+                window.location.href = data.presigned_url;
+                // stop spinner
+                document.getElementById("spinner_loading").innerHTML = '';
+            }
+            else{
+                throw new Error('Errore nel download, riprovare!');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+            alert('Errore durante il download, riprovare!');
         }
     }
 </script>

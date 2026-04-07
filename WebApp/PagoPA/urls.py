@@ -16,7 +16,8 @@ urlpatterns = [
     path('rimuovi_simulazione/<id_simulazione>', rimuovi_simulazione, name='rimuovi_simulazione'),
 
     # BUTTON DOWNLOAD CSV
-    path('download_capacita_per_provincia/<id_simulazione>', download_capacita_per_provincia, name='download_capacita_per_provincia'),
+    path('download_capacita_per_provincia/<id_simulazione>/<recupero_capacita_modificate>', download_capacita_per_provincia, name='download_capacita_per_provincia'),
+    path('download_capacita_per_cap/<id_simulazione>', download_capacita_per_cap, name='download_capacita_per_cap'),
 
     # BOZZE
     path('bozze', bozze, name='bozze'),
