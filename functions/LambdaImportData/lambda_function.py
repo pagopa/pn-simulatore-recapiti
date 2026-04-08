@@ -34,6 +34,14 @@ def lambda_presigned_url(lambda_delayer, source_filename):
         "operationType": "GET_PRESIGNED_URL",
         "parameters": [source_filename,"checksumSha256B64"]
     }
+    '''
+    nuovo parameters rilascio GA26Q2.A
+    {
+        "fileName": source_filename,
+        "checksumSha256B64": "abcd1234efgh5678ijkl9012mnop3456",
+        "presignedUrlType": "UPLOAD"
+    }
+    '''
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
     string_response = read_response.decode('utf-8')
