@@ -110,7 +110,7 @@
                 <input class="form-check-input" checked disabled type="checkbox" id="commesse_default">
                 <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
             </div>
-            <div class="row text-center">
+            <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
                 <div class="col-2 mx-auto">
@@ -193,7 +193,7 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
-            <div class="row text-center">
+            <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
                 <div class="col-2 mx-auto">
@@ -576,9 +576,6 @@
                                     capacity = singola_capacity.peak_capacity;
                                 } else{
                                     capacity = singola_capacity.capacity;
-                                    if (capacita_reale == null){
-                                        capacita_reale = capacita_reale_precedente;
-                                    }
                                 }
                             }
                             else if (resp.tipo_capacita_selezionata == 'Combinata'){
@@ -596,15 +593,20 @@
                                 }
                             }
                             // quando post_weekly_estimate = 0 siamo nella situazione in cui l'utente ha aggiunto una nuova riga con il tasto '+'
-                            class_riga_aggiunta = ''
+                            class_riga_aggiunta = '';
                             if (singola_capacity.post_weekly_estimate == 0){
-                                capacita_bau_originale = original_capacity_precedente;
-                                capacita_reale = original_capacity_precedente;
+                                capacita_bau_originale = capacita_bau_precedente;
+                                capacita_reale = capacita_reale_precedente;
                                 class_riga_aggiunta = 'class="riga-aggiunta"'
                             }
-                            if (counter_livello_3 != 0){
-                                original_capacity_precedente = singola_capacity.original_capacity;
-                                capacita_reale_precedente = capacita_reale;
+                            else{
+                                if (resp.tipo_capacita_selezionata == 'Picco'){
+                                    capacita_reale_precedente = singola_capacity.peak_capacity;
+                                    capacita_bau_precedente = singola_capacity.original_capacity;
+                                }else{
+                                    capacita_reale_precedente = singola_capacity.original_capacity;
+                                    capacita_bau_precedente = singola_capacity.original_capacity;
+                                }
                             }
                             if(singola_capacity.production_capacity != 0){
                                 production_capacity = singola_capacity.production_capacity;

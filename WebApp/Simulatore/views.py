@@ -459,7 +459,7 @@ def recupero_parametri_input_utente(request):
     """
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = None
-    if 'descrizione_simulazione' in request.POST:
+    if request.POST['descrizione_simulazione'] != '':
         descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
         if request.POST['inlineRadioOptions'] == 'now':

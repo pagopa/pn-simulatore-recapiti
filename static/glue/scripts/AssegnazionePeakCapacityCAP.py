@@ -66,7 +66,6 @@ df_capacita_simulate = spark.read \
     .option("driver", "org.postgresql.Driver") \
     .load()
 
-
 # CAP_CAPACITIES
 
 # Recupero path di lettura
@@ -99,16 +98,12 @@ schema_cap_capacities = T.StructType() \
       .add("products",T.StringType(),True)
 
 # Individuazione lista dei file csv con le capacità dei CAP nel path apposito
-file_path = 's3://' + s3_bucket + '/'
+s3_path_bucket = 's3://' + s3_bucket + '/'
 
-file_list = s3_client.list_objects_v2(Bucket=s3_bucket,Prefix='input/' + prefix + mese_simulazione[:7] + '/cap_capacities/')['Contents']
+path_name = s3_client.list_objects_v2(Bucket=s3_bucket,Prefix='input/' + prefix + mese_simulazione[:7] + '/cap_capacities/original/')['Contents']
     
-# Creazione di un unico dataframe con append dei dataframe corrispondenti ai file
-df_cap_capacities = spark.createDataFrame(spark.sparkContext.emptyRDD(), schema_cap_capacities)
-for item in file_list:
-    df_cap_capacities_part=spark.read.option("delimiter", ";").option("header",True).csv(file_path + item['Key'], schema=schema_cap_capacities)
-    df_cap_capacities = df_cap_capacities.union(df_cap_capacities_part)
-
+# Creazione dataframe capacità CAP originali
+df_cap_capacities=spark.read.option("delimiter", ";").option("header",True).csv(s3_path_bucket + path_name[0]['Key'], schema=schema_cap_capacities)
 
 print('Lettura dati input completata')
 

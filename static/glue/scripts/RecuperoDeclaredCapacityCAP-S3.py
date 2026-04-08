@@ -162,13 +162,12 @@ path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
                                                           + mese_corrente + "/" \
                                                           + giorno_corrente + "/" \
                                                           + str(anno_str) + "-" + str(mese_str) + "/" \
-                                                          + 'cap_capacities'
+                                                          + 'cap_capacities/original'
 
-max_rows = 10000
+
 num_rows=df_capacity_tot.count()
 print(num_rows)
-part=math.ceil(num_rows/max_rows)
-df_capacity_tot.repartition(part).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(path)
+df_capacity_tot.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(path)
 
 
 

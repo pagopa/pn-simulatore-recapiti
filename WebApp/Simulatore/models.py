@@ -13,8 +13,8 @@ class table_simulazione(models.Model):
     DESCRIZIONE = models.TextField(null=True)
     STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata, Bozza]
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
-    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True)
-    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)
+    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True) # formato YYYY-MM-DD HH:mm:ss
+    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato YYYY-MM
     TIPO_CAPACITA = models.CharField(max_length=25, null=True)  # [BAU, Picco, Combinata, Produzione] -> Per le automatizzate settiamo "Produzione"
     TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
     class Meta:
@@ -365,7 +365,9 @@ class view_output_modified_capacity_setting(pg.View):
             public."CAPACITA_SIMULATE"."PRODUCT_AR",
             public."output_capacity_setting"."MONTH_DELIVERY",
             public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
-        FROM public."CAPACITA_SIMULATE" 
+        FROM public."CAPACITA_SIMULATE"
+        LEFT JOIN public."SIMULAZIONE"
+            ON public."CAPACITA_SIMULATE"."SIMULAZIONE_ID" = public."SIMULAZIONE"."ID"
         LEFT JOIN public."output_capacity_setting"
             ON public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
                 AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
@@ -373,6 +375,7 @@ class view_output_modified_capacity_setting(pg.View):
                 AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
                 AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
                 AND public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE" = public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE"
+                AND EXTRACT(MONTH FROM CAST(CONCAT("MESE_SIMULAZIONE",'-01') AS DATE)) = public."output_capacity_setting"."MONTH_DELIVERY"
     """
 
     class Meta:
