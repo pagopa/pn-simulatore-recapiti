@@ -110,7 +110,7 @@
                 <input class="form-check-input" checked disabled type="checkbox" id="commesse_default">
                 <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
             </div>
-            <div class="row text-center">
+            <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
                 <div class="col-2 mx-auto">
@@ -193,7 +193,7 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
-            <div class="row text-center">
+            <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
                 <div class="col-2 mx-auto">
@@ -576,9 +576,6 @@
                                     capacity = singola_capacity.peak_capacity;
                                 } else{
                                     capacity = singola_capacity.capacity;
-                                    if (capacita_reale == null){
-                                        capacita_reale = capacita_reale_precedente;
-                                    }
                                 }
                             }
                             else if (resp.tipo_capacita_selezionata == 'Combinata'){
@@ -596,15 +593,20 @@
                                 }
                             }
                             // quando post_weekly_estimate = 0 siamo nella situazione in cui l'utente ha aggiunto una nuova riga con il tasto '+'
-                            class_riga_aggiunta = ''
+                            class_riga_aggiunta = '';
                             if (singola_capacity.post_weekly_estimate == 0){
-                                capacita_bau_originale = original_capacity_precedente;
-                                capacita_reale = original_capacity_precedente;
+                                capacita_bau_originale = capacita_bau_precedente;
+                                capacita_reale = capacita_reale_precedente;
                                 class_riga_aggiunta = 'class="riga-aggiunta"'
                             }
-                            if (counter_livello_3 != 0){
-                                original_capacity_precedente = singola_capacity.original_capacity;
-                                capacita_reale_precedente = capacita_reale;
+                            else{
+                                if (resp.tipo_capacita_selezionata == 'Picco'){
+                                    capacita_reale_precedente = singola_capacity.peak_capacity;
+                                    capacita_bau_precedente = singola_capacity.original_capacity;
+                                }else{
+                                    capacita_reale_precedente = singola_capacity.original_capacity;
+                                    capacita_bau_precedente = singola_capacity.original_capacity;
+                                }
                             }
                             if(singola_capacity.production_capacity != 0){
                                 production_capacity = singola_capacity.production_capacity;
@@ -620,7 +622,7 @@
                                                         <td>${singola_capacity.post_weekly_estimate}</td>
                                                         <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
                                                         <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
-                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" maxlength="8" value="${capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')" onblur="controllo_valore_minimo(this)"><label class="m-0 p-0" style="font-size:12px">Capacità reale: <span class="input_capacita_reale">${capacita_reale}</span></label></td>
+                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" maxlength="8" value="${capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')" onblur="controllo_valore_minimo(this)"><label class="m-0 p-0" style="font-size:12px">Capacità di riferimento: <span class="input_capacita_reale">${capacita_reale}</span></label></td>
                                                         <td>${production_capacity}</td>
                                                         <td class="text-center"></td>
                                                         <td><span class="utils_singola_riga d-none">{"capacita_bau_originale":"${capacita_bau_originale}"}</span></td>
@@ -684,17 +686,23 @@
         const row = input.closest('tr');
         // recuperiamo l'ultima cella della riga, cioè quella che contiene dizionario con la chiave capacita_bau_originale che ci interessa
         const lastCell = row.lastElementChild;
-        // recuoeriamo il valore della chiave capacita_bau_originale dal dizionario
+        // recuperiamo il valore della chiave capacita_bau_originale dal dizionario
         let dictionary = JSON.parse(lastCell.textContent || '{}');
         // Prendi il valore di "capacita_bau_originale" dal dizionario
         const minValue = parseInt(dictionary["capacita_bau_originale"]);
         if (input.value !== '') {
             let value = parseInt(input.value);
             if (value < minValue) {
+                // modifichiamo il valore nell'input inpostando la capacità di bau
                 input.value = minValue;
+                // triggeriamo il ricalcolo degli alert e della somma mensile
+                $(input).trigger('change');
             }
         } else {
+            // modifichiamo il valore nell'input inpostando la capacità di bau
             input.value = minValue;
+            // triggeriamo il ricalcolo degli alert e della somma mensile
+            $(input).trigger('change');
         }
     }
 </script>
@@ -1035,11 +1043,11 @@
         label.style.fontSize = '12px';
         if (tipo_capacita_selezionata == 'Combinata'){
             inputCap.value = capacita_bau_ultima_riga;
-            label.textContent = `Capacità reale: ${capacita_bau_ultima_riga}`;
+            label.textContent = `Capacità di riferimento: ${capacita_bau_ultima_riga}`;
         }
         else{
             inputCap.value = capacita_reale_ultima_riga;
-            label.textContent = `Capacità reale: ${capacita_reale_ultima_riga}`;
+            label.textContent = `Capacità di riferimento: ${capacita_reale_ultima_riga}`;
         }
         
         tdCapacita.appendChild(inputCap);

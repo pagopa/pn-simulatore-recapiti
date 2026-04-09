@@ -459,7 +459,7 @@ def recupero_parametri_input_utente(request):
     """
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = None
-    if 'descrizione_simulazione' in request.POST:
+    if request.POST['descrizione_simulazione'] != '':
         descrizione_simulazione = request.POST['descrizione_simulazione']
     if 'inlineRadioOptions' in request.POST:
         if request.POST['inlineRadioOptions'] == 'now':
@@ -908,6 +908,8 @@ def elaborazione_capacita_per_provincia(row):
     row['ACTIVATION_DATE_FROM'] = row['ACTIVATION_DATE_FROM'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
     if row['ACTIVATION_DATE_TO']!=None:
         row['ACTIVATION_DATE_TO'] = row['ACTIVATION_DATE_TO'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    else:
+        row['ACTIVATION_DATE_FROM'] = None
     return row 
 
 def download_capacita_per_cap(request, id_simulazione):
