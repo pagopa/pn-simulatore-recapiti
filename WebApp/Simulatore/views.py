@@ -912,12 +912,13 @@ def elaborazione_capacita_per_provincia(row):
         row['ACTIVATION_DATE_FROM'] = None
     return row 
 
-def download_capacita_per_cap(request, id_simulazione):
+def download_capacita_per_cap(request, id_simulazione, recupero_capacita_modificate):
     """
     Questa funzione viene chiamata quando l'utente vuole scaricare le capacità per CAP in formato csv. A partire dall'id_simulazione, viene creato un presigned URL del file csv su S3 che viene messo a disposizione dell'utente per il download
 
     Args:
         id_simulazione (string): identificativo univoco della simulazione
+        recupero_capacita_modificate (string): ['true'/'false'] che permette di discriminare se fornire all'utente un csv di tutte le capacità per CAP o solamente di quelle modificate
 
     Returns:
         dict: presigned_url del file csv su S3; se non trovato ritorna 'None' come valore per la chiave presigned_url
@@ -928,8 +929,11 @@ def download_capacita_per_cap(request, id_simulazione):
     # recupero simulazione dal db a partire dall'id_simulazione
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
     # recuperiamo dal bucket s3 la key del file csv target
-    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE)
-    filename = f"CapacitaPerCAP_id{id_simulazione}.csv"
+    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE, recupero_capacita_modificate)
+    if recupero_capacita_modificate == 'true':
+        filename = f"CapacitaModificatePerCAP_id{id_simulazione}.csv"
+    else:
+        filename = f"CapacitaPerCAP_id{id_simulazione}.csv"
     if file_key != 'None':
         # generazione presigned_url per permettere all'utente di scaricare il file
         presigned_url = s3_client.generate_presigned_url(
@@ -946,7 +950,7 @@ def download_capacita_per_cap(request, id_simulazione):
     else:
         return JsonResponse({'presigned_url':'None'})
 
-def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuzione_simulazione, mese_simulazione):
+def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuzione_simulazione, mese_simulazione, recupero_capacita_modificate):
     """
     Recuperiamo dal bucket s3 la key del file csv target
 
@@ -956,6 +960,7 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
         id_simulazione (int): identificativo univoco della simulazione sul db
         timestamp_esecuzione_simulazione (datetime): timestamp di esecuzione della simulazione, formato YYYY-MM-DD HH:mm:ss
         mese_simulazione (string): mese di simulazione, formato "YYYY-MM"
+        recupero_capacita_modificate (string): ['true'/'false'] che permette di discriminare se fornire all'utente un csv di tutte le capacità per CAP o solamente di quelle modificate
 
     Returns:
         string: key del file csv recuperato dal bucket; se non trovato ritorna 'None'
@@ -963,9 +968,13 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
 
     for _ in range(30):  # limite di sicurezza a 30 gg
         prefix = timestamp_esecuzione_simulazione.strftime("%Y/%m/%d/")
+        if recupero_capacita_modificate == 'true':
+            full_prefix = f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/modified/'
+        else:
+            full_prefix = f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/all/'
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
-            Prefix=f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/',
+            Prefix=full_prefix,
             MaxKeys=1
         )
         # se la cartella esiste, ritorno il file key
