@@ -126,8 +126,8 @@ def inserimento_used_capacity_db(cur, rows, destination_table):
     """
     #query
     insert_query = f"""
-        INSERT INTO public."{destination_table}" ("UNIFIED_DELIVERY_DRIVER","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","SUM_MONTHLY_ESTIMATE","SUM_WEEKLY_ESTIMATE","REGIONE","COD_SIGLA_PROVINCIA","PRODUCT_890","PRODUCT_AR","LAST_UPDATE_TIMESTAMP","SIMULAZIONE_ID")
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        INSERT INTO public."{destination_table}" ("UNIFIED_DELIVERY_DRIVER","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","SUM_MONTHLY_ESTIMATE","SUM_WEEKLY_ESTIMATE","REGIONE","COD_SIGLA_PROVINCIA","PRODUCT_890","PRODUCT_AR","LAST_UPDATE_TIMESTAMP","FLAG_DEFAULT","SIMULAZIONE_ID")
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """
     cur.executemany(insert_query, rows)
 
@@ -278,7 +278,7 @@ def lambda_handler(event, context):
         # la GET_USED_CAPACITY la lanciamo dalla seconda settimana del mese successivo in poi per le settimane processate dalla run algorithm
         lista_settimane_per_getusedcapacity = recupero_lista_settimane_per_getusedcapacity(lista_settimane_processate)
         # FLAG_DEFAULT -> se TIPO_CAPACITA=Picco settiamo False, altrimenti settiamo True
-        cur.execute('''SELECT "TIPO_CAPACITA" from public."SIMULAZIONE" where "ID"={id_simulazione};''')
+        cur.execute(f'''SELECT "TIPO_CAPACITA" from public."SIMULAZIONE" where "ID"={id_simulazione};''')
         tipo_capacita = cur.fetchall()
         if tipo_capacita[0][0] == 'Picco':
             flag_default = False

@@ -13,6 +13,7 @@ Output:
 import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from dateutil.relativedelta import relativedelta
 import os
 import boto3
 import pg8000
@@ -79,8 +80,10 @@ def lambda_handler(event, context):
         if len(date_simulazione) != 0:
             return {"date_simulazione":date_simulazione}
     except:
+        # dalle variabili d'ambiente recuperiamo il valore relativo a quanti mesi in avanti vogliamo simulare
+        mesi_in_avanti = int(os.environ["mesi_in_avanti"])
         # datetime now
-        datetime_now = datetime.now(ZoneInfo("Europe/Rome"))
+        datetime_now = datetime.now(ZoneInfo("Europe/Rome")) + relativedelta(months=mesi_in_avanti)
         giorno = datetime_now.day
         mese = datetime_now.month
         anno = datetime_now.year

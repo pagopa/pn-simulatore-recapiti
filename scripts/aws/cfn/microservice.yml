@@ -243,6 +243,11 @@ Parameters:
     Type: Number 
     Description: 'Cut-off day for the CalcoloPrimaSettimana Lambda function'
     Default: 25
+  
+  LambdaCalcoloPrimaSettimanaMesiInAvanti:
+    Type: Number 
+    Description: 'MesiInAvantivanti for the CalcoloPrimaSettimana Lambda function'
+    Default: 0
 
 Resources:
   SimulatorMicroservice:
@@ -423,6 +428,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           cutoff: !Ref LambdaCalcoloPrimaSettimanaCutOffDay
+          mesi_in_avanti: !Ref LambdaCalcoloPrimaSettimanaMesiInAvanti
 
   CalcoloPrimaSettimanaLambdaRole:
     Type: AWS::IAM::Role
