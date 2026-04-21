@@ -34,6 +34,9 @@ urlpatterns = [
     # la dashboard viene generata su http://localhost:8000/django_plotly_dash/app/SimpleExample/ e, poi, viene viene recuperata dalla pagina html http://localhost:8000/dash/
     path('', include('Simulatore.urls')),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
+
+    #VISTA_ENTE_FORNITORE
+    path('ente_fornitore', vista_ente_fornitore, name='ente_fornitore'),
 ]
 
 
