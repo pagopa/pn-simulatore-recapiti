@@ -21,7 +21,7 @@
                 <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
                 <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}🟢{% elif simulazione.STATO == 'In lavorazione' %}🕛{% elif simulazione.STATO == 'Schedulata' %}📅{% elif simulazione.STATO == 'Non completata' %}🔴{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.NOME}}</td>
-                <td style="text-align:center;">{{simulazione.DESCRIZIONE}}</td>
+                <td style="text-align:center;">{{simulazione.DESCRIZIONE|default_if_none:''}}</td>
                 <td style="text-align:left;">
                     <!-- REGOLE VISUALIZZAZIONI BOTTONI -->
                         <!--
@@ -48,11 +48,11 @@
                                 </div>
                                 <div class="modal-body text-start">
                                     <div class="container">
-                                        <br>
                                         <div class="row justify-content-center">
                                             <div class="col offset-md-2">
+                                                <p><b>Id simulazione</b>: {{simulazione.ID}}</p>
                                                 <p><b>Nome simulazione</b>: {{simulazione.NOME}}</p>
-                                                <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE}}</p>
+                                                <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE|default_if_none:'-'}}</p>
                                                 <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</p>
                                             </div>
                                             <div class="col">
@@ -62,6 +62,28 @@
                                             </div>
                                         </div>
                                         <br>
+                                        <div class="row text-center">
+                                            {% if simulazione.TIPO_SIMULAZIONE == 'Manuale' %}
+                                            <div class="col">
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_provincia('{{simulazione.ID}}',false)" style="cursor: pointer;"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per provincia</label>
+                                            </div>
+                                            <div class="col">
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_provincia('{{simulazione.ID}}',true)" style="cursor: pointer;"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per provincia modificate</label>
+                                            </div>
+                                            {% if simulazione.ID in lista_idsimulazione_capacita_cap_disponibili %}
+                                            <div class="col">
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_cap('{{simulazione.ID}}', false)" style="cursor: pointer;"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per CAP</label>
+                                            </div>
+                                            <div class="col">
+                                                <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_async_capacita_per_cap('{{simulazione.ID}}', true)" style="cursor: pointer;"></i></p>
+                                                <label style="font-size: 12px;">Download capacità per CAP modificate</label>
+                                            </div>
+                                            {% endif %}
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -134,7 +156,7 @@
                                     <span class="d-none" id="value_id1"></span>
                                     <!-- Capacità recuperate da db -->
                                     <div class="text-center" id="spinner"></div>
-                                    <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_get_simulazioni_da_confrontare' %}></span>
+                                    <span id='simulazioni_recuperate_da_db_{{simulazione.ID}}' class='simulazioni_recuperate_da_db_{{simulazione.ID}}' data-url={% url 'ajax_recupero_simulazioni_da_confrontare' %}></span>
                                     </div>
                                     <div class="modal-footer">
                                         <button class="btn btn-primary btn-confronto" href="#">Confronta</button>
@@ -183,6 +205,9 @@
 		</div>
 	</div>
 </div>
+
+<!--spinner che parte quando l'utente clicca sul tasto "download csv"-->
+<div id="spinner_loading"></div>
 {% endblock content %}
 
 
@@ -327,9 +352,16 @@
 	});
 </script>
 
-<!-- jQuery/Ajax per select simulazioni da confrontare -->
+
 <script>
     function simulazioni_da_confrontare_ajax(id_simulazione,mese_simulazione) {
+        /*
+        Funzione jQuery/Ajax per select simulazioni da confrontare
+
+        Args:
+            id_simulazione (string): identificativo univoco della simulazione di riferimento
+            mese_simulazione (string): mese della simulazione, formato yyyy-mm
+        */
         var content = document.getElementById(`simulazioni_recuperate_da_db_${id_simulazione}`);
         var content_id_simulazione = document.getElementById('value_id1');
         // puliamo lo spazio dove andremo ad iniettare il codice html
@@ -365,9 +397,11 @@
     }
 </script>
 
-<!-- funzione per ricondurre alla pagina confronto_risultati cliccando su "Confronta" nella modale -->
 <script>
     $(document).on('click', '.btn-confronto', function() {
+        /*
+        Funzione per ricondurre alla pagina confronto_risultati cliccando su "Confronta" nella modale
+        */
         const id1 = parseInt(document.getElementById('value_id1').textContent);
         const id2 = parseInt($(`#simulazione_selezionata_per_confronto_${id1}`).val());
         const url = `/confronto_risultati/${encodeURIComponent(id1)}/${encodeURIComponent(id2)}/`;
@@ -377,4 +411,79 @@
     });
 </script>
 
+<script>
+    async function download_async_capacita_per_provincia(id_simulazione, recupero_capacita_modificate) {
+        /*
+        Funzione che permette il download delle capacità per provincia cliccando sul relativo button presente nella modal di dettaglio di una simulazione manuale
+        
+        Args:
+            id_simulazione (string): identificativo univoco della simulazione di riferimento
+            recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per provincia o solamente di quelle modificate
+        */
+        // start spinner
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        try {
+            // richiesta backend
+            const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}/${recupero_capacita_modificate}`);
+            if (!response.ok) {
+                throw new Error('Errore nel download, riprovare!');
+            }
+            // convertiamo la risposta in blob
+            const blob = await response.blob();
+            // creiamo l'URL per il download
+            const url = window.URL.createObjectURL(blob);
+            const button_fittizio = document.createElement('a');
+            button_fittizio.href = url;
+            // recuperiamo il nome del file dall'header
+            button_fittizio.download = response.headers.get('Content-Disposition').match(/filename="(.+)"/)[1];
+            document.body.appendChild(button_fittizio);
+            // facciamo partire il download con un click simulato 
+            button_fittizio.click();
+            // pulizia ambiente
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(button_fittizio);
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+        } catch (error) {
+            console.error('Errore:', error);
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+            alert('Errore durante il download, riprovare!');
+        }
+    }
+</script>
+
+<script>
+    async function download_async_capacita_per_cap(id_simulazione, recupero_capacita_modificate) {
+        /*
+        Funzione che permette il download delle capacità per CAP cliccando sul relativo button presente nella modal di dettaglio di una simulazione manuale
+
+        Args:
+            id_simulazione (string): identificativo univoco della simulazione di riferimento
+            recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per CAP o solamente di quelle modificate
+        */
+        // start spinner
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        try {
+            // richiesta backend
+            const response = await fetch(`/download_capacita_per_cap/${id_simulazione}/${recupero_capacita_modificate}`);
+            // convertiamo la richiesta in json
+            const data = await response.json();
+            if (data.presigned_url != 'None'){
+                // facciamo partire il download del csv
+                window.location.href = data.presigned_url;
+                // stop spinner
+                document.getElementById("spinner_loading").innerHTML = '';
+            }
+            else{
+                throw new Error('Errore nel download, riprovare!');
+            }
+        } catch (error) {
+            console.error('Errore:', error);
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+            alert('Errore durante il download, riprovare!');
+        }
+    }
+</script>
 {% endblock %}

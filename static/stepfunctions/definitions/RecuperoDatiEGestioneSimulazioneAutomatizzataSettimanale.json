@@ -41,37 +41,6 @@
             "Type": "Parallel",
             "Branches": [
               {
-                "StartAt": "Run PAPER DELIVERY?",
-                "States": {
-                  "Run PAPER DELIVERY?": {
-                    "Type": "Choice",
-                    "Choices": [
-                      {
-                        "Next": "PAPER DELIVERY",
-                        "Variable": "$$.Execution.Input.run_paper_delivery",
-                        "NumericEquals": 1
-                      }
-                    ],
-                    "Default": "Skip PAPER DELIVERY"
-                  },
-                  "PAPER DELIVERY": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
-                    "Parameters": {
-                      "JobName": "${RecuperoResiduiPaperDeliveryGlueJobName}",
-                      "Arguments": {
-                        "--mese_simulazione.$": "$.mese_simulazione"
-                      }
-                    },
-                    "End": true
-                  },
-                  "Skip PAPER DELIVERY": {
-                    "Type": "Pass",
-                    "End": true
-                  }
-                }
-              },
-              {
                 "StartAt": "Run DECLARED CAPACITY?",
                 "States": {
                   "Run DECLARED CAPACITY?": {
@@ -90,6 +59,18 @@
                     "Resource": "arn:aws:states:::glue:startJobRun.sync",
                     "Parameters": {
                       "JobName": "${RecuperoDeclaredCapacityDeltaGlueJobName}",
+                      "Arguments": {
+                        "--mese_simulazione.$": "$.mese_simulazione"
+                      }
+                    },
+                    "Next": "DECLARED CAPACITY CAP-S3",
+                    "ResultPath": null
+                  },
+                  "DECLARED CAPACITY CAP-S3": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
+                    "Parameters": {
+                      "JobName": "${RecuperoDeclaredCapacityCAPS3GlueJobName}",
                       "Arguments": {
                         "--mese_simulazione.$": "$.mese_simulazione"
                       }
@@ -118,6 +99,7 @@
                         "JitterStrategy": "FULL"
                       }
                     ],
+                    "ResultPath": "$.output_lambda_MERGEDB",
                     "End": true
                   },
                   "Skip DECLARED CAPACITY": {

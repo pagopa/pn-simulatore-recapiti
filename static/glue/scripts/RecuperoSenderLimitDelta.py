@@ -64,10 +64,13 @@ lambda_delayer=boto3.client('lambda')
 
 def lambda_to_dict(prov,operationType,list_parameters):
   payload={
-  "operationType": operationType,
-  "parameters": list_parameters}
+        "operationType": operationType,
+        "parameters": {
+            "deliveryDate": list_parameters[0],
+            "province": list_parameters[1]
+        }
+    } 
   response=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload))
-
   # Lettura e decodifica dell'output della lambda
   read_response=response['Payload'].read()
   string_response=read_response.decode('utf-8')

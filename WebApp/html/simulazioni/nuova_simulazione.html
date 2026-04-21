@@ -81,7 +81,7 @@
             <!-- Campo datetime (inizialmente nascosto) -->
             <div class="row mb-3 align-items-center d-none" id="datetimeField">
                 <div class="col-auto">
-                    <label class="form-label">Seleziona data-ora</label>
+                    <label class="form-label"><b>Seleziona data-ora</b></label>
                 </div>
                 <div class="col-auto">
                     <input type="datetime-local" class="form-control" autocomplete="off" style="width:auto;" id="timeSchedule" name="schedule_datetime">
@@ -95,7 +95,7 @@
                     <button type="button" class="btn btn-primary" class="disabled" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                    <button type="button" class="btn btn-primary" onclick="step_successivo_multiform()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
         </div>
@@ -110,7 +110,7 @@
                 <input class="form-check-input" checked disabled type="checkbox" id="commesse_default">
                 <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
             </div>
-            <div class="row text-center">
+            <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
                 <div class="col-2 mx-auto">
@@ -176,13 +176,13 @@
             <!-- bottoni indietro-salva-avanti -->
             <div class="row text-center">
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                    <button type="button" class="btn btn-primary" onclick="step_precedente_multiform()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="nextStep()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                    <button type="button" class="btn btn-primary" onclick="step_successivo_multiform()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
         </div>
@@ -193,7 +193,7 @@
         <h5 class="text-end">Capacità recapitisti</h5>
         <br>
         <div class="card p-4">
-            <div class="row text-center">
+            <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
                 <div class="col-2 mx-auto">
@@ -211,16 +211,12 @@
                 <div class="col-2 mx-auto"></div>
                 <div class="col-5 mx-auto">
                     <label for="tipo_capacita_da_modificare"><b>Tipo di capacità da modificare</b></label>
-                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare">
+                    <select class="form-select" aria-label="Default select example" id="tipo_capacita_da_modificare" name="tipo_capacita_da_modificare" onchange="carica_tabella_capacita_ajax(false)">
                         <option selected disabled class="text-center" value="">--- Seleziona il tipo di capacità da modificare ---</option>
                         <option value="BAU" {% if simulazione_selezionata.TIPO_CAPACITA == 'BAU' %}selected{% endif %}>BAU</option>
                         <option value="Picco" {% if simulazione_selezionata.TIPO_CAPACITA == 'Picco' %}selected{% endif %}>Picco</option>
                         <option value="Combinata" {% if simulazione_selezionata.TIPO_CAPACITA == 'Combinata' %}selected{% endif %}>Combinata</option>
                     </select>
-                </div>
-                <div class="col-3 mx-auto">
-                    <br>
-                    <button type="button" class="btn btn-outline-primary" onclick="load_tabella_capacita_with_ajax(false)">Carica tabelle capacità</button>
                 </div>
                 <div class="col-2 mx-auto"></div>
             </div>
@@ -229,7 +225,7 @@
 
             <!-- Capacità recuperate da db -->
             <div class="text-center" id="spinner"></div>
-            <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_get_capacita_from_mese_and_tipo' %}></span>
+            <span id='capacita_recuperate_da_db' class='capacita_recuperate_da_db' data-url={% url 'ajax_recupero_capacita' %}></span>
 
             <br><br><br><br>
             <!-- Campo nascosto per contenere il JSON -->
@@ -238,13 +234,13 @@
             <!-- bottoni indietro-salva-avvia -->
             <div class="row text-center">
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="prevStep()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                    <button type="button" class="btn btn-primary" onclick="step_precedente_multiform()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" id="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="load_text_avviso_modal_avvia_scheduling()" class="disabled" disabled>Avvia scheduling 📅</button>
+                    <button type="submit" class="btn btn-primary" name="avvia_scheduling" id="avvia_scheduling" data-bs-toggle="modal" data-bs-target="#exampleModal2" onclick="avviso_avvia_scheduling()" class="disabled" disabled>Avvia scheduling 📅</button>
                     <!--MODAL PER IL BOTTONE AVVIA SCHEDULING-->
                     <div class="modal fade" id="exampleModal2" tabindex="-1" role="dialog" aria-labelledby="exampleModal2Label" aria-hidden="true">
                         <div class="modal-dialog" role="document">
@@ -258,19 +254,8 @@
                                 </div>
                                 <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                <input class="btn btn-primary" onclick="form_submit_scheduling()" type="submit" name="avvia_scheduling" value="Avvia scheduling 📅" />
+                                <input class="btn btn-primary" onclick="gestione_submit_scheduling()" type="submit" name="avvia_scheduling" value="Avvia scheduling 📅" />
                                 </div>
-                                <script type="text/javascript">
-                                function form_submit_scheduling() {
-                                    multiStepForm = document.getElementById("multiStepForm");
-                                    var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
-                                    var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
-                                    var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
-                                    // riempimento input nascosto con capacità modificate dall'utente
-                                    save_capacita_json();
-                                    multiStepForm.submit();
-                                }    
-                                </script>
                             </div>
                         </div>
                     </div>
@@ -293,20 +278,8 @@
             </div>
             <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-            <input class="btn btn-primary" onclick="form_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
+            <input class="btn btn-primary" onclick="gestione_submit_bozza()" type="submit" name="salva_bozza" value="Salva bozza" />
             </div>
-            <script type="text/javascript">
-            function form_submit_bozza() {
-                multiStepForm = document.getElementById("multiStepForm");
-                var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
-                var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
-                var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
-                // riempimento input nascosto con capacità modificate dall'utente
-                save_capacita_json();
-                // submit form
-                multiStepForm.submit();
-            }    
-            </script>
         </div>
     </div>
 </div>
@@ -316,19 +289,33 @@
 {% block scripts %}
 <!-- GESTIONE STEP -->
 <script>
+    // inizializziamo lo step della form corrente a 1 -> inizialmente mostreremo all'utente il primo step
     let currentStep = 1;
-    const button_salva_bozza = document.getElementById("salva_bozza");
+    // mostra step iniziale
+    mostra_step_multiform(1);
+    // gestione invio
+    document.getElementById("multiStepForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+    });
+    // event listener
+    document.querySelector('input[type="text"][required]').addEventListener('input', gestione_bottone_salva_bozza);
+    // Controllo iniziale
+    gestione_bottone_salva_bozza();
 
-    function showStep(step) {
+    function mostra_step_multiform(step) {
+        /*
+        Funzione che permette di mostrare all'utente lo step della form desiderato
+
+        Args:
+            step (int): indica lo step della form da mostrare all'utente
+        */
         // nasconde tutti
         document.querySelectorAll(".step").forEach(s => s.classList.add("d-none"));
         // mostra quello richiesto
         document.getElementById("step" + step).classList.remove("d-none");
-
         // aggiorna progress bar
         const progressBar = document.getElementById("progressBar");
         progressBar.style.width = ((step - 1) / 2) * 100 + "%";
-
         // aggiorna pulsanti step
         for (let i = 1; i <= 3; i++) {
             const btn = document.getElementById("stepBtn" + i);
@@ -342,11 +329,14 @@
             btn.style.width = "2rem";
             btn.style.height = "2rem";
         }
-
+        // aggiornamento dello step della form da mostrare all'utente
         currentStep = step;
     }
 
-    function nextStep() {
+    function step_successivo_multiform() {
+        /*
+        Funzione che permette di mostrare all'utente lo step della form successivo rispetto a quello corrente
+        */
         // controlla validità dei campi required mostrando il messaggio di default del browser
         const currentStepEl = document.getElementById("step" + currentStep);
         const requiredFields = currentStepEl.querySelectorAll("[required]");
@@ -362,43 +352,29 @@
             firstInvalid.reportValidity();
             return;
         }
-        // altrimenti vai avanti
         if (currentStep < 3) {
-            showStep(currentStep + 1);
+            mostra_step_multiform(currentStep + 1);
         }
     }
-
-    function prevStep() {
+    
+    function step_precedente_multiform() {
+        /*
+        Funzione che permette di mostrare all'utente lo step della form precedente rispetto a quello corrente
+        */
         if (currentStep > 1) {
-            showStep(currentStep - 1);
+            mostra_step_multiform(currentStep - 1);
         }
     }
 
-    // mostra step iniziale
-    showStep(1);
-
-    // gestione invio
-    document.getElementById("multiStepForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-    });
-
-
-    function checkRequiredFields() {
-        const nomeField = document.querySelector('input[type="text"][required]');    
+    function gestione_bottone_salva_bozza() {
+        /*
+        Funzione che permette di abilitare/disabilitare il button "Salva come bozza" controllando che sia stato compilato il campo nome
+        */
         // controlliamo se il campo nome è stato inserito
-        let isValid = nomeField.value.trim() !== '';
-        return isValid;
+        const nomeField = document.querySelector('input[type="text"][required]');
+        // il button "Salva come bozza" viene abilitato se il campo nome viene compilato, altrimenti viene disabilitato
+        document.getElementById("salva_bozza").disabled = !(nomeField.value.trim() !== '');
     }
-
-    function updateSaveButton() {
-        button_salva_bozza.disabled = !checkRequiredFields();
-    }
-
-    // event listener
-    document.querySelector('input[type="text"][required]').addEventListener('input', updateSaveButton);
-
-    // Controllo iniziale
-    updateSaveButton();
 </script>
 
 <!-- mostra/nascondi datetime picker quando viene selezionato/deselezionato il radiobutton "Schedule" -->
@@ -431,9 +407,12 @@
     });
 </script>
 
-<!-- cattura il valore della select tipo_capacita_da_modificare e lo inserisce nell'intestazione della colonna 'Capacità settimanale' e nel sotto-accordion -->
+
 <script>
-    function select_tipo_capacita_da_modificare() {
+    function tipo_capacita_da_modificare_selezionata() {
+        /*
+        Funzione che cattura il valore della select tipo_capacita_da_modificare e lo inserisce nell'intestazione della colonna 'Capacità settimanale' e nel sotto-accordion
+        */
         tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         // inseriamo il tipo_capacita_da_modificare nell'intestazione della colonna 'Capacità settimanale'
         document.querySelectorAll(".th_capacita_settimanale").forEach(el => {
@@ -449,7 +428,7 @@
 </script>
 
 <!-- flatpickr datetimepicker STEP 1 -->
- <script>
+<script>
     flatpickr("#timeSchedule", {
         // lunedì primo giorno della settimana
         locale: {
@@ -471,9 +450,45 @@
     });
 </script>
 
-<!-- jQuery/Ajax per accordion output_capacity_setting -->
 <script>
-    function load_tabella_capacita_with_ajax(get_modified_capacity) {
+    function gestione_submit_bozza() {
+        /*
+        Funzione che gestisce il submit "Salva come bozza"
+        */
+        multiStepForm = document.getElementById("multiStepForm");
+        var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
+        var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
+        var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
+        // riempimento input nascosto con capacità modificate dall'utente
+        wrap_capacita_json();
+        // submit form
+        multiStepForm.submit();
+    }    
+</script>
+
+<script>
+    function gestione_submit_scheduling() {
+        /*
+        Funzione che gestisce il submit "Avvia scheduling"
+        */
+        multiStepForm = document.getElementById("multiStepForm");
+        var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
+        var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
+        var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
+        // riempimento input nascosto con capacità modificate dall'utente
+        wrap_capacita_json();
+        multiStepForm.submit();
+    }    
+</script>
+
+<script>
+    function carica_tabella_capacita_ajax(get_modified_capacity) {
+        /*
+        Funzione jQuery/Ajax che, a partire dal tipo di capacità, mostra all'utente un accordion per ogni recapitista; per ogni recapitista, una lista di sotto-accordion per ogni regione-provincia-prodotto; per ogni regione-provincia-prodotto una tabella con le capacità della settimana del mese corrente e della prima settimana del mese successivo  
+
+        Args:
+            get_modified_capacity (string): BAU, Picco o Combinata
+        */
         var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
         var id_simulazione = '{{simulazione_selezionata.ID}}';
@@ -492,9 +507,10 @@
             type: 'GET',
             data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata, 'id_simulazione':id_simulazione, 'get_modified_capacity':get_modified_capacity},
             success: function(resp){
+                var nuova_simulazione = resp.nuova_simulazione;
                 var counter_livello_1 = 0;
                 // scorriamo i recapitisti e creiamo le relative sezioni (accordion) di ogni recapitista
-                for (var recapitista in resp.context){
+                for (var recapitista in resp.lista_output_capacity_setting){
                     content_capacita += `
                         <div class="accordion accordion_recapitista" data-group="${recapitista}">
                             <div class="accordion-item">
@@ -508,13 +524,13 @@
                     `;
                     var counter_livello_2 = 0;
                     // scorriamo regione+'_'+cod_sigla_provincia+'_'+product per ogni recapitista
-                    for (var singola_regione_codsiglaprovincia_product in resp.context[recapitista]){
+                    for (var singola_regione_codsiglaprovincia_product in resp.lista_output_capacity_setting[recapitista]){
                         content_capacita += `
                             <div class="accordion accordion_regprovprod" data-group="${singola_regione_codsiglaprovincia_product}">
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
                                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
-                                            <b>REGIONE: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.context[recapitista][singola_regione_codsiglaprovincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
+                                            <b>REGIONE: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
                                         </button>
                                     </h2>
                                     <div id="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" class="accordion-collapse collapse">
@@ -532,33 +548,87 @@
                                                         <th scope="col" class="align-bottom">Capacità di produzione</th>
                                                         <th scope="col"></th> <!-- colonna per alert -->
                                                         <th scope="col">
-                                                            <button type="button" id="aggiungi_riga_tabelle_step3" class="btn btn-outline-success btn-sm" title="Aggiungi riga">+</button>
+                                                            <div class="d-flex gap-1">
+                                                                <button type="button" id="aggiungi_riga_tabelle_step3" class="btn btn-outline-success btn-sm" title="Aggiungi riga">+</button>
+                                                                <button type="button" id="rimuovi_righe_tabelle_step3" class="btn btn-outline-danger btn-sm" title="Rimuovi righe aggiunte">-</button>
+                                                            </div>
                                                         </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="table-group-divider text-center">
                                     `;
                         // scorriamo i dati per ogni recapitista e componiamo le righe della tabella
-                        resp.context[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
+                        counter_livello_3 = 0;
+                        resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product].forEach(function(singola_capacity) {
+                            if (nuova_simulazione){
+                                capacita_bau_originale = singola_capacity.capacity;
+                            }
+                            else{
+                                capacita_bau_originale = singola_capacity.original_capacity;
+                            }
+                            if (resp.tipo_capacita_selezionata == 'BAU'){
+                                capacity = singola_capacity.capacity;
+                                capacita_reale = capacita_bau_originale;
+                            }
+                            else if (resp.tipo_capacita_selezionata == 'Picco'){
+                                capacita_reale = singola_capacity.peak_capacity;
+                                if (nuova_simulazione){
+                                    capacity = singola_capacity.peak_capacity;
+                                } else{
+                                    capacity = singola_capacity.capacity;
+                                }
+                            }
+                            else if (resp.tipo_capacita_selezionata == 'Combinata'){
+                                if (singola_capacity.post_weekly_estimate >= capacita_bau_originale){
+                                    if (nuova_simulazione){
+                                        capacity = singola_capacity.peak_capacity;
+                                    } else{
+                                        capacity = singola_capacity.capacity;
+                                    }
+                                    capacita_reale = singola_capacity.peak_capacity;
+                                }
+                                else {
+                                    capacity = singola_capacity.capacity;
+                                    capacita_reale = singola_capacity.original_capacity;
+                                }
+                            }
+                            // quando post_weekly_estimate = 0 siamo nella situazione in cui l'utente ha aggiunto una nuova riga con il tasto '+'
+                            class_riga_aggiunta = '';
+                            if (singola_capacity.post_weekly_estimate == 0){
+                                capacita_bau_originale = capacita_bau_precedente;
+                                capacita_reale = capacita_reale_precedente;
+                                class_riga_aggiunta = 'class="riga-aggiunta"'
+                            }
+                            else{
+                                if (resp.tipo_capacita_selezionata == 'Picco'){
+                                    capacita_reale_precedente = singola_capacity.peak_capacity;
+                                    capacita_bau_precedente = singola_capacity.original_capacity;
+                                }else{
+                                    capacita_reale_precedente = singola_capacity.original_capacity;
+                                    capacita_bau_precedente = singola_capacity.original_capacity;
+                                }
+                            }
                             if(singola_capacity.production_capacity != 0){
                                 production_capacity = singola_capacity.production_capacity;
                             }else{
                                 production_capacity = '-';
                             }
+
                             content_capacita += `
-                                                    <tr>
+                                                    <tr ${class_riga_aggiunta}>
                                                         <td>${singola_capacity.regione}</td>
                                                         <td>${singola_capacity.cod_sigla_provincia}</td>
                                                         <td>${singola_capacity.product}</td>
                                                         <td>${singola_capacity.post_weekly_estimate}</td>
                                                         <td>${moment(singola_capacity.activation_date_from).format('DD/MM/YYYY')}</td>
                                                         <td>${moment(singola_capacity.activation_date_to).format('DD/MM/YYYY')}</td>
-                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" min="0" maxlength="8" value="${singola_capacity.capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')"><label class="m-0 p-0" style="font-size:12px">Capacità reale: <span class="input_capacita_reale">${singola_capacity.original_capacity}</span></label></td>
+                                                        <td><input class="form-control text-center input_capacita" autocomplete="off" type="text" inputmode="numeric" step="1" maxlength="8" value="${capacity}" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')" onblur="controllo_valore_minimo(this)"><label class="m-0 p-0" style="font-size:12px">Capacità di riferimento: <span class="input_capacita_reale">${capacita_reale}</span></label></td>
                                                         <td>${production_capacity}</td>
-                                                        <td></td>
-                                                        <td></td>
+                                                        <td class="text-center"></td>
+                                                        <td><span class="utils_singola_riga d-none">{"capacita_bau_originale":"${capacita_bau_originale}"}</span></td>
                                                     </tr>
                             `;
+                            counter_livello_3++;
                         });
                         content_capacita += `
                                                 </tbody>
@@ -579,17 +649,17 @@
                     counter_livello_1++;  
                 }
                 content.innerHTML = content_capacita;
-                // dopo aver creato la tabella lanciamo la validateRow() su tutte le tabelle
+                // dopo aver creato la tabella lanciamo la gestione_alert_settimanale_arancione() su tutte le righe di tutte le tabelle
                 $('.table_capacita tbody tr').each(function() {
-                    validateRow(this);
+                    gestione_alert_settimanale_arancione(this);
                 });
-                // dopo aver creato la tabella lanciamo la sommaCapacitySettimanale() su tutte le tabelle
+                // dopo aver creato la tabella lanciamo la somma_capacita_settimanale() su tutte le tabelle
                 $('.table_capacita').each(function() {
-                    sommaCapacitySettimanale(this);
+                    somma_capacita_settimanale(this);
                 });
                 
                 // cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale'
-                select_tipo_capacita_da_modificare();
+                tipo_capacita_da_modificare_selezionata();
                 // abilitiamo il tasto "Avvia Scheduling"
                 $('#avvia_scheduling').prop('disabled', false);
             },
@@ -603,18 +673,55 @@
 	}
 </script>
 
-<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità  -->
+
+<script>
+    function controllo_valore_minimo(input) {
+        /*
+        Funzione che abilita la validazione al blur (quando l'utente perde il focus sull'input) -> se la capacità inserita dall'utente è vuota o minore della capacità reale, la funzione setta automaticamente la capacità reale
+
+        Args:
+            input (<td>): contiene l'intera struttura della relativa colonna nella quale è stata effettuata la modifica delle capacità
+        */
+        // recuperiamo la riga (tr) che contiene l'input
+        const row = input.closest('tr');
+        // recuperiamo l'ultima cella della riga, cioè quella che contiene dizionario con la chiave capacita_bau_originale che ci interessa
+        const lastCell = row.lastElementChild;
+        // recuperiamo il valore della chiave capacita_bau_originale dal dizionario
+        let dictionary = JSON.parse(lastCell.textContent || '{}');
+        // Prendi il valore di "capacita_bau_originale" dal dizionario
+        const minValue = parseInt(dictionary["capacita_bau_originale"]);
+        if (input.value !== '') {
+            let value = parseInt(input.value);
+            if (value < minValue) {
+                // modifichiamo il valore nell'input inpostando la capacità di bau
+                input.value = minValue;
+                // triggeriamo il ricalcolo degli alert e della somma mensile
+                $(input).trigger('change');
+            }
+        } else {
+            // modifichiamo il valore nell'input inpostando la capacità di bau
+            input.value = minValue;
+            // triggeriamo il ricalcolo degli alert e della somma mensile
+            $(input).trigger('change');
+        }
+    }
+</script>
+
+<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         if (document.querySelector('#tipo_capacita_da_modificare').value != '' && document.querySelector('#mese_da_simulare').value != ''){
-            load_tabella_capacita_with_ajax(true);
+            carica_tabella_capacita_ajax(true);
         }
     });
 </script>
 
-<!-- Caricamento testo per modal che appare al click sul bottone "Avvia scheduling" -->
+
 <script>
-    function load_text_avviso_modal_avvia_scheduling() {
+    function avviso_avvia_scheduling() {
+        /*
+        Funzione che permette il caricamento del testo per la modal che appare al click sul bottone "Avvia scheduling"        
+        */
         tipo_scheduling = document.getElementById('avviso_modal_avvia_scheduling');
         const radioSchedule = document.getElementById("inlineRadio1");
         const timeSchedule = document.getElementById("timeSchedule");
@@ -627,9 +734,13 @@
     }
 </script>
 
-<!-- Cattura tabelle output_setting_capacity per inserirla in un input nascosto in formato json  -->
+
 <script>
-    function save_capacita_json() {
+    function wrap_capacita_json() {
+        /*
+        Funzione che cattura le tabelle caricate tramite output_capacity_settings e le wrappa in un input nascosto in formato json per essere successivamente inviate al backend
+        */
+        var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         let data = {};
         // scorriamo tutti gli accordion di livello 1 (cioè ogni recapitista)
         $('.accordion_recapitista').each(function() {
@@ -652,7 +763,22 @@
                     } else{
                         valore_finePeriodoValidita = row.find('.input_finePeriodoValidita').val();
                     }
-
+                    if (row.find('.input_capacita_reale').text()=='-'){
+                        valore_capacita_reale = null;
+                    }
+                    else{
+                        valore_capacita_reale = row.find('.input_capacita_reale').text();
+                    }
+                    // per ogni riga recuperiamo la capacita_bau_originale (che ci serve quando settiamo la combinata e sulla singola riga viene preso il picco)
+                    utils_singola_riga = JSON.parse(row.find('.utils_singola_riga').text());
+                    valore_capacita_bau_originale = utils_singola_riga['capacita_bau_originale'];
+                    valore_capacita = row.find('.input_capacita').val();
+                    if (valore_capacita!=valore_capacita_bau_originale){
+                        valore_flag_default = '0';
+                    }
+                    else{
+                        valore_flag_default = '1';
+                    }
                     let item = {
                         regione: row.find('td').eq(0).text().trim(),
                         cod_sigla_provincia: row.find('td').eq(1).text().trim(),
@@ -661,8 +787,10 @@
                         postalizzazioni_settimanali: row.find('td').eq(3).text().trim(),
                         inizioPeriodoValidita: valore_inizioPeriodoValidita,
                         finePeriodoValidita: valore_finePeriodoValidita,
-                        capacita: row.find('.input_capacita').val(),
-                        capacita_reale: row.find('.input_capacita_reale').text(),
+                        capacita: valore_capacita,
+                        capacita_reale: valore_capacita_reale,
+                        flag_default: valore_flag_default,
+                        capacita_bau_originale: valore_capacita_bau_originale
                     };
                     data[gruppo].push(item);
                 });
@@ -678,12 +806,18 @@
     // funzione che si triggera ogni volta che viene modificata la capacità
     $(document).on('input change', '.input_capacita', function() {
         const row = $(this).closest('tr');
-        validateRow(row);
+        gestione_alert_settimanale_arancione(row);
         const table = $(this).closest('.table_capacita');
-        sommaCapacitySettimanale(table);
+        somma_capacita_settimanale(table);
     });
 
-    function validateRow(row) {
+    function gestione_alert_settimanale_arancione(row) {
+        /*
+        Funzione che si occupa di far spuntare un alert arancione se le capacità settimanali sono minori delle postalizzazioni settimanali
+
+        Args:
+            row (<tr>): riga della tabella
+        */
         const td = $(row).find('td');
         const valpostalizzazione = parseInt(td.eq(3).text().trim()) || 0; // terzo campo -> postalizzazioni
         const valcapacity = parseInt(td.eq(6).find('input').val()) || 0; // sesto campo -> capacità
@@ -694,7 +828,13 @@
         }
     }
     
-    function sommaCapacitySettimanale(table) {
+    function somma_capacita_settimanale(table) {
+        /*
+        Funzione che si occupa effettuare la somma delle capacità settimanali per ogni tabella, aggiornare la capacità mensile in real-time e chiamare la funzione gestione_alert_mensili
+
+        Args:
+            table (table): tabella
+        */
         let sommaCapacita = 0;
         const $table = $(table);
         $table.find('.input_capacita').each(function() {
@@ -703,10 +843,17 @@
         });
         $table.closest('.accordion-collapse').prev('.accordion-header').find('.somma_capacita').text(sommaCapacita);
         // dopo aver aggiornato in real-time la somma mensile delle capacità andiamo a fare il confronto con le postalizzazioni mensili per alert rosso sul sotto-accordion
-        alertMensileRosso($table, sommaCapacita);
+        gestione_alert_mensili($table, sommaCapacita);
     }
 
-    function alertMensileRosso($table, sommaCapacita) {
+    function gestione_alert_mensili($table, sommaCapacita) {
+        /*
+        Funzione che si occupa di assegnare l'alert del sotto-accordion: alert rosso se la somma delle capacità settimanali su una regione-provincia-prodotto è minore delle postalizzazioni mensili, alert-giallo se la somma delle capacità settimanali su una regione-provincia-prodotto è maggiore delle postalizzazioni mensili e c'è almeno un alert giallo su una delle settimane, altrimenti nessun alert
+
+        Args:
+            table (jQuery object): tabella
+            sommaCapacita (int): somma mensile delle capacità settimanali che si trova nell'intestazione del sotto-accordion
+        */
         const alert_settimanale_giallo = $table.find('td:nth-child(9) .fa-triangle-exclamation[style*="orange"]').length > 0;
         const accordionHeader = $table.closest('.accordion-collapse').prev('.accordion-header');       
         const n_postalizzazioni_mensili = parseInt(accordionHeader.find('.somma_postalizzazioni').text()) || 0;        
@@ -720,7 +867,7 @@
     }
 </script>
 
-<!-- Recupera la provincia a partire dalla selezione della regione e gestisce + e - -->
+<!-- Recupera la provincia a partire dalla selezione della regione e gestisce + e - nello STEP 2 -->
 <script>
     $(document).ready(function() {
         let rowCount = 1;
@@ -772,7 +919,7 @@
             var regione = $(this).val();
             var provinciaSelect = $(this).closest('tr').find('.provincia-select');
             $.ajax({
-                url: '/get_province/',
+                url: '/recupero_province/',
                 data: {
                     'regione': regione
                 },
@@ -804,9 +951,18 @@
     });
 </script>
 
-<!-- funzione helper per risolvere vulnerabilità code review automatica github -->
+
 <script>
     function tdText(value) {
+        /*
+        Funzione helper inserita per prevenire Cross-site scripting (XSS) che recupera un valore stringa e ritorna un oggetto <td> contenente l'input
+        
+        Args:
+            value (string): elemento della riga della tabella
+        
+        Returns:
+            <td>: oggetto <td> contenente l'input (value) in formato string
+        */
         const td = document.createElement('td');
         td.textContent = value;
         return td;
@@ -814,151 +970,141 @@
 </script>
 
 <script>
-// Funzione per aggiungere una riga alla tabella
-function aggiungiRiga(button) {
-    // Trova la tabella più vicina al bottone cliccato
-    const table = button.closest('table');
-    const tbody = table.querySelector('tbody');
-    
-    // Trova la prima riga esistente per clonare i valori dei primi 3 campi
-    const righeOriginali = tbody.querySelectorAll('tr:not(:has(.rimuovi-riga))');
-    const ultimaRigaOriginale = righeOriginali[righeOriginali.length - 1];
-    const righeTotali = tbody.querySelectorAll('tr:has(.rimuovi-riga)');
-    
-    // Crea una nuova riga
-    const nuovaRiga = document.createElement('tr');
-    
-    // Clona i primi 3 valori
-    const celleUltimaRiga = ultimaRigaOriginale.querySelectorAll('td');
-    let capacita_reale_ultima_riga = celleUltimaRiga[6].textContent.split(" ");
-    capacita_reale_ultima_riga = capacita_reale_ultima_riga[capacita_reale_ultima_riga.length -1]
-
-    nuovaRiga.appendChild(tdText(celleUltimaRiga[0].textContent));
-    nuovaRiga.appendChild(tdText(celleUltimaRiga[1].textContent));
-    nuovaRiga.appendChild(tdText(celleUltimaRiga[2].textContent));
-    nuovaRiga.appendChild(tdText('0'));
-
-    // TD con input date (static HTML, ok)
-    const tdInizio = document.createElement('td');
-    tdInizio.innerHTML = '<input type="date" class="form-control text-center input_inizioPeriodoValidita" onkeydown="return (event.keyCode!=13);">';
-    nuovaRiga.appendChild(tdInizio);
-
-    const tdFine = document.createElement('td');
-    tdFine.innerHTML = '<input type="date" class="form-control text-center input_finePeriodoValidita" onkeydown="return (event.keyCode!=13);">';
-    nuovaRiga.appendChild(tdFine);
-
-    // TD capacità (parte dinamica via proprietà, NON HTML)
-    const tdCapacita = document.createElement('td');
-
-    const inputCap = document.createElement('input');
-    inputCap.type = 'text';
-    inputCap.className = 'form-control text-center input_capacita';
-    inputCap.value = capacita_reale_ultima_riga;
-
-    const label = document.createElement('label');
-    label.className = 'm-0 p-0';
-    label.style.fontSize = '12px';
-    label.textContent = `Capacità reale: ${capacita_reale_ultima_riga}`;
-
-    tdCapacita.appendChild(inputCap);
-    tdCapacita.appendChild(label);
-    nuovaRiga.appendChild(tdCapacita);
-
-    nuovaRiga.appendChild(tdText('-'));
-    nuovaRiga.appendChild(tdText(''));
-
-    const tdBtn = document.createElement('td');
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-outline-danger btn-sm rimuovi-riga';
-    btn.textContent = '-';
-    tdBtn.appendChild(btn);
-    nuovaRiga.appendChild(tdBtn);
-    
-    
-    // Aggiungi la nuova riga al tbody
-    tbody.appendChild(nuovaRiga);
-    
-    // Aggiungi l'event listener per il bottone di rimozione
-    const bottoneRimuovi = nuovaRiga.querySelector('.rimuovi-riga');
-    bottoneRimuovi.addEventListener('click', function() {
-        nuovaRiga.remove();
-        // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
-        $('.input_capacita').trigger('input');
-    });
-
-    var data_fine_ultima_riga;
-    
-    if (righeTotali.length == 0){
-        data_fine_ultima_riga = celleUltimaRiga[5].textContent;
-    } else{
-        data_fine_ultima_riga = righeTotali[righeTotali.length - 1].querySelectorAll('td')[5].querySelector('input').value;
-    }
-
-    return [data_fine_ultima_riga,nuovaRiga]; // data fine ultima settimana da impostare come data minima in flatpickr
-}
-
-// Event listener per il bottone "Aggiungi riga"
-document.addEventListener('click', function(e) {
-    if (e.target && e.target.id === 'aggiungi_riga_tabelle_step3') {
-        e.preventDefault();
-        var array_dataminima_nuovariga = aggiungiRiga(e.target);
-        inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga);
-        // triggeriamo per le funzioni validateRow() per gli alert e sommaCapacitySettimanale() per la capacità totale del mese
-        $('.input_capacita').trigger('input');
-    }
-});
-</script>
-
-<!-- flatpickr per vincoli datepicker STEP 3: l'inizializzazione dei calendari datepicker (flatpickr) dev'essere fatta solo dopo aver caricato l'input con il relativo id -->
- <script>
-    function inizializzazione_datepicker_flatpickr(array_dataminima_nuovariga){
-        const inputInizio = array_dataminima_nuovariga[1].querySelector('.input_inizioPeriodoValidita');
-        const inputFine = array_dataminima_nuovariga[1].querySelector('.input_finePeriodoValidita');
+    function aggiungi_riga_tabella_step3(button) {
+        /*
+        Funzione che si occupa di aggiungere una riga alla relativa tabella
+        
+        Args:
+            button (button): bottone '+' che permette di aggiungere la riga e lo utilizziamo per risalire alla relativa tabella
+        */
+        // recuperiamo il tipo_capacita_selezionata 
+        var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
+        // troviamo la tabella più vicina al bottone cliccato
+        const table = button.closest('table');
+        const tbody = table.querySelector('tbody');
+        // troviamo l'ultima riga originale (non aggiunta con il '+') per recuperare i valori e riportarli sull'ultima riga
+        const righeOriginali = tbody.querySelectorAll('tr:not(.riga-aggiunta)');
+        const ultimaRigaOriginale = righeOriginali[righeOriginali.length - 1];
+        const righeAggiunte = tbody.querySelectorAll('tr.riga-aggiunta');
+        const celleUltimaRiga = ultimaRigaOriginale.querySelectorAll('td');
+        let capacita_reale_ultima_riga = celleUltimaRiga[6].textContent.split(" ");
+        capacita_reale_ultima_riga = capacita_reale_ultima_riga[capacita_reale_ultima_riga.length -1]
+        // creiamo una nuova riga
+        const nuovaRiga = document.createElement('tr');
+        nuovaRiga.classList.add('riga-aggiunta'); // Aggiungiamo classe per identificare righe aggiunte
+        // Regione
+        nuovaRiga.appendChild(tdText(celleUltimaRiga[0].textContent));
+        // Provincia
+        nuovaRiga.appendChild(tdText(celleUltimaRiga[1].textContent));
+        // Product
+        nuovaRiga.appendChild(tdText(celleUltimaRiga[2].textContent));
+        // Numero di post. settimanali
+        nuovaRiga.appendChild(tdText('0'));
+        // Inizio periodo di validità
+        if (righeAggiunte.length == 0){
+            data_fine_ultima_riga = celleUltimaRiga[5].textContent;
+        } else{
+            data_fine_ultima_riga = righeAggiunte[righeAggiunte.length - 1].querySelectorAll('td')[5].textContent;
+        }
         // convertiamo in Date (ricordiamo che i mesi partono da 0)
-        const data_split = array_dataminima_nuovariga[0].split('/');
+        const data_split = (data_fine_ultima_riga).split('/');
         const old_DateObj = new Date(data_split[2], data_split[1] - 1, data_split[0]);
         // aggiungo 1 giorno
-        const defaultDateObj = new Date(old_DateObj);
-        defaultDateObj.setDate(defaultDateObj.getDate() + 1);
-        const finePicker = flatpickr(inputFine, {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            dateFormat: "d/m/Y",
-            disable: [
-                function(date) {
-                    // abilitiamo solo le domeniche (0)
-                    return !(date.getDay() === 0);
-                }
-            ],
-        });
-        const inizioPicker = flatpickr(inputInizio, {
-            // lunedì primo giorno della settimana
-            locale: {
-                firstDayOfWeek: 1
-            },
-            dateFormat: "d/m/Y",
-            minDate: array_dataminima_nuovariga[0],
-            maxDate: defaultDateObj,
-            defaultDate: defaultDateObj,
-            onReady: function(selectedDates) {
-                if (!selectedDates || selectedDates.length === 0) return;
-                const data_inizio = new Date(selectedDates[0]);
-                const data_fine = new Date(data_inizio);
-                data_fine.setDate(data_fine.getDate() + 6);
-                finePicker.set('minDate', data_fine);
-                finePicker.set('maxDate', data_fine);
-                finePicker.setDate(data_fine);
-            },
-            disable: [
-                function(date) {
-                    // abilitiamo solo i lunedì (1)
-                    return !(date.getDay() === 1);
-                }
-            ],
-        });
+        old_DateObj.setDate(old_DateObj.getDate() + 1);
+        nuovaRiga.appendChild(tdText(moment(old_DateObj).format('DD/MM/YYYY')));
+        // Fine periodo di validità
+        const nuova_domenica = old_DateObj.setDate(old_DateObj.getDate() + 6);
+        nuovaRiga.appendChild(tdText(moment(nuova_domenica).format('DD/MM/YYYY')));
+        // recuperiamo il valore della colonna utils dell'ultima riga
+        capacita_bau_ultima_riga = JSON.parse(celleUltimaRiga[9].textContent)['capacita_bau_originale'];
+        // TD capacità (parte dinamica via proprietà, NON HTML)
+        const tdCapacita = document.createElement('td');
+
+        const inputCap = document.createElement('input');
+        inputCap.type = 'text';
+        inputCap.inputMode = 'numeric';
+        inputCap.className = 'form-control text-center input_capacita';
+        inputCap.step = '1';
+        inputCap.maxLength = '8';
+        inputCap.value = '';
+        inputCap.onblur = function() {
+            controllo_valore_minimo(this);
+        };
+        // disabilitiamo il tasto enter per evitare il submit della form
+        inputCap.onkeydown = function() {
+            return (event.keyCode!=13);
+        }
+        // rifiutiamo qualsiasi carattere che non sia un numero
+        inputCap.oninput = function() {
+            this.value = this.value.replace(/[^0-9]/g, '')
+        }
+        const label = document.createElement('label');
+        label.className = 'm-0 p-0';
+        label.style.fontSize = '12px';
+        if (tipo_capacita_selezionata == 'Combinata'){
+            inputCap.value = capacita_bau_ultima_riga;
+            label.textContent = `Capacità di riferimento: ${capacita_bau_ultima_riga}`;
+        }
+        else{
+            inputCap.value = capacita_reale_ultima_riga;
+            label.textContent = `Capacità di riferimento: ${capacita_reale_ultima_riga}`;
+        }
+        
+        tdCapacita.appendChild(inputCap);
+        tdCapacita.appendChild(label);
+        nuovaRiga.appendChild(tdCapacita);
+        // Capacità di produzione
+        nuovaRiga.appendChild(tdText('-'));
+        // Colonna alert
+        nuovaRiga.appendChild(tdText(''));
+        // Colonna per utils contenente capacita_bau_originale
+        const td_utils = document.createElement('td');
+        const span_utils = document.createElement('span');
+        span_utils.className = 'utils_singola_riga d-none';
+        span_utils.textContent = celleUltimaRiga[9].textContent;
+        td_utils.appendChild(span_utils);
+        nuovaRiga.appendChild(td_utils);
+        // Aggiungi la nuova riga al tbody
+        tbody.appendChild(nuovaRiga);
+        // triggeriamo le funzioni gestione_alert_settimanale_arancione() per gli alert arancioni e somma_capacita_settimanale() per la capacità totale del mese e alert rossi
+        $('.input_capacita').trigger('input');
     }
+
+    function rimuovi_ultima_riga_tabella_step3(button) {
+        /*
+        Funzione che si occupa di rimuovere l'ultima riga (fra quelle aggiuntive) dalla relativa tabella
+        
+        Args:
+            button (button): bottone '-' che permette di rimuovere la riga e lo utilizziamo per risalire alla relativa tabella
+        */
+        const table = button.closest('table');
+        const tbody = table.querySelector('tbody');
+        const righeAggiunte = tbody.querySelectorAll('tr.riga-aggiunta');
+        
+        // Rimuovi solo l'ultima riga se ce n'è almeno una
+        if (righeAggiunte.length > 0) {
+            const ultimaRiga = righeAggiunte[righeAggiunte.length - 1];
+            ultimaRiga.remove();
+            
+            // triggeriamo per aggiornare i totali
+            $('.input_capacita').trigger('input');
+        }
+    }
+
+    // Event listener per il bottone "Aggiungi riga"
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'aggiungi_riga_tabelle_step3') {
+            e.preventDefault();
+            aggiungi_riga_tabella_step3(e.target);
+            // triggeriamo le funzioni gestione_alert_settimanale_arancione() per gli alert arancioni e somma_capacita_settimanale() per la capacità totale del mese e alert rossi
+            $('.input_capacita').trigger('input');
+        }
+        
+        // Event listener per il nuovo bottone di rimozione nell'intestazione
+        if (e.target && e.target.id === 'rimuovi_righe_tabelle_step3') {
+            e.preventDefault();
+            rimuovi_ultima_riga_tabella_step3(e.target);
+        }
+    });
 </script>
 {% endblock %}
