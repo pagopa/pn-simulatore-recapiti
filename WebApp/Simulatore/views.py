@@ -985,6 +985,47 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
     # se non viene trovata alcuna cartella corrispondente
     return 'None'
 
+def vista_ente_fornitore(request):
+    """
+    Riceve i dati dal form vista_ente_fornitore (template vista_ente_fornitore.html) e mostra la tabella con i dati filtrati. 
+    Le tabelle sono diverse e vengono selezionate in base al valore del campo Ente/Fornitore.  
+
+    """
+    lista_mesi = recupero_lista_mesi_simulazione_univoci()
+
+    context = {"table_flag":"0",
+               "lista_mesi": lista_mesi,
+               }
+
+    if request.method == "POST":
+
+        vista = request.POST.get("select_vista")
+        data = request.POST.get("select_data")
+        anno, mese = data.split("-")
+
+        if vista == "PER ENTE":
+            
+            table = table_sender_limit.objects.filter(
+            DELIVERY_DATE__year=int(anno),
+            DELIVERY_DATE__month=int(mese),
+            
+            )
+        
+        elif vista == "PER FORNITORE":
+
+            table = view_vista_fornitore.objects.filter(
+            DELIVERY_DATE=data,
+            )
+
+        context = {"lista_mesi": lista_mesi,
+                "table":table,
+                "table_flag":"1",
+                "mesi_selection":data,
+                "vista_selection":vista
+                }
+
+    return render(request, "vista_ente_fornitore/vista_ente_fornitore.html",context)
+
 
 
 # ERROR PAGES
