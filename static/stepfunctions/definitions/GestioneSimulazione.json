@@ -639,7 +639,7 @@
       "Next": "AGGIORNAMENTO SIMULAZIONE DB",
       "ResultPath": null,
       "ItemsPath": "$.output_lambda_INSERTMOCKCAPACITIES.Payload.lista_file_csv_caricati",
-      "MaxConcurrency": 6
+      "MaxConcurrency": 3
     },
     "AGGIORNAMENTO SIMULAZIONE DB": {
       "Type": "Task",

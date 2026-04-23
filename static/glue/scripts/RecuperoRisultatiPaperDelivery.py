@@ -294,6 +294,28 @@ if count_residui_ultima_settimana > 0:
     # Export in S3
     df_paperdel_res_tot.repartition(1).write.mode('overwrite').option("header",True).csv(path)
 
+    df_paperdel_res_tot_filtred=df_paperdel_res_tot.filter(F.col('workflowStep')=='EVALUATE_SENDER_LIMIT')
+
+    df_output_residui_ente = df_paperdel_res_tot_filtred.groupBy(["senderPaId"])\
+        .agg(F.countDistinct('requestId'))\
+        .withColumnRenamed("count(DISTINCT requestId)", "COUNT_RESIDUI")\
+        .withColumnRenamed("senderPaId", "SENDER_PA_ID")\
+        .withColumn('SIMULAZIONE_ID',F.lit(id_simulazione))\
+        .select("SIMULAZIONE_ID","SENDER_PA_ID","COUNT_RESIDUI")
+    
+    print('Export in DB')
+    db_table='public."OUTPUT_RESIDUI_ENTE"'
+
+    df_output_residui_ente.write \
+        .format("jdbc") \
+        .option("url", jdbc_connection) \
+        .option("dbtable", db_table) \
+        .option("user", response_SecretString['username']) \
+        .option("password", response_SecretString['password']) \
+        .option("driver", "org.postgresql.Driver") \
+        .mode("append") \
+        .save()
+
 
 # id_timestamp=[["1"]]
 # timestamp_df=spark.createDataFrame(id_timestamp,["id"])
