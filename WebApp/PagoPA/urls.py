@@ -35,8 +35,6 @@ urlpatterns = [
     path('', include('Simulatore.urls')),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
 
-    #VISTA_ENTE_FORNITORE
-    path('ente_fornitore', vista_ente_fornitore, name='ente_fornitore'),
 ]
 
 
