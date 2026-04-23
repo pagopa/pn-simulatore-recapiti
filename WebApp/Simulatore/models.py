@@ -206,6 +206,18 @@ class table_output_grafico_reg_recap(models.Model):
             models.Index(fields=['COUNT_REQUEST'], name='indice_count_request')
         ]
 
+class table_output_residui_ente(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    COUNT_RESIDUI = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_RESIDUI_ENTE'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_5'),
+            models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id_2'),
+        ]
+
 class table_capacita_simulate_cap(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)

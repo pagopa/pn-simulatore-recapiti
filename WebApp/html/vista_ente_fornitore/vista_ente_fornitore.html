@@ -2,7 +2,7 @@
 {% block content %}
 {% load static %}
 
-<br><br>
+<br>
 
 
 <form id="form_vista_ente_cred" method="POST" action="{% url 'ente_fornitore' %}">
@@ -33,11 +33,11 @@
     </div>
 </form>
 
-<!-- DATATABLES: tabella_ente_ -->
+<!-- DATATABLES: tabella_ente_fornitore -->
 
 {% if table_flag == "1" %}
     {% if vista_selection == "PER ENTE" %}
-        <div class="container mt-5">
+        <div class="container">
             <table class="table table-hover table-striped table-bordered mt-3" id="tabella_ente" style="padding-top:20px;  text-align:center;">
                 <thead>
                     <tr>
@@ -298,7 +298,7 @@
         {
             // colonna UNIFIED_DELIVERY_DRIVER
             targets: 1,
-            columnControl: ['order', ['search']],
+            columnControl: ['order', ['search','searchList']],
             type:'int',
             "className": "dt-center",
             "defaultContent": " "
@@ -313,14 +313,14 @@
         {
             // colonna PRODUCT_AR
             targets: 3,
-            columnControl: ['order', ['search']],
+            columnControl: ['order', ['search','searchList']],
             "className": "dt-center",
             "defaultContent": " "
         },
         {
             // colonna PRODUCT_890
             targets: 4,
-            columnControl: ['order', ['search']],
+            columnControl: ['order', ['search','searchList']],
             "className": "dt-center",
             "defaultContent": " "
         },
