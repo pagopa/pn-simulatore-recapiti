@@ -1,3 +1,12 @@
+"""
+AWS Lambda che viene lanciata a valle dei vari RUN_ALGORITHM e si occupa di pulire le tabelle su DynamoDB attraverso l'operazione DELETE_DATA
+
+Trigger:
+    Step function pn-simulatore-recapiti-sf-GestioneSimulazione
+
+Input:
+    destination_filename: nome del file precedentemente importato (tramite IMPORT_DATA) che dev'essere dato in input per l'operazione DELETE_DATA
+"""
 import json
 import boto3
 from botocore.config import Config
@@ -26,6 +35,7 @@ def lambda_handler(event, context):
     }
     # waiting random tra 0 e 5 secondi per scaglionare le richieste di DELETE_DATA ed evitare l'errore di DynamoDB "Throughput exceeds the current capacity of your table or index"
     time.sleep(random.uniform(0, 10))
+    # gestione risposta DELETE_DATA
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
     string_response = read_response.decode('utf-8')

@@ -185,7 +185,7 @@ df_capacity_tot_stg2=df_capacity_tot.join(df_capacity_tot_stg, on=['PK','ACTIVAT
 df_capacity_tot_dedup=df_capacity_tot_stg2.filter(F.col('ACTIVATION_DATE_TO').isNull())
 
 # Valorizzazione dei campi PRODUCTION_CAPACITY e ACTIVATION_DATE_TO
-df_capacity_tot_final=df_capacity_tot_dedup.withColumn('PRODUCTION_CAPACITY',F.when(F.col('CAPACITY')==F.col('MAX_CAPACITY'),0).otherwise(F.col('MAX_CAPACITY')))\
+df_capacity_tot_final=df_capacity_tot_dedup.withColumn('PRODUCTION_CAPACITY',F.when(F.col('CAPACITY')==F.col('MAX_CAPACITY'),F.col('CAPACITY')).otherwise(F.col('MAX_CAPACITY')))\
                                            .withColumn('ACTIVATION_DATE_TO',F.expr('ACTIVATION_DATE_FROM + INTERVAL 6 DAYS'))\
                                            .select(['CAPACITY','GEOKEY','TENDER_ID_GEOKEY','PRODUCT_890','PRODUCT_AR','PRODUCT_RS','TENDER_ID','UNIFIED_DELIVERY_DRIVER',
                                                    'CREATED_AT','PEAK_CAPACITY','ACTIVATION_DATE_FROM','ACTIVATION_DATE_TO','PK','PRODUCTION_CAPACITY','LAST_UPDATE_TIMESTAMP'])
