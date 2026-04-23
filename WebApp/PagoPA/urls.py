@@ -12,18 +12,20 @@ urlpatterns = [
 
     # SIMULAZIONI
     path('nuova_simulazione/<id_simulazione>', nuova_simulazione, name='nuova_simulazione'),
-    #path('risultati/<id_simulazione>', risultati, name='risultati'),
-    #path('confronto_risultati/<id_simulazione>', confronto_risultati, name='confronto_risultati'),
     path('salva_simulazione', salva_simulazione, name='salva_simulazione'),
     path('rimuovi_simulazione/<id_simulazione>', rimuovi_simulazione, name='rimuovi_simulazione'),
+
+    # BUTTON DOWNLOAD CSV
+    path('download_capacita_per_provincia/<id_simulazione>/<recupero_capacita_modificate>', download_capacita_per_provincia, name='download_capacita_per_provincia'),
+    path('download_capacita_per_cap/<id_simulazione>/<recupero_capacita_modificate>', download_capacita_per_cap, name='download_capacita_per_cap'),
 
     # BOZZE
     path('bozze', bozze, name='bozze'),
 
     # AJAX
-    path('get_capacita_from_mese_and_tipo_ajax', ajax_get_capacita_from_mese_and_tipo, name="ajax_get_capacita_from_mese_and_tipo"),
-    path('get_simulazioni_da_confrontare_ajax', ajax_get_simulazioni_da_confrontare, name="ajax_get_simulazioni_da_confrontare"),
-    path('get_province/', get_province, name='get_province'),
+    path('recupero_capacita_ajax', ajax_recupero_capacita, name="ajax_recupero_capacita"),
+    path('recupero_simulazioni_da_confrontare_ajax', ajax_recupero_simulazioni_da_confrontare, name="ajax_recupero_simulazioni_da_confrontare"),
+    path('recupero_province/', recupero_province, name='recupero_province'),
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),
@@ -32,6 +34,7 @@ urlpatterns = [
     # la dashboard viene generata su http://localhost:8000/django_plotly_dash/app/SimpleExample/ e, poi, viene viene recuperata dalla pagina html http://localhost:8000/dash/
     path('', include('Simulatore.urls')),
     path('django_plotly_dash/', include('django_plotly_dash.urls')),
+
 ]
 
 

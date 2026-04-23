@@ -100,6 +100,7 @@ def lambda_to_dict(prov,operationType,list_parameters):
 schema_paperdel = T.StructType() \
       .add("attempt",T.StringType(),True) \
       .add("cap",T.StringType(),True) \
+      .add("communicationType",T.StringType(),True) \
       .add("createdAt",T.StringType(),True) \
       .add("iun",T.StringType(),True) \
       .add("notificationSentAt",T.StringType(),True) \
@@ -156,7 +157,6 @@ for data in lista_date:
             # Riempimento lista delle righe
             row=list(diz_sorted.values())
             row_list.append(row)
-            
     
         # Creazione dataframe totale
         if j==0 and data==lista_date[0]:

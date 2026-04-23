@@ -1,18 +1,52 @@
+"""
+AWS Lambda che viene invocata come primo task della step function pn-simulatore-recapiti-sf-RecuperoDati-Weekly e si occupa di calcolare la prima settimana del mese dal quale partire per il recupero settimanale dei dati 
+
+Trigger:
+    Step function pn-simulatore-recapiti-sf-RecuperoDati-Weekly
+
+Input:
+    date_simulazione: lista di dizionari, dove il formato di ogni dizionario è: {"mese_simulazione": "YYYY-MM-DD"}
+
+Output:
+    dizionario dove 'date_simulazione' è una lista di dizionari ed il formato di ogni dizionario è: {"mese_simulazione": "YYYY-MM-DD"}
+"""
 import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from dateutil.relativedelta import relativedelta
 import os
 import boto3
 import pg8000
 
-def get_db_credentials(secretsManager_SecretId):
+def recupero_credenziali_db(secretsManager_SecretId):
+    """
+    Recupera le credenziali di connessione al db salvate sul secret manager
+
+    Args:
+        secretsManager_SecretId (string): arn dell'istanza secret manager che contiene le credenziali del db
+
+    Returns:
+        dict: credenziali del db recuperate dal secret manager
+    """
     client = boto3.client("secretsmanager")
     response = client.get_secret_value(SecretId=secretsManager_SecretId)
     response_SecretString = json.loads(response['SecretString'])
     return response_SecretString
 
 
-def get_connection(db_host, db_name, db_port, creds):
+def connessione_db(db_host, db_name, db_port, creds):
+    """
+    Crea la connessione al db
+
+    Args:
+        db_host (string): server del db
+        db_name (string): nome del db
+        db_port (string): porta del db
+        creds (string): contiene le credenziali del db recuperate dal secret manager
+
+    Returns:
+        pg8000.legacy.Connection: istanza di connessione al db
+    """
     conn = pg8000.connect(
         host=db_host,
         database=db_name,
@@ -29,9 +63,9 @@ def lambda_handler(event, context):
     db_name = os.environ['DB_NAME']
     db_port = os.environ['DB_PORT']
     # recupero credenziali da SecretsManager
-    creds = get_db_credentials(secretsManager_SecretId)
+    creds = recupero_credenziali_db(secretsManager_SecretId)
     # connessione db
-    conn = get_connection(db_host, db_name, db_port, creds)
+    conn = connessione_db(db_host, db_name, db_port, creds)
     # query
     cur = conn.cursor()
     cur.execute('DELETE FROM public."DECLARED_CAPACITY_DELTA";')
@@ -41,13 +75,15 @@ def lambda_handler(event, context):
     cur.close()
     conn.close()
     try:
-        # se al lancio della step function è stata specificata la date_simulazione
+        # se al lancio della step function è stata specificata almeno una data nella lista date_simulazione prendiamo queste date, altrimenti calcoliamo la prima settimana del mese dal quale partire per il recupero settimanale dei dati
         date_simulazione = event["date_simulazione"]
         if len(date_simulazione) != 0:
             return {"date_simulazione":date_simulazione}
     except:
+        # dalle variabili d'ambiente recuperiamo il valore relativo a quanti mesi in avanti vogliamo simulare
+        mesi_in_avanti = int(os.environ["mesi_in_avanti"])
         # datetime now
-        datetime_now = datetime.now(ZoneInfo("Europe/Rome"))
+        datetime_now = datetime.now(ZoneInfo("Europe/Rome")) + relativedelta(months=mesi_in_avanti)
         giorno = datetime_now.day
         mese = datetime_now.month
         anno = datetime_now.year
@@ -73,7 +109,7 @@ def lambda_handler(event, context):
         if prima_settimana_da_processare.day == 1:
             prima_settimana_da_processare = prima_settimana_da_processare + timedelta(days=7)
 
-        # formattiamo la data come "yyyy-mm-dd"
+        # formattiamo la data come "YYYY-MM-DD"
         date_simulazione = [
             {
                 "mese_simulazione": str(prima_settimana_da_processare.date())
