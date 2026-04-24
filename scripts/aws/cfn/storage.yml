@@ -104,6 +104,20 @@ Parameters:
     Type: Number
     Default: 1500
 
+  RdsSimulatorEnableMultiAZ:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+
+  RdsSimulatorEnableAutoUpdateMinorVersion:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+
 Resources:
 
   SimulatorLogGroup:
@@ -334,6 +348,8 @@ Resources:
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
         DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
+        EnableMultiAZ: !Ref RdsSimulatorEnableMultiAZ
+        AutoUpdateMinorVersion: !Ref RdsSimulatorEnableAutoUpdateMinorVersion
 
   SimulatorDbIngressForGlueRole:
     Type: AWS::EC2::SecurityGroupIngress
