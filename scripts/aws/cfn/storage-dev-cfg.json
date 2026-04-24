@@ -5,7 +5,7 @@
     "RdsSimulatorEngineVersion": "17.5",
     "RdsSimulatorDbClusterFamily": "aurora-postgresql17",
     "LogRetention": "14",
-    "RdsSimulatorEnableMultiAZ": "true",
+    "RdsSimulatorEnableMultiAZ": "false",
     "RdsSimulatorEnableAutoUpdateMinorVersion": "true"
   }
 }
