@@ -2,7 +2,7 @@
 {% block content %}
 {% load static %}
 
-<br><br>
+<br>
 
 
 <form id="form_vista_ente_cred" method="POST" action="{% url 'ente_fornitore' %}">
@@ -27,25 +27,35 @@
                     </select>
             </div>
             <div class="col-2 mt-4">
-                <button type="submit" class="btn btn-primary mt-3" id="button_carica" >Carica dati</button>
+                <button type="submit" class="btn btn-primary mt-3" id="button_carica" onclick="control_spinner('show')">Carica dati</button>
             </div>
         </div>
     </div>
 </form>
+<div class="container">
+    <div class="row">
+        <div class="card-footer text-body-secondary text-center" >
+            <div class="spinner-border text-primary d-none" id="spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- DATATABLES: tabella_ente_ -->
+<!-- DATATABLES: tabella_ente_fornitore -->
 
 {% if table_flag == "1" %}
+    <div control_spinner()></div>
     {% if vista_selection == "PER ENTE" %}
-        <div class="container mt-5">
+        <div class="container">
             <table class="table table-hover table-striped table-bordered mt-3" id="tabella_ente" style="padding-top:20px;  text-align:center;">
                 <thead>
                     <tr>
-                        <th >Delivery Date</th>
-                        <th >Ente ID</th>
-                        <th >Provincia</th>
-                        <th >Prodotto</th>
-                        <th >Num. Postalizzazioni</th>
+                        <th >DELIVERY_DATE</th>
+                        <th >PA_ID</th>
+                        <th >PROVINCE</th>
+                        <th >PRODUCT_TYPE</th>
+                        <th >MONTHLY_ESTIMATE</th>
                     </tr>
                 </thead>
                 <tbody >
@@ -53,7 +63,7 @@
                         {% for rows_sender in table %}
                             <tr>
                                 <td >{{ rows_sender.DELIVERY_DATE|date:"Y-m" }}</td>
-                                <td >{{ rows_sender.ID }}</td>
+                                <td >{{ rows_sender.PA_ID }}</td>
                                 <td >{{rows_sender.PROVINCE}}</td>
                                 <td >{{rows_sender.PRODUCT_TYPE}}</td>
                                 <td >{{rows_sender.MONTHLY_ESTIMATE}}</td>
@@ -71,7 +81,7 @@
             <table class="table table-hover table-striped table-bordered mt-3" id="tabella_fornitore" style="padding-top:20px;  text-align:center;">
                 <thead>
                     <tr>
-                        <th >Delivery Date</th>
+                        <th >DELIVERY_DATE</th>
                         <th >UNIFIED_DELIVERY_DRIVER</th>
                         <th >GEOKEY</th>
                         <th >PRODUCT_AR</th>
@@ -168,7 +178,7 @@
         handler: false
     },
     // ordinamento decrescente sulla prima colonna
-    order: [[0, 'desc']],
+    order: [ ],
     pageLength : 5,
     lengthMenu: [[5, 10, 15, 20, -1], [5, 10, 15, 20, 'All']],
     responsive: true,
@@ -185,7 +195,6 @@
             // colonna ENTE
             targets: 1,
             columnControl: ['order', ['search']],
-            type:'int',
             "className": "dt-center",
             "defaultContent": " "
         },
@@ -195,12 +204,11 @@
             columnControl: ['order', ['search']],
             "className": "dt-center",
             "defaultContent": " ",
-            "defaultContent": " "
         },
         {
             // colonna PRODOTTO
             targets: 3,
-            columnControl: ['order', ['search']],
+            columnControl: ['order', ['search','searchList']],
             "className": "dt-center",
             "defaultContent": " "
         },
@@ -227,6 +235,10 @@
     var selectedVista = document.getElementById("select_vista").value.toLowerCase();
     new DataTable("#tabella_fornitore", {
     // rimuoviamo il vecchio ordinamento per inserire il nuovo con columnControl 
+        ordering: {
+        indicators: false,
+        handler: false
+    },
     layout:{
         bottom2End: {
             buttons: [                    {
@@ -277,12 +289,9 @@
 				
         }
     },
-    ordering: {
-        indicators: false,
-        handler: false
-    },
+
     // ordinamento decrescente sulla prima colonna
-    order: [[0, 'desc']],
+    order: [ ],
     pageLength : 5,
     lengthMenu: [[5, 10, 15, 20, -1], [5, 10, 15, 20, 'All']],
     responsive: true,
@@ -298,8 +307,7 @@
         {
             // colonna UNIFIED_DELIVERY_DRIVER
             targets: 1,
-            columnControl: ['order', ['search']],
-            type:'int',
+            columnControl: ['order', ['search','searchList']],
             "className": "dt-center",
             "defaultContent": " "
         },
@@ -313,14 +321,14 @@
         {
             // colonna PRODUCT_AR
             targets: 3,
-            columnControl: ['order', ['search']],
+            columnControl: ['order', ['search','searchList']],
             "className": "dt-center",
             "defaultContent": " "
         },
         {
             // colonna PRODUCT_890
             targets: 4,
-            columnControl: ['order', ['search']],
+            columnControl: ['order', ['search','searchList']],
             "className": "dt-center",
             "defaultContent": " "
         },
@@ -335,6 +343,20 @@
     bAutoWidth: false,
 
     });
+</script>
+
+<script>
+    // Script to controll the spinner showed in the ModalAggiunere. 
+    function control_spinner(show) {
+        const spinner = document.getElementById('spinner');
+        if (show) {
+            spinner.classList.remove('d-none');
+        } else {
+            spinner.classList.add('d-none');
+        }
+    }
+
+
 </script>
 {% endblock  %}
 

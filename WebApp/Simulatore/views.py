@@ -1005,17 +1005,19 @@ def vista_ente_fornitore(request):
 
         if vista == "PER ENTE":
             
-            table = table_sender_limit.objects.filter(
+            q1_ente = table_sender_limit.objects.filter(
             DELIVERY_DATE__year=int(anno),
-            DELIVERY_DATE__month=int(mese),
+            DELIVERY_DATE__month=int(mese))
             
-            )
+            table = q1_ente.filter(MONTHLY_ESTIMATE__gt=0).order_by("PROVINCE","PA_ID")
+            
         
         elif vista == "PER FORNITORE":
 
-            table = view_vista_fornitore.objects.filter(
+            q1_fornitore = view_vista_fornitore.objects.filter(
             DELIVERY_DATE=data,
             )
+            table = q1_fornitore.filter(MONTHLY_ESTIMATE__gt=0)
 
         context = {"lista_mesi": lista_mesi,
                 "table":table,

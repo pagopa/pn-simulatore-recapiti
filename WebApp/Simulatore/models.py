@@ -518,6 +518,7 @@ class view_vista_fornitore(pg.View):
         *
         FROM "CTE_CAPACITY_TEMP" 
         WHERE "MONTHLY_ESTIMATE" IS NOT NULL
+        ORDER BY "GEOKEY","UNIFIED_DELIVERY_DRIVER"
     """
 
     class Meta:
