@@ -477,48 +477,78 @@ class view_output_grafico_mappa_picchi(pg.View):
         db_table = 'output_grafico_mappa_picchi'
         managed = False
 
+
+# VISTA view_vista_ente
+class view_vista_ente(pg.View):
+    id = models.AutoField(primary_key=True)
+    DELIVERY_DATE = models.CharField(null=True,max_length=7)
+    PA_ID = models.CharField(max_length=80, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+
+    sql = """
+    WITH "CTE_ENTI_REGIONALI" AS
+    (
+        SELECT
+            "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE"
+        FROM public."SENDER_LIMIT"
+        LEFT JOIN public."CAP_PROV_REG"
+            ON public."CAP_PROV_REG"."COD_SIGLA_PROVINCIA" = public."SENDER_LIMIT"."PROVINCE"
+        GROUP BY "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE"
+    )
+    SELECT 
+    ROW_NUMBER() OVER () AS id,
+    *
+    FROM "CTE_ENTI_REGIONALI" 
+    WHERE "SUM_MONTHLY_ESTIMATE" > 0
+    """
+
+    class Meta:
+        db_table = 'vista_ente'
+        managed = False
+
+
 # VISTA view_vista_fornitore
 class view_vista_fornitore(pg.View):
     id = models.AutoField(primary_key=True)
     DELIVERY_DATE = models.CharField(null=True,max_length=7)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
-    GEOKEY = models.CharField(max_length=5, null=True)
-    PRODUCT_AR = models.BooleanField(null=True)
-    PRODUCT_890 = models.BooleanField(null=True)
-    MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
 
     sql = """
-    WITH "CTE_CAPACITY" 
-        AS
-        (
+    WITH "CTE_CAPACITY" AS
+    (
         SELECT
         "UNIFIED_DELIVERY_DRIVER","GEOKEY","PRODUCT_AR","PRODUCT_890",
                 TO_CHAR("ACTIVATION_DATE_FROM", 'YYYY-MM') AS "DELIVERY_DATE"
             FROM public."DECLARED_CAPACITY"
             GROUP BY "UNIFIED_DELIVERY_DRIVER","GEOKEY","PRODUCT_AR","PRODUCT_890","DELIVERY_DATE"
-        ),
-        "CTE_CAPACITY_TEMP" AS
-        (
+    ),
+    "CTE_CAPACITY_TEMP" AS
+    (
         SELECT 
-        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER","CTE_CAPACITY"."GEOKEY","CTE_CAPACITY"."PRODUCT_AR",
-        "CTE_CAPACITY"."PRODUCT_890","CTE_CAPACITY"."DELIVERY_DATE", 
-        SUM(public."SENDER_LIMIT"."MONTHLY_ESTIMATE") AS "MONTHLY_ESTIMATE" 
-        FROM "CTE_CAPACITY"  
+        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER", public."CAP_PROV_REG"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
+        "CTE_CAPACITY"."DELIVERY_DATE", SUM(public."SENDER_LIMIT"."MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE" 
+        FROM "CTE_CAPACITY" 
+        LEFT JOIN public."CAP_PROV_REG"
+            ON public."CAP_PROV_REG"."COD_SIGLA_PROVINCIA" = "CTE_CAPACITY"."GEOKEY"
         LEFT JOIN public."SENDER_LIMIT"
-        ON public."SENDER_LIMIT"."PROVINCE" = "CTE_CAPACITY"."GEOKEY"
-        AND ((public."SENDER_LIMIT"."PRODUCT_TYPE" = 'AR' and "CTE_CAPACITY"."PRODUCT_AR" = True)
-        OR (public."SENDER_LIMIT"."PRODUCT_TYPE" = '890' and "CTE_CAPACITY"."PRODUCT_890" = True))
-        AND (TO_CHAR(public."SENDER_LIMIT"."DELIVERY_DATE", 'YYYY-MM') = "CTE_CAPACITY"."DELIVERY_DATE")
+            ON public."SENDER_LIMIT"."PROVINCE" = "CTE_CAPACITY"."GEOKEY"
+            AND ((public."SENDER_LIMIT"."PRODUCT_TYPE" = 'AR' and "CTE_CAPACITY"."PRODUCT_AR" = True)
+            OR (public."SENDER_LIMIT"."PRODUCT_TYPE" = '890' and "CTE_CAPACITY"."PRODUCT_890" = True))
+            AND (TO_CHAR(public."SENDER_LIMIT"."DELIVERY_DATE", 'YYYY-MM') = "CTE_CAPACITY"."DELIVERY_DATE")
         GROUP BY 
-        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER","CTE_CAPACITY"."GEOKEY","CTE_CAPACITY"."PRODUCT_AR",
-        "CTE_CAPACITY"."PRODUCT_890","CTE_CAPACITY"."DELIVERY_DATE"
-        )
-        SELECT 
-        ROW_NUMBER() OVER () AS id,
-        *
-        FROM "CTE_CAPACITY_TEMP" 
-        WHERE "MONTHLY_ESTIMATE" IS NOT NULL
-        ORDER BY "GEOKEY","UNIFIED_DELIVERY_DRIVER"
+        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER",public."CAP_PROV_REG"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
+        "CTE_CAPACITY"."DELIVERY_DATE"
+    )
+    SELECT 
+    ROW_NUMBER() OVER () AS id,
+    *
+    FROM "CTE_CAPACITY_TEMP" 
+    WHERE "SUM_MONTHLY_ESTIMATE" > 0 
     """
 
     class Meta:
