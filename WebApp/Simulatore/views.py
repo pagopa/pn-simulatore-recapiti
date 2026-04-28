@@ -996,7 +996,7 @@ def vista_ente_fornitore(request):
     context = {"table_flag":"0",
                "lista_mesi": lista_mesi,
                }
-
+    
     if request.method == "POST":
 
         vista = request.POST.get("select_vista")
