@@ -108,10 +108,12 @@ def recupero_lista_csv_sorgenti(s3_client,source_bucket,prefix_s3,id_simulazione
             if obj["Key"][-4:] == '.csv':
                 tmp_list.append({'s3_file_key':obj["Key"]})
         lista_file_csv.append({"lista_file_csv_"+str(count):tmp_list})
+        '''
         # recupero eventuali residui
         if count == 1 and singola_settimana[-3:-1]!='08':
-            filekey_csv_residui = recupero_residui(prefix_s3, id_simulazione, singola_settimana)
+            filekey_csv_residui = recupero_residui(prefix_s3, id_simulazione)
             lista_file_csv[0]['lista_file_csv_1'].append(filekey_csv_residui)
+        '''
         count+=1
 
     # serve per fare in modo di avere sempre 6 settimane. Se ne abbiamo di meno inseriamo le altre vuote

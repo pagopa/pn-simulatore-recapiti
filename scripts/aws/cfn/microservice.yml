@@ -246,7 +246,7 @@ Parameters:
   
   LambdaCalcoloPrimaSettimanaMesiInAvanti:
     Type: Number 
-    Description: 'MesiInAvantivanti for the CalcoloPrimaSettimana Lambda function'
+    Description: 'MesiInAvanti for the CalcoloPrimaSettimana Lambda function'
     Default: 0
 
 Resources:

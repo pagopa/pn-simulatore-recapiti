@@ -430,4 +430,4 @@ def lambda_handler(event, context):
         return {'statusCode': 200, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':0}
 
     else:
-        raise Exception('Nessun id_simulazione valorizzato')
+        raise Exception('tipo_simulazione non conforme')
