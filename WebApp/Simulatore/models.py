@@ -481,7 +481,7 @@ class view_output_grafico_mappa_picchi(pg.View):
 # VISTA view_vista_ente
 class view_vista_ente(pg.View):
     id = models.AutoField(primary_key=True)
-    DELIVERY_DATE = models.CharField(null=True,max_length=7)
+    DELIVERY_DATE = models.DateField(null=True)
     PA_ID = models.CharField(max_length=80, null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     PRODUCT_TYPE = models.CharField(max_length=3, null=True)
@@ -502,6 +502,7 @@ class view_vista_ente(pg.View):
     *
     FROM "CTE_ENTI_REGIONALI" 
     WHERE "SUM_MONTHLY_ESTIMATE" > 0
+    ORDER BY "SUM_MONTHLY_ESTIMATE" DESC, "REGIONE", "PA_ID", "PRODUCT_TYPE"
     """
 
     class Meta:
@@ -549,6 +550,7 @@ class view_vista_fornitore(pg.View):
     *
     FROM "CTE_CAPACITY_TEMP" 
     WHERE "SUM_MONTHLY_ESTIMATE" > 0 
+    ORDER BY "UNIFIED_DELIVERY_DRIVER", "REGIONE", "PRODUCT_TYPE"
     """
 
     class Meta:

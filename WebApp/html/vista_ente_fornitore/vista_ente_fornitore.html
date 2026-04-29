@@ -79,9 +79,8 @@
             <div class="row">
                 <div class="col-10"></div>
                 <div class="col-2 text-center mt-3 mb-3">
-                    <button type="button" class="btn text-center" onclick="download_table_fornitore(event)">
-                        <i class="fa-solid fa-file-csv fa-xl" style="color: #000000;" ></i></button>
-                        <p>Download file completo</p>
+                    <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_table_fornitore()" style="cursor: pointer;"></i></p>
+                    <label style="font-size: 14px;">Download file completo</label>
                 </div>
             </div>
         </div>
@@ -134,7 +133,10 @@
         </div>
     {% endif %}
 {% endif %}
-{%endblock %}
+
+<!--spinner che parte quando l'utente clicca sul tasto "Download file completo"-->
+<div id="spinner_loading"></div>
+{% endblock %}
 
 {% block scripts %}
 
@@ -162,36 +164,10 @@
                             },
                             {
                                 extend: 'csv',
-                                text: 'CSV',
+                                text: 'Download CSV',
                                 fieldSeparator: ',',
                                 className: 'btn btn-sm btn-primary',
                                 filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                                exportOptions: {
-                                    columns: [0,1,2,3,4]
-                                }
-                            },
-                            {
-                                extend: 'excel',
-                                title: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                                className: 'btn btn-sm btn-primary',
-                                filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                                exportOptions: {
-                                    columns: [0,1,2,3,4]
-                                }
-                            },
-                            {
-                                extend: 'pdf',
-                                title: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                                className: 'btn btn-sm btn-primary',
-                                filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                                exportOptions: {
-                                    columns: [0,1,2,3,4]
-                                }
-                            },
-                            {
-                                extend: 'print',
-                                title: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                                className: 'btn btn-sm btn-primary',
                                 exportOptions: {
                                     columns: [0,1,2,3,4]
                                 }
@@ -206,7 +182,7 @@
             },
             // ordinamento decrescente sulla prima colonna
             order: [ ],
-            pageLength : 5,
+            pageLength : 10,
             lengthMenu: [[5, 10, 15, 20, -1], [5, 10, 15, 20, 'All']],
             responsive: false,
             columnDefs:[
@@ -276,36 +252,10 @@
                         },
                         {
                             extend: 'csv',
-                            text: 'CSV',
+                            text: 'Download CSV',
                             fieldSeparator: ',',
                             className: 'btn btn-sm btn-primary',
                             filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                            exportOptions: {
-                                columns: [0,1,2,3,4]
-                            }
-                        },
-                        {
-                            extend: 'excel',
-                            title: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                            className: 'btn btn-sm btn-primary',
-                            filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                            exportOptions: {
-                                columns: [0,1,2,3,4]
-                            }
-                        },
-                        {
-                            extend: 'pdf',
-                            title: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                            className: 'btn btn-sm btn-primary',
-                            filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
-                            exportOptions: {
-                                columns: [0,1,2,3,4]
-                            }
-                        },
-                        {
-                            extend: 'print',
-                            className: 'btn btn-sm btn-primary',
-                            filename:'Vista'+'_'+selectedVista+'_'+selectedData,
                             exportOptions: {
                                 columns: [0,1,2,3,4]
                             }
@@ -317,8 +267,8 @@
 
         // ordinamento decrescente sulla prima colonna
         order: [ ],
-        pageLength : 5,
-        lengthMenu: [[5, 10, 15, 20, -1], [5, 10, 15, 20, 'All']],
+        pageLength : -1,
+        lengthMenu: [[5, 10, 20, -1], [5, 10, 20, 'All']],
         responsive: false,
         columnDefs:[
             {
@@ -353,7 +303,7 @@
             {
                 // colonna SUM_MONTHLY_ESTIMATE
                 targets: 4,
-                columnControl: ['order', ['search','searchList']],
+                columnControl: ['order', ['search']],
                 "className": "dt-center",
                 "defaultContent": " "
             },
@@ -368,7 +318,9 @@
     // Script to controll the spinner showed in the ModalAggiunere. 
     function control_spinner(show) {
         const spinner = document.getElementById('spinner');
-        if (show) {
+        var selectedData = document.getElementById("select_data").value.toLowerCase();
+        var selectedVista = document.getElementById("select_vista").value.toLowerCase();
+        if (show && selectedData!='' && selectedVista!='') {
             spinner.classList.remove('d-none');
         } else {
             spinner.classList.add('d-none');
@@ -377,15 +329,12 @@
 </script>
 
 <script>
-    async function download_table_fornitore(event) {
+    async function download_table_fornitore() {
         /*
-        Funzione che permette il download delle capacità per provincia cliccando sul relativo button presente nella modal di dettaglio di una simulazione manuale
-        
-        Args:
-            id_simulazione (string): identificativo univoco della simulazione di riferimento
-            recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per provincia o solamente di quelle modificate
+        Funzione che permette il download della vista completa per fornitore
         */
         // start spinner
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
         try {
             // richiesta backend
             const response = await fetch(`/download_vista_fornitore/${selectedData}`);
@@ -406,10 +355,12 @@
             // pulizia ambiente
             window.URL.revokeObjectURL(url);
             document.body.removeChild(button_fittizio);
-
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
         } catch (error) {
             console.error('Errore:', error);
-
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
             alert('Errore durante il download, riprovare!');
         }
     }
