@@ -1004,19 +1004,18 @@ def vista_ente_fornitore(request):
 
         if vista == "PER ENTE":
             
-            q1_ente = table_sender_limit.objects.filter(
+            q1_ente = view_vista_ente.objects.filter(
             DELIVERY_DATE__year=int(anno),
             DELIVERY_DATE__month=int(mese))
             
-            table = q1_ente.filter(MONTHLY_ESTIMATE__gt=0).order_by("REGIONE","PA_ID")
+            table = q1_ente.order_by("REGIONE","PA_ID")
             tabella_dati = {"dati":table,
                             "recapitista":" "}
         
         elif vista == "PER FORNITORE":
-            q1_fornitore = view_vista_fornitore.objects.filter(
+            table = view_vista_fornitore.objects.filter(
             DELIVERY_DATE=data,
             )
-            table = q1_fornitore.filter(MONTHLY_ESTIMATE__gt=0)
             lista_recap = list(table.distinct('UNIFIED_DELIVERY_DRIVER').values_list("UNIFIED_DELIVERY_DRIVER",flat=True))
             tabella_dati = []
             for elements in lista_recap:
