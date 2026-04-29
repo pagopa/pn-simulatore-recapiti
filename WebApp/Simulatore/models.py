@@ -502,6 +502,7 @@ class view_vista_ente(pg.View):
     *
     FROM "CTE_ENTI_REGIONALI" 
     WHERE "SUM_MONTHLY_ESTIMATE" > 0
+    ORDER BY "SUM_MONTHLY_ESTIMATE" DESC, "REGIONE", "PA_ID", "PRODUCT_TYPE"
     """
 
     class Meta:
@@ -549,6 +550,7 @@ class view_vista_fornitore(pg.View):
     *
     FROM "CTE_CAPACITY_TEMP" 
     WHERE "SUM_MONTHLY_ESTIMATE" > 0 
+    ORDER BY "UNIFIED_DELIVERY_DRIVER", "REGIONE", "PRODUCT_TYPE"
     """
 
     class Meta:

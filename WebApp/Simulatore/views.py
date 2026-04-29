@@ -1004,11 +1004,10 @@ def vista_ente_fornitore(request):
 
         if vista == "PER ENTE":
             
-            q1_ente = view_vista_ente.objects.filter(
+            table = view_vista_ente.objects.filter(
             DELIVERY_DATE__year=int(anno),
             DELIVERY_DATE__month=int(mese))
             
-            table = q1_ente.order_by("REGIONE","PA_ID")
             tabella_dati = {"dati":table,
                             "recapitista":" "}
         
@@ -1022,7 +1021,6 @@ def vista_ente_fornitore(request):
                 tabella_dati.append({
                     "dati":table.filter(UNIFIED_DELIVERY_DRIVER=elements),
                     "recapitista":elements  })
-                print(elements)
             
 
         context = {
@@ -1041,7 +1039,7 @@ def download_vista_fornitore(request, selectedData):
     # creiamo la response con header csv
     response = HttpResponse(content_type='text/csv')
 
-    response['Content-Disposition'] = f'attachment; filename="Vista_Fornitore_{selectedData}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="Vista_completa_per fornitore_{selectedData}.csv"'
 
     # creiamo il writer csv
     writer = csv.writer(response, delimiter=';')
