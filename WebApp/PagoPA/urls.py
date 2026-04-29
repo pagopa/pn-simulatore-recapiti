@@ -37,7 +37,10 @@ urlpatterns = [
 
     #VISTA_ENTE_FORNITORE
     path('ente_fornitore', vista_ente_fornitore, name='ente_fornitore'),
+    path('download_vista_fornitore/<selectedData>', download_vista_fornitore, name='download_vista_fornitore'),
+
 ]
+
 
 
 # riservato alle pagine d'errore

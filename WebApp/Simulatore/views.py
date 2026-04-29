@@ -992,7 +992,6 @@ def vista_ente_fornitore(request):
 
     """
     lista_mesi = recupero_lista_mesi_simulazione_univoci()
-
     context = {"table_flag":"0",
                "lista_mesi": lista_mesi,
                }
@@ -1005,26 +1004,64 @@ def vista_ente_fornitore(request):
 
         if vista == "PER ENTE":
             
-            table = table_sender_limit.objects.filter(
+            q1_ente = table_sender_limit.objects.filter(
             DELIVERY_DATE__year=int(anno),
-            DELIVERY_DATE__month=int(mese),
+            DELIVERY_DATE__month=int(mese))
             
-            )
+            table = q1_ente.filter(MONTHLY_ESTIMATE__gt=0).order_by("REGIONE","PA_ID")
+            tabella_dati = {"dati":table,
+                            "recapitista":" "}
         
         elif vista == "PER FORNITORE":
-
-            table = view_vista_fornitore.objects.filter(
+            q1_fornitore = view_vista_fornitore.objects.filter(
             DELIVERY_DATE=data,
             )
+            table = q1_fornitore.filter(MONTHLY_ESTIMATE__gt=0)
+            lista_recap = list(table.distinct('UNIFIED_DELIVERY_DRIVER').values_list("UNIFIED_DELIVERY_DRIVER",flat=True))
+            tabella_dati = []
+            for elements in lista_recap:
+                tabella_dati.append({
+                    "dati":table.filter(UNIFIED_DELIVERY_DRIVER=elements),
+                    "recapitista":elements  })
+                print(elements)
+            
 
-        context = {"lista_mesi": lista_mesi,
-                "table":table,
-                "table_flag":"1",
-                "mesi_selection":data,
-                "vista_selection":vista
-                }
+        context = {
+            "lista_mesi": lista_mesi,
+            "table_flag":"1",
+            "mesi_selection":data,
+            "vista_selection":vista,
+            "tabella_dati":tabella_dati
+            }
 
     return render(request, "vista_ente_fornitore/vista_ente_fornitore.html",context)
+
+@gzip_page # utile per comprimere la risposta
+def download_vista_fornitore(request, selectedData):
+    
+    # creiamo la response con header csv
+    response = HttpResponse(content_type='text/csv')
+
+    response['Content-Disposition'] = f'attachment; filename="Vista_Fornitore_{selectedData}.csv"'
+
+    # creiamo il writer csv
+    writer = csv.writer(response, delimiter=';')
+    # header del csv
+    writer.writerow(['DELIVERY_DATE','UNIFIED_DELIVERY_DRIVER','REGIONE','PRODUCT_TYPE','SUM_MONTHLY_ESTIMATE'])
+    # recuperiamo i record dal db
+    tabella_fornitore =view_vista_fornitore.objects.filter(
+            DELIVERY_DATE=selectedData,
+            ).values("DELIVERY_DATE","UNIFIED_DELIVERY_DRIVER","REGIONE","PRODUCT_TYPE","SUM_MONTHLY_ESTIMATE")
+    
+    for record in tabella_fornitore:
+        writer.writerow([
+            record['DELIVERY_DATE'],
+            record['UNIFIED_DELIVERY_DRIVER'],
+            record['REGIONE'],
+            record['PRODUCT_TYPE'],
+            record['SUM_MONTHLY_ESTIMATE'],
+        ])
+    return response
 
 
 
