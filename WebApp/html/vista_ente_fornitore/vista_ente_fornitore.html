@@ -50,11 +50,11 @@
             <table class="table table-hover table-striped table-bordered mt-3" id="tabella_ente" nome="tabella_ente" style="padding-top:20px;  text-align:center;">
                 <thead>
                     <tr>
-                        <th >DELIVERY_DATE</th>
-                        <th >PA_ID</th>
+                        <th >MESE COMESSA</th>
+                        <th >ENTE ID</th>
                         <th >REGIONE</th>
-                        <th >PRODUCT_TYPE</th>
-                        <th >SUM_MONTHLY_ESTIMATE</th>
+                        <th >PRODOTTO</th>
+                        <th >VOLUME</th>
                     </tr>
                 </thead>
                 <tbody >
@@ -99,11 +99,11 @@
                                 <table class="table table-striped tabella-fornitore" id="" style="padding-top:20px;  text-align:center;">
                                     <thead>
                                         <tr>
-                                            <th >DELIVERY_DATE</th>
-                                            <th >UNIFIED_DELIVERY_DRIVER</th>
+                                            <th >MESE COMESSA</th>
+                                            <th >RECAPITISTA</th>
                                             <th >REGIONE</th>
-                                            <th >PRODUCT_TYPE</th>
-                                            <th >SUM_MONTHLY_ESTIMATE</th>
+                                            <th >PRODOTTO</th>
+                                            <th >VOLUME</th>
                                         </tr>
                                     </thead>
                                     <tbody >
@@ -220,7 +220,8 @@
                     targets: 4,
                     columnControl: ['order', ['search']],
                     "className": "dt-center",
-                    "defaultContent": " "
+                    "defaultContent": " ",
+                    render: DataTable.render.number( '.')
                 },
             ],
             bAutoWidth: false,
@@ -240,6 +241,7 @@
             indicators: false,
             handler: false
         },
+
         layout:{
             bottom2End: {
                 buttons: [                    {
@@ -305,7 +307,8 @@
                 targets: 4,
                 columnControl: ['order', ['search']],
                 "className": "dt-center",
-                "defaultContent": " "
+                "defaultContent": " ",
+                render: DataTable.render.number( '.')
             },
         ],
         bAutoWidth: false,

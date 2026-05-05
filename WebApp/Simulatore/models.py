@@ -13,8 +13,8 @@ class table_simulazione(models.Model):
     DESCRIZIONE = models.TextField(null=True)
     STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata, Bozza]
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
-    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True) # formato YYYY-MM-DD HH:mm:ss
-    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato YYYY-MM
+    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True) # formato yyyy-MM-dd HH:mm:ss
+    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato yyyy-MM
     TIPO_CAPACITA = models.CharField(max_length=25, null=True)  # [BAU, Picco, Combinata, Produzione] -> Per le automatizzate settiamo "Produzione"
     TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
     class Meta:
@@ -488,15 +488,20 @@ class view_vista_ente(pg.View):
     SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
 
     sql = """
-    WITH "CTE_ENTI_REGIONALI" AS
-    (
-        SELECT
-            "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE"
-        FROM public."SENDER_LIMIT"
-        LEFT JOIN public."CAP_PROV_REG"
-            ON public."CAP_PROV_REG"."COD_SIGLA_PROVINCIA" = public."SENDER_LIMIT"."PROVINCE"
-        GROUP BY "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE"
-    )
+    WITH "CTE_REGIONI_PROVINCE" AS
+        (
+            SELECT DISTINCT "REGIONE","COD_SIGLA_PROVINCIA"
+            FROM  public."CAP_PROV_REG"
+        ),
+        "CTE_ENTI_REGIONALI" AS
+        (
+            SELECT 
+                "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE"
+            FROM public."SENDER_LIMIT"
+            LEFT JOIN "CTE_REGIONI_PROVINCE"
+                ON "CTE_REGIONI_PROVINCE"."COD_SIGLA_PROVINCIA" = public."SENDER_LIMIT"."PROVINCE"
+            GROUP BY "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE"
+        )
     SELECT 
     ROW_NUMBER() OVER () AS id,
     *
@@ -528,21 +533,26 @@ class view_vista_fornitore(pg.View):
             FROM public."DECLARED_CAPACITY"
             GROUP BY "UNIFIED_DELIVERY_DRIVER","GEOKEY","PRODUCT_AR","PRODUCT_890","DELIVERY_DATE"
     ),
+    "CTE_REGIONI_PROVINCE" AS
+        (
+            SELECT DISTINCT "REGIONE","COD_SIGLA_PROVINCIA"
+            FROM  public."CAP_PROV_REG"
+        ),
     "CTE_CAPACITY_TEMP" AS
     (
         SELECT 
-        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER", public."CAP_PROV_REG"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
+        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER", "CTE_REGIONI_PROVINCE"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
         "CTE_CAPACITY"."DELIVERY_DATE", SUM(public."SENDER_LIMIT"."MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE" 
         FROM "CTE_CAPACITY" 
-        LEFT JOIN public."CAP_PROV_REG"
-            ON public."CAP_PROV_REG"."COD_SIGLA_PROVINCIA" = "CTE_CAPACITY"."GEOKEY"
+        LEFT JOIN "CTE_REGIONI_PROVINCE"
+            "CTE_REGIONI_PROVINCE"."COD_SIGLA_PROVINCIA" = "CTE_CAPACITY"."GEOKEY"
         LEFT JOIN public."SENDER_LIMIT"
             ON public."SENDER_LIMIT"."PROVINCE" = "CTE_CAPACITY"."GEOKEY"
             AND ((public."SENDER_LIMIT"."PRODUCT_TYPE" = 'AR' and "CTE_CAPACITY"."PRODUCT_AR" = True)
             OR (public."SENDER_LIMIT"."PRODUCT_TYPE" = '890' and "CTE_CAPACITY"."PRODUCT_890" = True))
             AND (TO_CHAR(public."SENDER_LIMIT"."DELIVERY_DATE", 'YYYY-MM') = "CTE_CAPACITY"."DELIVERY_DATE")
         GROUP BY 
-        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER",public."CAP_PROV_REG"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
+        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER","CTE_REGIONI_PROVINCE"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
         "CTE_CAPACITY"."DELIVERY_DATE"
     )
     SELECT 
@@ -555,4 +565,42 @@ class view_vista_fornitore(pg.View):
 
     class Meta:
         db_table = 'vista_fornitore'
+        managed = False
+
+
+# VISTA view_tabella_sintesi_ente
+class view_tabella_sintesi_ente(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    SUM_COUNT_REQUEST = models.IntegerField(null=True)
+    AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
+    SUM_COUNT_RESIDUI = models.IntegerField(null=True)
+
+    sql = """
+    WITH "CTE_ENTI_MESE" AS
+    (
+        SELECT
+            "SENDER_PA_ID", "SIMULAZIONE_ID", SUM("COUNT_REQUEST") AS "SUM_COUNT_REQUEST", AVG("COUNT_REQUEST") AS "AVG_COUNT_REQUEST" 
+        FROM public."OUTPUT_GRAFICO_ENTE"
+        GROUP BY "SENDER_PA_ID","SIMULAZIONE_ID"
+    ),
+    "CTE_RESIDUI_MESE" AS
+    (
+        SELECT
+            "SIMULAZIONE_ID","SENDER_PA_ID", SUM("COUNT_RESIDUI") AS "SUM_COUNT_RESIDUI"
+        FROM public."OUTPUT_RESIDUI_ENTE"
+        GROUP BY "SIMULAZIONE_ID","SENDER_PA_ID"
+    )
+    SELECT 
+        ROW_NUMBER() OVER () AS id,
+        "CTE_ENTI_MESE".*, "CTE_RESIDUI_MESE"."SUM_COUNT_RESIDUI"
+    FROM "CTE_ENTI_MESE"  
+    LEFT JOIN "CTE_RESIDUI_MESE"
+        ON "CTE_ENTI_MESE"."SENDER_PA_ID" = "CTE_RESIDUI_MESE"."SENDER_PA_ID"
+        AND "CTE_ENTI_MESE"."SIMULAZIONE_ID" = "CTE_RESIDUI_MESE"."SIMULAZIONE_ID"
+    """
+
+    class Meta:
+        db_table = 'tabella_sintesi_ente'
         managed = False

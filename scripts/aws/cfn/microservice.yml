@@ -978,6 +978,16 @@ Resources:
                 Resource:
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}'
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}/*'
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
   # Lambda MergeDeclaredCapacityDB
   MergeDeclaredCapacityDBLambda:
