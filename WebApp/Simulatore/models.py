@@ -218,6 +218,23 @@ class table_output_residui_ente(models.Model):
             models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id_2'),
         ]
 
+class table_output_residui_reg_recap(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    SETTIMANA_DELIVERY = NaiveDateTimeField(null=True)
+    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
+    COUNT_RESIDUI = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_RESIDUI_REG_RECAP'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_6'),
+            models.Index(fields=['PROVINCE'], name='indice_province_3'),
+        ]
+
+
 class table_capacita_simulate_cap(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
@@ -478,6 +495,70 @@ class view_output_grafico_mappa_picchi(pg.View):
         managed = False
 
 
+# VISTA view_tabella_sintesi_ente
+class view_tabella_sintesi_ente(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    SUM_COUNT_REQUEST = models.IntegerField(null=True)
+    AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
+    SUM_COUNT_RESIDUI = models.IntegerField(null=True)
+
+    sql = """
+    WITH "CTE_ENTI_MESE" AS
+    (
+        SELECT
+            "SENDER_PA_ID", "SIMULAZIONE_ID", SUM("COUNT_REQUEST") AS "SUM_COUNT_REQUEST", AVG("COUNT_REQUEST") AS "AVG_COUNT_REQUEST" 
+        FROM public."OUTPUT_GRAFICO_ENTE"
+        GROUP BY "SENDER_PA_ID","SIMULAZIONE_ID"
+    )
+    SELECT 
+        ROW_NUMBER() OVER () AS id,
+        "CTE_ENTI_MESE".*, public."OUTPUT_RESIDUI_ENTE"."COUNT_RESIDUI" AS "SUM_COUNT_RESIDUI"
+    FROM "CTE_ENTI_MESE"  
+    LEFT JOIN public."OUTPUT_RESIDUI_ENTE"
+        ON "CTE_ENTI_MESE"."SENDER_PA_ID" = public."OUTPUT_RESIDUI_ENTE"."SENDER_PA_ID"
+        AND "CTE_ENTI_MESE"."SIMULAZIONE_ID" = public."OUTPUT_RESIDUI_ENTE"."SIMULAZIONE_ID"
+    """
+
+    class Meta:
+        db_table = 'tabella_sintesi_ente'
+        managed = False
+
+
+# VISTA view_tabella_sintesi_reg_recap
+class view_tabella_sintesi_reg_recap(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    SUM_COUNT_REQUEST = models.IntegerField(null=True)
+    AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
+    SUM_COUNT_RESIDUI = models.IntegerField(null=True)
+
+    sql = """
+    WITH "CTE_RECAPITISTI_MESE" AS
+    (
+        SELECT
+            "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA", SUM("COUNT_REQUEST") AS "SUM_COUNT_REQUEST", AVG("COUNT_REQUEST") AS "AVG_COUNT_REQUEST" 
+        FROM public."OUTPUT_GRAFICO_REG_RECAP"
+        GROUP BY "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA" 
+    )
+    SELECT 
+        ROW_NUMBER() OVER () AS id,
+        "CTE_RECAPITISTI_MESE".*, public."OUTPUT_RESIDUI_REG_RECAP"."COUNT_RESIDUI" AS "SUM_COUNT_RESIDUI"
+    FROM "CTE_RECAPITISTI_MESE"  
+    LEFT JOIN public."OUTPUT_RESIDUI_REG_RECAP"
+        ON "CTE_RECAPITISTI_MESE"."PROVINCE" = public."OUTPUT_RESIDUI_REG_RECAP"."PROVINCE"
+        AND "CTE_RECAPITISTI_MESE"."SIMULAZIONE_ID" = public."OUTPUT_RESIDUI_REG_RECAP"."SIMULAZIONE_ID"
+        AND "CTE_RECAPITISTI_MESE"."REGIONE" = public."OUTPUT_RESIDUI_REG_RECAP"."REGIONE"
+        AND "CTE_RECAPITISTI_MESE"."UNIFIED_DELIVERY_DRIVER" = public."OUTPUT_RESIDUI_REG_RECAP"."UNIFIED_DELIVERY_DRIVER"
+    """
+
+    class Meta:
+        db_table = 'tabella_sintesi_reg_recap'
+        managed = False
+
+
 # VISTA view_vista_ente
 class view_vista_ente(pg.View):
     id = models.AutoField(primary_key=True)
@@ -565,42 +646,4 @@ class view_vista_fornitore(pg.View):
 
     class Meta:
         db_table = 'vista_fornitore'
-        managed = False
-
-
-# VISTA view_tabella_sintesi_ente
-class view_tabella_sintesi_ente(pg.View):
-    id = models.AutoField(primary_key=True)
-    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
-    SENDER_PA_ID = models.CharField(max_length=80, null=True)
-    SUM_COUNT_REQUEST = models.IntegerField(null=True)
-    AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
-    SUM_COUNT_RESIDUI = models.IntegerField(null=True)
-
-    sql = """
-    WITH "CTE_ENTI_MESE" AS
-    (
-        SELECT
-            "SENDER_PA_ID", "SIMULAZIONE_ID", SUM("COUNT_REQUEST") AS "SUM_COUNT_REQUEST", AVG("COUNT_REQUEST") AS "AVG_COUNT_REQUEST" 
-        FROM public."OUTPUT_GRAFICO_ENTE"
-        GROUP BY "SENDER_PA_ID","SIMULAZIONE_ID"
-    ),
-    "CTE_RESIDUI_MESE" AS
-    (
-        SELECT
-            "SIMULAZIONE_ID","SENDER_PA_ID", SUM("COUNT_RESIDUI") AS "SUM_COUNT_RESIDUI"
-        FROM public."OUTPUT_RESIDUI_ENTE"
-        GROUP BY "SIMULAZIONE_ID","SENDER_PA_ID"
-    )
-    SELECT 
-        ROW_NUMBER() OVER () AS id,
-        "CTE_ENTI_MESE".*, "CTE_RESIDUI_MESE"."SUM_COUNT_RESIDUI"
-    FROM "CTE_ENTI_MESE"  
-    LEFT JOIN "CTE_RESIDUI_MESE"
-        ON "CTE_ENTI_MESE"."SENDER_PA_ID" = "CTE_RESIDUI_MESE"."SENDER_PA_ID"
-        AND "CTE_ENTI_MESE"."SIMULAZIONE_ID" = "CTE_RESIDUI_MESE"."SIMULAZIONE_ID"
-    """
-
-    class Meta:
-        db_table = 'tabella_sintesi_ente'
         managed = False

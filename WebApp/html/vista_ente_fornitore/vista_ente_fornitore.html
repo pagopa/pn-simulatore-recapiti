@@ -221,7 +221,7 @@
                     columnControl: ['order', ['search']],
                     "className": "dt-center",
                     "defaultContent": " ",
-                    render: DataTable.render.number( '.')
+                    render: $.fn.dataTable.render.number('.', ',', 0)
                 },
             ],
             bAutoWidth: false,
@@ -308,7 +308,12 @@
                 columnControl: ['order', ['search']],
                 "className": "dt-center",
                 "defaultContent": " ",
-                render: DataTable.render.number( '.')
+                render: function (data) {
+                    if (typeof data === 'string') {
+                        data = data.replace('.', ''); 
+                    }
+                    return $.fn.dataTable.render.number('.', ',', 0).display(data);
+                }
             },
         ],
         bAutoWidth: false,

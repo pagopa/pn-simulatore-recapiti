@@ -315,6 +315,31 @@ if count_residui_ultima_settimana > 0:
         .option("driver", "org.postgresql.Driver") \
         .mode("append") \
         .save()
+    
+    df_output_residui_reg_recap = df_paperdel_res_tot_filtred.groupBy(["province","Regione","unifiedDeliveryDriver"])\
+        .agg(F.countDistinct('requestId'))\
+        .withColumnRenamed("count(DISTINCT requestId)", "COUNT_RESIDUI")\
+        .withColumn('PROVINCIA_RECAPITISTA', 
+                    F.concat(F.col('province'),F.lit(' - '), F.col('unifiedDeliveryDriver')))\
+        .withColumnRenamed("province", "PROVINCE")\
+        .withColumnRenamed("Regione", "REGIONE")\
+        .withColumnRenamed("unifiedDeliveryDriver", "UNIFIED_DELIVERY_DRIVER")\
+        .withColumn('SIMULAZIONE_ID',F.lit(id_simulazione))\
+        .select("SIMULAZIONE_ID","PROVINCE","REGIONE","UNIFIED_DELIVERY_DRIVER","PROVINCIA_RECAPITISTA","COUNT_RESIDUI")
+    
+    print('Export in DB')
+    db_table='public."OUTPUT_RESIDUI_PROV_RECAP"'
+
+    df_output_residui_reg_recap.write \
+        .format("jdbc") \
+        .option("url", jdbc_connection) \
+        .option("dbtable", db_table) \
+        .option("user", response_SecretString['username']) \
+        .option("password", response_SecretString['password']) \
+        .option("driver", "org.postgresql.Driver") \
+        .mode("append") \
+        .save()
+
 
 
 # id_timestamp=[["1"]]

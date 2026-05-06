@@ -238,10 +238,11 @@ def caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale):
     source_filename = 'mock_capacities_id'+id_simulazione_manuale
     
     lista_csv_caricati_su_s3 = []
-    max_rows = 10000
+    # il numero massimo disponibile è 10000, ma per essere sicuri mettiamo 9900
+    max_rows = 9900
     num_chunks=math.ceil(len(db_rows)/max_rows)
     for index in range(num_chunks):
-        chunk = db_rows[index * 10000:(index + 1) * 10000]
+        chunk = db_rows[index * max_rows:(index + 1) * max_rows]
         # GET PRESIGNED URL
         uploadUrl, destination_filename = lambda_presigned_url(lambda_delayer,source_filename+f"_part_{index}.csv")
         buffer = io.StringIO()
