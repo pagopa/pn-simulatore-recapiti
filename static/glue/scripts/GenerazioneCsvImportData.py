@@ -119,8 +119,6 @@ giorni_mese=sum(len([i for i in settimana if i!=0]) for settimana in settimane)
 
 print('Estrazione dei lunedì')
 # Creazione della lista dei lunedì delle settimane che includono giorni del mese corrente
-from datetime import date, timedelta
-
 calendario=calendar.Calendar()
 lista_lunedi=[day for day in calendario.itermonthdates(anno,mese) if day.weekday()==0]
 
