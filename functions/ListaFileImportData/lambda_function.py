@@ -226,7 +226,7 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
     objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3, Delimiter="/")
     lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
     # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere le capacità dei CAP o i residui            
-    lista_settimane = [x for x in lista_settimane if 'cap_capacities' not in x or 'residui_id_' in x]
+    lista_settimane = [x for x in lista_settimane if 'cap_capacities' not in x or 'residui_id_' not in x]
     lista_file_csv = []
     count=1
     for singola_settimana in lista_settimane:
