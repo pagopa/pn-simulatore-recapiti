@@ -119,7 +119,6 @@ def recupero_residui(import_week,deliveryDate,prefix_s3,id_simulazione):
     response_dict = json.loads(string_response)
     if response_dict['statusCode'] != 200:
         raise Exception(f"Errore durante la GET_RESIDUAL_PAPERS: {response_dict}")
-    print("Ci sono residui!")
     # dalla resposta alla GET_RESIDUAL_PAPERS recuperiamo link (per il download contenente il csv dei residui) e nome del file generato
     downloadUrl = json.loads(response_dict['body'])['downloadUrl']
     key = json.loads(response_dict['body'])['key'].split('/')[-1][:-4] # rimuoviamo il .csv dal nome del file
@@ -169,7 +168,7 @@ def recupero_residui(import_week,deliveryDate,prefix_s3,id_simulazione):
             lista_csv_da_importare.append({'s3_file_key':s3_file_key})
         return lista_csv_da_importare
     else:
-        print(f"Non ci sono residui per la {import_week}")
+        print(f"Non ci sono residui per la {import_week}, file {key}")
         return []
 
 
