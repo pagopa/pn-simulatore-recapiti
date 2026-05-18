@@ -104,13 +104,14 @@ def recupero_dati_db(id_simulazione, tabella_sorgente):
     return rows
 
 
-def recupero_ultima_data_estrazione(bucket_name, s3_client):
+def recupero_ultima_data_estrazione(bucket_name, s3_client, mese_simulazione):
     """
     Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
 
     Args:
         bucket_name (string): nome del bucket s3 di progetto
         s3_client (botocore.client.S3): connessione ad s3
+        mese_simulazione (string): mese di simulazione, formato "yyyy-MM"
 
     Returns:
         string: prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA
@@ -121,16 +122,16 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client):
         prefix = target_date.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
-            Prefix='input/'+prefix,
+            Prefix='input/'+prefix+mese_simulazione+'/',
             MaxKeys=1
         )
         # se la cartella esiste, ritorno la key fino alla data dell'ultimo recupero dati
         if 'Contents' in response:
-            return 'input/'+prefix
+            return 'input/'+prefix+mese_simulazione+'/'
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione su S3 creata negli ultimi 30 gg")
+    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
 
 def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_path,destination_filename):
     """
@@ -281,8 +282,8 @@ def caricamento_csv_cap(s3_client, source_bucket, id_simulazione_manuale, lambda
         list: lista dei file csv caricati su s3 da inserire successivamenteo tramite la INSERT_MOCK_CAPACITIES
     """
     # recuperiamo il path s3 per prendere i csv dei cap
-    prefix_s3_settimana_estrazione = recupero_ultima_data_estrazione(source_bucket, s3_client)
-    full_prefix = prefix_s3_settimana_estrazione + mese_simulazione + '/cap_capacities/id_' + id_simulazione_manuale + '/partitioned/'
+    prefix_s3_settimana_estrazione = recupero_ultima_data_estrazione(source_bucket, s3_client, mese_simulazione)
+    full_prefix = prefix_s3_settimana_estrazione + 'cap_capacities/id_' + id_simulazione_manuale + '/partitioned/'
     lista_file_csv_cap_caricati_su_s3 = []
     objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=full_prefix)
     for obj in objects.get("Contents", []):

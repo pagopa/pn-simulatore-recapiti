@@ -222,21 +222,21 @@ df_output_grafico_reg_recap.write \
     .save()
 
 
-print('Export in S3 - Risultati dopo la 5 settimana')
-# Export in S3
-df_paperdel_tot_5week =  df_paperdel_tot_filtred.filter(F.col('SETTIMANA_DELIVERY') > lista_date[4])
-prima_data = lista_date[0]
-anno_riferimento = prima_data[:4]
-mese_riferimento = prima_data[5:7]
+# print('Export in S3 - Risultati dopo la 5 settimana')
+# # Export in S3
+# df_paperdel_tot_5week =  df_paperdel_tot_filtred.filter(F.col('SETTIMANA_DELIVERY') > lista_date[4])
+# prima_data = lista_date[0]
+# anno_riferimento = prima_data[:4]
+# mese_riferimento = prima_data[5:7]
 
-path = "s3://"+s3_bucket+"/output/risultati/" + anno_riferimento + "/" \
-                                                                        + mese_riferimento + "/oltre_5_settimane/" \
-                                                                        + "id" + str(id_simulazione)
+# path = "s3://"+s3_bucket+"/output/risultati/" + anno_riferimento + "/" \
+#                                                                         + mese_riferimento + "/oltre_5_settimane/" \
+#                                                                         + "id" + str(id_simulazione)
     
 
-df_paperdel_tot_5week.repartition(1).write.mode('overwrite').option("header",True).csv(path)
+# df_paperdel_tot_5week.repartition(1).write.mode('overwrite').option("header",True).csv(path)
 
-        
+print('Richiamo GET_PAPER_DELIVERY - Residui')      
 if count_residui_ultima_settimana > 0:
     data = lista_date[-1]
     list_parameters_res=["pn-DelayerPaperDeliveryMock", data, "EVALUATE_SENDER_LIMIT"]
@@ -328,7 +328,7 @@ if count_residui_ultima_settimana > 0:
         .select("SIMULAZIONE_ID","PROVINCE","REGIONE","UNIFIED_DELIVERY_DRIVER","PROVINCIA_RECAPITISTA","COUNT_RESIDUI")
     
     print('Export in DB')
-    db_table='public."OUTPUT_RESIDUI_PROV_RECAP"'
+    db_table='public."OUTPUT_RESIDUI_REG_RECAP"'
 
     df_output_residui_reg_recap.write \
         .format("jdbc") \
