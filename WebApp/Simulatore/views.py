@@ -870,8 +870,10 @@ def download_capacita_per_provincia(request, id_simulazione, recupero_capacita_m
         lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
     # scriviamo sul file con chunk_size=1000
     for row in lista_capacita.iterator(chunk_size=1000):
-        # questo filtro evita che vengano inseriti nel csv dei prodotti con AR e 890 settati a False
-        if row['PRODUCT_890'] != False or row['PRODUCT_AR'] != False:
+        # questo filtro evita che vengano inseriti nel csv dei prodotti con AR e 890 settati a None
+        if row['PRODUCT_890'] == None and row['PRODUCT_AR'] == None:
+            continue
+        else:
             formtted_row = elaborazione_capacita_per_provincia(row)
             writer.writerow([
                 formtted_row['UNIFIED_DELIVERY_DRIVER'],
