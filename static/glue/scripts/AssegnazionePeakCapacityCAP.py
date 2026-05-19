@@ -70,19 +70,20 @@ df_capacita_simulate = spark.read \
 
 # Recupero path di lettura
 target_date = datetime.date.today()
-prefix = None
+output_prefix = None
 # inizializzazione connessione verso s3
 s3_client = boto3.client('s3')
     
 for _ in range(30):  # limite di sicurezza a 30 gg
-    prefix = target_date.strftime("%Y/%m/%d/")
+    input_prefix = target_date.strftime("%Y/%m/%d/")
     response = s3_client.list_objects_v2(
         Bucket=s3_bucket,
-        Prefix='input/'+prefix,
+        Prefix='input/'+input_prefix+mese_simulazione[:7]+'/',
         MaxKeys=1
     )
     # se la cartella esiste, esco dal ciclo
     if 'Contents' in response:
+        output_prefix = 'input/'+input_prefix+mese_simulazione[:7]+'/'
         break
     # altrimenti vado al giorno precedente
     target_date -= datetime.timedelta(days=1)
@@ -100,7 +101,7 @@ schema_cap_capacities = T.StructType() \
 # Individuazione lista dei file csv con le capacità dei CAP nel path apposito
 s3_path_bucket = 's3://' + s3_bucket + '/'
 
-path_name = s3_client.list_objects_v2(Bucket=s3_bucket,Prefix='input/' + prefix + mese_simulazione[:7] + '/cap_capacities/original/')['Contents']
+path_name = s3_client.list_objects_v2(Bucket=s3_bucket,Prefix=output_prefix + 'cap_capacities/original/')['Contents']
     
 # Creazione dataframe capacità CAP originali
 df_cap_capacities=spark.read.option("delimiter", ";").option("header",True).csv(s3_path_bucket + path_name[0]['Key'], schema=schema_cap_capacities)
@@ -236,8 +237,8 @@ df_cap_capacities_final_s3_modified = df_cap_capacities_final_stg2.filter(F.col(
 
 print('Export su S3')
 # File totale
-export_path_s3_partitioned = 's3://'+s3_bucket+'/input/' + prefix + mese_simulazione[:7] + '/cap_capacities/id_'+ str(id_simulazione_manuale) + '/partitioned/'
-export_path_s3_unified_all = 's3://'+s3_bucket+'/input/' + prefix + mese_simulazione[:7] + '/cap_capacities/id_'+ str(id_simulazione_manuale) + '/unified/all/'
+export_path_s3_partitioned = 's3://'+s3_bucket+'/' + output_prefix + 'cap_capacities/id_'+ str(id_simulazione_manuale) + '/partitioned/'
+export_path_s3_unified_all = 's3://'+s3_bucket+'/' + output_prefix + 'cap_capacities/id_'+ str(id_simulazione_manuale) + '/unified/all/'
 max_rows = 10000
 num_rows=df_cap_capacities_final_s3_all.count()
 print(num_rows)
@@ -246,7 +247,7 @@ df_cap_capacities_final_s3_all.repartition(part).write.mode('overwrite').option(
 df_cap_capacities_final_s3_all.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_unified_all)
 
 # File con capacità di picco
-export_path_s3_unified_modified = 's3://'+s3_bucket+'/input/' + prefix + mese_simulazione[:7] + '/cap_capacities/id_'+ str(id_simulazione_manuale) + '/unified/modified/'
+export_path_s3_unified_modified = 's3://'+s3_bucket+'/' + output_prefix + 'cap_capacities/id_'+ str(id_simulazione_manuale) + '/unified/modified/'
 df_cap_capacities_final_s3_modified.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_unified_modified)
 
 

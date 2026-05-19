@@ -32,7 +32,11 @@ def lambda_presigned_url(lambda_delayer, source_filename):
     # GET_PRESIGNED_URL - testDelayerLambda
     payload_lambda={
         "operationType": "GET_PRESIGNED_URL",
-        "parameters": [source_filename,"checksumSha256B64"]
+        "parameters": {
+            "fileName": source_filename,
+            "checksumSha256B64": "abcd1234efgh5678ijkl9012mnop3456",
+            "presignedUrlType": "UPLOAD"
+        }
     }
     '''
     nuovo parameters rilascio GA26Q2.A
@@ -91,7 +95,7 @@ def lambda_import_data(lambda_delayer,filename,date_per_import_data):
     Args:
     lambda_delayer (botocore.client.Lambda): connessione alla lambda
     filename (string): nome del file da importare da dare in input all'operazione di IMPORT_DATA
-    date_per_import_data (string): settimana, nel formato YYYY-MM-DD, da dare in input all'operazione di IMPORT_DATA
+    date_per_import_data (string): settimana, nel formato yyyy-MM-dd, da dare in input all'operazione di IMPORT_DATA
     """
     # IMPORT DATA - testDelayerLambda
     payload_lambda={
