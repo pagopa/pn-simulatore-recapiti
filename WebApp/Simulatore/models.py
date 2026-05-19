@@ -13,8 +13,8 @@ class table_simulazione(models.Model):
     DESCRIZIONE = models.TextField(null=True)
     STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata, Bozza]
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
-    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True) # formato YYYY-MM-DD HH:mm:ss
-    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato YYYY-MM
+    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True) # formato yyyy-MM-dd HH:mm:ss
+    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato yyyy-MM
     TIPO_CAPACITA = models.CharField(max_length=25, null=True)  # [BAU, Picco, Combinata, Produzione] -> Per le automatizzate settiamo "Produzione"
     TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
     class Meta:
@@ -205,6 +205,34 @@ class table_output_grafico_reg_recap(models.Model):
             models.Index(fields=['SETTIMANA_DELIVERY'], name='indice_settimana_delivery'),
             models.Index(fields=['COUNT_REQUEST'], name='indice_count_request')
         ]
+
+class table_output_residui_ente(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    COUNT_RESIDUI = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_RESIDUI_ENTE'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_5'),
+            models.Index(fields=['SENDER_PA_ID'], name='indice_sender_pa_id_2'),
+        ]
+
+class table_output_residui_reg_recap(models.Model):
+    ID = models.AutoField(primary_key=True, unique=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
+    COUNT_RESIDUI = models.IntegerField(null=True)
+    class Meta:
+        db_table = 'OUTPUT_RESIDUI_REG_RECAP'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_6'),
+            models.Index(fields=['PROVINCE'], name='indice_province_3'),
+        ]
+
 
 class table_capacita_simulate_cap(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
@@ -463,4 +491,187 @@ class view_output_grafico_mappa_picchi(pg.View):
 
     class Meta:
         db_table = 'output_grafico_mappa_picchi'
+        managed = False
+
+
+# VISTA view_tabella_sintesi_ente
+class view_tabella_sintesi_ente(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SENDER_PA_ID = models.CharField(max_length=80, null=True)
+    SUM_COUNT_REQUEST = models.IntegerField(null=True)
+    AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
+    SUM_COUNT_RESIDUI = models.IntegerField(null=True)
+
+    sql = """
+    WITH "CTE_ENTI_MESE" AS
+    (
+        SELECT
+            "SENDER_PA_ID", "SIMULAZIONE_ID", SUM("COUNT_REQUEST") AS "SUM_COUNT_REQUEST", AVG("COUNT_REQUEST") AS "AVG_COUNT_REQUEST" 
+        FROM public."OUTPUT_GRAFICO_ENTE"
+        GROUP BY "SENDER_PA_ID","SIMULAZIONE_ID"
+    )
+    SELECT 
+        ROW_NUMBER() OVER () AS id,
+        "CTE_ENTI_MESE".*, public."OUTPUT_RESIDUI_ENTE"."COUNT_RESIDUI" AS "SUM_COUNT_RESIDUI"
+    FROM "CTE_ENTI_MESE"  
+    LEFT JOIN public."OUTPUT_RESIDUI_ENTE"
+        ON "CTE_ENTI_MESE"."SENDER_PA_ID" = public."OUTPUT_RESIDUI_ENTE"."SENDER_PA_ID"
+        AND "CTE_ENTI_MESE"."SIMULAZIONE_ID" = public."OUTPUT_RESIDUI_ENTE"."SIMULAZIONE_ID"
+    """
+
+    class Meta:
+        db_table = 'tabella_sintesi_ente'
+        managed = False
+
+
+# VISTA view_tabella_sintesi_reg_recap
+class view_tabella_sintesi_reg_recap(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    PROVINCE = models.CharField(max_length=5, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    PROVINCIA_RECAPITISTA = models.CharField(max_length=100, null=True)
+    SUM_COUNT_REQUEST = models.IntegerField(null=True)
+    AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
+    SUM_COUNT_RESIDUI = models.IntegerField(null=True)
+    SUM_COUNT_REQUEST_5_SETT = models.IntegerField(null=True) 
+
+    sql = """
+    WITH "CTE_RECAPITISTI_MESE" AS
+    (
+        SELECT
+            "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA", SUM("COUNT_REQUEST") AS "SUM_COUNT_REQUEST", AVG("COUNT_REQUEST") AS "AVG_COUNT_REQUEST" 
+        FROM public."OUTPUT_GRAFICO_REG_RECAP"
+        GROUP BY "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA" 
+    ),
+    "CTE_RECAPITISTI_MESE_SETT_NUMERATE" AS
+    (
+        SELECT 
+            "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA", "SETTIMANA_DELIVERY", "COUNT_REQUEST",
+            -- Assegna 1 alla prima settimana di ogni simulazione, 2 alla seconda, ecc.
+            ROW_NUMBER() OVER(
+                PARTITION BY "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA"
+                ORDER BY "SETTIMANA_DELIVERY" ASC
+            ) AS "ORDINE_SETTIMANA"
+        FROM public."OUTPUT_GRAFICO_REG_RECAP"
+    ),
+    "CTE_RECAPITISTI_MESE_SUM_5_SETT" AS
+    (
+        SELECT 
+            "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA",
+            SUM("COUNT_REQUEST") AS "SUM_COUNT_REQUEST_5_SETT"
+        FROM "CTE_RECAPITISTI_MESE_SETT_NUMERATE"
+        WHERE "ORDINE_SETTIMANA" > 5
+        GROUP BY "SIMULAZIONE_ID","PROVINCE", "REGIONE", "UNIFIED_DELIVERY_DRIVER", "PROVINCIA_RECAPITISTA"
+    )
+    SELECT 
+        ROW_NUMBER() OVER () AS id,
+        "CTE_RECAPITISTI_MESE".*, public."OUTPUT_RESIDUI_REG_RECAP"."COUNT_RESIDUI" AS "SUM_COUNT_RESIDUI", "CTE_RECAPITISTI_MESE_SUM_5_SETT"."SUM_COUNT_REQUEST_5_SETT"
+    FROM "CTE_RECAPITISTI_MESE"
+    LEFT JOIN "CTE_RECAPITISTI_MESE_SUM_5_SETT"
+        ON "CTE_RECAPITISTI_MESE"."PROVINCE" = "CTE_RECAPITISTI_MESE_SUM_5_SETT"."PROVINCE"
+        AND "CTE_RECAPITISTI_MESE"."SIMULAZIONE_ID" = "CTE_RECAPITISTI_MESE_SUM_5_SETT"."SIMULAZIONE_ID"
+        AND "CTE_RECAPITISTI_MESE"."REGIONE" = "CTE_RECAPITISTI_MESE_SUM_5_SETT"."REGIONE"
+        AND "CTE_RECAPITISTI_MESE"."UNIFIED_DELIVERY_DRIVER" = "CTE_RECAPITISTI_MESE_SUM_5_SETT"."UNIFIED_DELIVERY_DRIVER"
+    LEFT JOIN public."OUTPUT_RESIDUI_REG_RECAP"
+        ON "CTE_RECAPITISTI_MESE"."PROVINCE" = public."OUTPUT_RESIDUI_REG_RECAP"."PROVINCE"
+        AND "CTE_RECAPITISTI_MESE"."SIMULAZIONE_ID" = public."OUTPUT_RESIDUI_REG_RECAP"."SIMULAZIONE_ID"
+        AND "CTE_RECAPITISTI_MESE"."REGIONE" = public."OUTPUT_RESIDUI_REG_RECAP"."REGIONE"
+        AND "CTE_RECAPITISTI_MESE"."UNIFIED_DELIVERY_DRIVER" = public."OUTPUT_RESIDUI_REG_RECAP"."UNIFIED_DELIVERY_DRIVER"
+    """
+
+    class Meta:
+        db_table = 'tabella_sintesi_reg_recap'
+        managed = False
+
+# VISTA view_vista_ente
+class view_vista_ente(pg.View):
+    id = models.AutoField(primary_key=True)
+    DELIVERY_DATE = models.DateField(null=True)
+    PA_ID = models.CharField(max_length=80, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+
+    sql = """
+    WITH "CTE_REGIONI_PROVINCE" AS
+        (
+            SELECT DISTINCT "REGIONE","COD_SIGLA_PROVINCIA"
+            FROM  public."CAP_PROV_REG"
+        ),
+        "CTE_ENTI_REGIONALI" AS
+        (
+            SELECT 
+                "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE"
+            FROM public."SENDER_LIMIT"
+            LEFT JOIN "CTE_REGIONI_PROVINCE"
+                ON "CTE_REGIONI_PROVINCE"."COD_SIGLA_PROVINCIA" = public."SENDER_LIMIT"."PROVINCE"
+            GROUP BY "PA_ID","REGIONE","PRODUCT_TYPE","DELIVERY_DATE"
+        )
+    SELECT 
+    ROW_NUMBER() OVER () AS id,
+    *
+    FROM "CTE_ENTI_REGIONALI" 
+    WHERE "SUM_MONTHLY_ESTIMATE" > 0
+    ORDER BY "SUM_MONTHLY_ESTIMATE" DESC, "REGIONE", "PA_ID", "PRODUCT_TYPE"
+    """
+
+    class Meta:
+        db_table = 'vista_ente'
+        managed = False
+
+
+
+# VISTA view_vista_fornitore
+class view_vista_fornitore(pg.View):
+    id = models.AutoField(primary_key=True)
+    DELIVERY_DATE = models.CharField(null=True,max_length=7)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PRODUCT_TYPE = models.CharField(max_length=3, null=True)
+    SUM_MONTHLY_ESTIMATE = models.IntegerField(null=True)
+
+    sql = """
+    WITH "CTE_CAPACITY" AS
+    (
+        SELECT
+        "UNIFIED_DELIVERY_DRIVER","GEOKEY","PRODUCT_AR","PRODUCT_890",
+                TO_CHAR("ACTIVATION_DATE_FROM", 'YYYY-MM') AS "DELIVERY_DATE"
+            FROM public."DECLARED_CAPACITY"
+            GROUP BY "UNIFIED_DELIVERY_DRIVER","GEOKEY","PRODUCT_AR","PRODUCT_890","DELIVERY_DATE"
+    ),
+    "CTE_REGIONI_PROVINCE" AS
+        (
+            SELECT DISTINCT "REGIONE","COD_SIGLA_PROVINCIA"
+            FROM  public."CAP_PROV_REG"
+        ),
+    "CTE_CAPACITY_TEMP" AS
+    (
+        SELECT 
+        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER", "CTE_REGIONI_PROVINCE"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
+        "CTE_CAPACITY"."DELIVERY_DATE", SUM(public."SENDER_LIMIT"."MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE" 
+        FROM "CTE_CAPACITY" 
+        LEFT JOIN "CTE_REGIONI_PROVINCE"
+            ON "CTE_REGIONI_PROVINCE"."COD_SIGLA_PROVINCIA" = "CTE_CAPACITY"."GEOKEY"
+        LEFT JOIN public."SENDER_LIMIT"
+            ON public."SENDER_LIMIT"."PROVINCE" = "CTE_CAPACITY"."GEOKEY"
+            AND ((public."SENDER_LIMIT"."PRODUCT_TYPE" = 'AR' and "CTE_CAPACITY"."PRODUCT_AR" = True)
+            OR (public."SENDER_LIMIT"."PRODUCT_TYPE" = '890' and "CTE_CAPACITY"."PRODUCT_890" = True))
+            AND (TO_CHAR(public."SENDER_LIMIT"."DELIVERY_DATE", 'YYYY-MM') = "CTE_CAPACITY"."DELIVERY_DATE")
+        GROUP BY 
+        "CTE_CAPACITY"."UNIFIED_DELIVERY_DRIVER","CTE_REGIONI_PROVINCE"."REGIONE", public."SENDER_LIMIT"."PRODUCT_TYPE",
+        "CTE_CAPACITY"."DELIVERY_DATE"
+    )
+    SELECT 
+    ROW_NUMBER() OVER () AS id,
+    *
+    FROM "CTE_CAPACITY_TEMP" 
+    WHERE "SUM_MONTHLY_ESTIMATE" > 0 
+    ORDER BY "UNIFIED_DELIVERY_DRIVER", "REGIONE", "PRODUCT_TYPE"
+    """
+
+    class Meta:
+        db_table = 'vista_fornitore'
         managed = False
