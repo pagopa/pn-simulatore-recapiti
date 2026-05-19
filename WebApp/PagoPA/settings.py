@@ -77,6 +77,11 @@ STATICFILES_FINDERS = [
     'django_plotly_dash.finders.DashAppDirectoryFinder',
 ]
 
+PLOTLY_DASH = {
+    # forziamo l'uso dei file statici locali anziché dei CDN di Plotly/Dash
+    "serve_locally": True
+}
+
 ROOT_URLCONF = 'PagoPA.urls'
 
 TEMPLATES = [

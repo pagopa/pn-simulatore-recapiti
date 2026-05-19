@@ -589,7 +589,7 @@ class view_tabella_sintesi_reg_recap(pg.View):
 # VISTA view_vista_ente
 class view_vista_ente(pg.View):
     id = models.AutoField(primary_key=True)
-    DELIVERY_DATE = models.CharField(null=True,max_length=7)
+    DELIVERY_DATE = models.DateField(null=True)
     PA_ID = models.CharField(max_length=80, null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     PRODUCT_TYPE = models.CharField(max_length=3, null=True)
@@ -627,7 +627,7 @@ class view_vista_ente(pg.View):
 # VISTA view_vista_fornitore
 class view_vista_fornitore(pg.View):
     id = models.AutoField(primary_key=True)
-    DELIVERY_DATE = models.DateField(null=True)
+    DELIVERY_DATE = models.CharField(null=True,max_length=7)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     PRODUCT_TYPE = models.CharField(max_length=3, null=True)
