@@ -90,7 +90,16 @@ app_risultati.layout = html.Div([
             }
         ),
         # Div grafico
-        html.Div([ dcc.Graph(id="line-plot") ]),
+        html.Div([ dcc.Graph(id="line-plot",
+                             config={
+                                    "toImageButtonOptions": {
+                                        "filename": "grafico_per_ente", # Do not add .png; it is appended automatically
+                                        "scale": 2                     # Optional: improves image resolution
+                                    },
+                                    'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
+                                    'displaylogo': False
+                             }
+        ) ]),
     
         html.Div([
             # Margine superiore
@@ -115,6 +124,9 @@ app_risultati.layout = html.Div([
                     "paginationPageSize": 10,
                     "paginationPageSizeSelector": [10, 20, 50, 100],
                     "rowSelection": "single", # Sostituisce selected_rows
+                    "theme": {
+                            "function": "themeBalham.withParams({ spacing: 4 })"
+                        }
                 },
                 csvExportParams={
                     "fileName": "dati_enti_export.csv",
@@ -185,8 +197,15 @@ app_risultati.layout = html.Div([
         
         html.Div([
 
-            dcc.Graph(id="line-reg-plot")
-
+            dcc.Graph(id="line-reg-plot",
+                             config={
+                                    "toImageButtonOptions": {
+                                        "filename": "grafico_per_regione_recapitista", # Do not add .png; it is appended automatically
+                                        "scale": 2                     # Optional: improves image resolution
+                                    },
+                                    'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
+                                    'displaylogo': False
+                             })
         ]),
 
         html.Div([
@@ -212,6 +231,9 @@ app_risultati.layout = html.Div([
                     "paginationPageSize": 10,
                     "paginationPageSizeSelector": [10, 20, 50, 100],
                     "rowSelection": "single", # Sostituisce selected_rows
+                    "theme": {
+                            "function": "themeBalham.withParams({ spacing: 4 })"
+                        }
                 },
                 csvExportParams={
                     "fileName": "dati_recapitisti_export.csv",
@@ -244,7 +266,15 @@ app_risultati.layout = html.Div([
             style={"text-align":"left"}),
         html.Div([
 
-            dcc.Graph(id="area-plot")
+            dcc.Graph(id="area-plot",
+                      config={
+                            "toImageButtonOptions": {
+                                "filename": "grafico_per_recapitista", # Do not add .png; it is appended automatically
+                                "scale": 2                     # Optional: improves image resolution
+                            },
+                            'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
+                            'displaylogo': False
+                        })
 
         ]),
     ], className="pretty_container"),
@@ -273,7 +303,15 @@ app_risultati.layout = html.Div([
         html.Div([
             html.Div([
 
-                dcc.Graph(id="map-plot")
+                dcc.Graph(id="map-plot",
+                            config={
+                                    "toImageButtonOptions": {
+                                        "filename": "mappa_dei_picchi", # Do not add .png; it is appended automatically
+                                        "scale": 2                     # Optional: improves image resolution
+                                    },
+                                    'modeBarButtonsToRemove': ['select2d', 'lasso2d'],
+                                    'displaylogo': False
+                             })
 
             ], style={"width": "60%", "display": "inline-block"}),
         
@@ -301,6 +339,9 @@ app_risultati.layout = html.Div([
                         "paginationPageSize": 20,
                         "paginationPageSizeSelector": False,
                         "rowSelection": "single", # Sostituisce selected_rows
+                        "theme": {
+                            "function": "themeBalham.withParams({ spacing: 4 })"
+                        }
                     },
                     csvExportParams={
                         "fileName": "dati_picco_export.csv",
@@ -1116,7 +1157,7 @@ app_confronto.layout = html.Div([
                     selected_rows=[],
                     page_action='native',
                     page_current= 0,
-                    page_size= 20,
+                    page_size= 10,
                 )
             ])
         ], className="col-sm")
