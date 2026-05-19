@@ -222,21 +222,21 @@ df_output_grafico_reg_recap.write \
     .save()
 
 
-print('Export in S3 - Risultati dopo la 5 settimana')
-# Export in S3
-df_paperdel_tot_5week =  df_paperdel_tot_filtred.filter(F.col('SETTIMANA_DELIVERY') > lista_date[4])
-prima_data = lista_date[0]
-anno_riferimento = prima_data[:4]
-mese_riferimento = prima_data[5:7]
+# print('Export in S3 - Risultati dopo la 5 settimana')
+# # Export in S3
+# df_paperdel_tot_5week =  df_paperdel_tot_filtred.filter(F.col('SETTIMANA_DELIVERY') > lista_date[4])
+# prima_data = lista_date[0]
+# anno_riferimento = prima_data[:4]
+# mese_riferimento = prima_data[5:7]
 
-path = "s3://"+s3_bucket+"/output/risultati/" + anno_riferimento + "/" \
-                                                                        + mese_riferimento + "/oltre_5_settimane/" \
-                                                                        + "id" + str(id_simulazione)
+# path = "s3://"+s3_bucket+"/output/risultati/" + anno_riferimento + "/" \
+#                                                                         + mese_riferimento + "/oltre_5_settimane/" \
+#                                                                         + "id" + str(id_simulazione)
     
 
-df_paperdel_tot_5week.repartition(1).write.mode('overwrite').option("header",True).csv(path)
+# df_paperdel_tot_5week.repartition(1).write.mode('overwrite').option("header",True).csv(path)
 
-        
+print('Richiamo GET_PAPER_DELIVERY - Residui')      
 if count_residui_ultima_settimana > 0:
     data = lista_date[-1]
     list_parameters_res=["pn-DelayerPaperDeliveryMock", data, "EVALUATE_SENDER_LIMIT"]
@@ -293,6 +293,53 @@ if count_residui_ultima_settimana > 0:
     print('Export in S3 - Residui')
     # Export in S3
     df_paperdel_res_tot.repartition(1).write.mode('overwrite').option("header",True).csv(path)
+
+    df_paperdel_res_tot_filtred=df_paperdel_res_tot.filter(F.col('workflowStep')=='EVALUATE_SENDER_LIMIT')
+
+    df_output_residui_ente = df_paperdel_res_tot_filtred.groupBy(["senderPaId"])\
+        .agg(F.countDistinct('requestId'))\
+        .withColumnRenamed("count(DISTINCT requestId)", "COUNT_RESIDUI")\
+        .withColumnRenamed("senderPaId", "SENDER_PA_ID")\
+        .withColumn('SIMULAZIONE_ID',F.lit(id_simulazione))\
+        .select("SIMULAZIONE_ID","SENDER_PA_ID","COUNT_RESIDUI")
+    
+    print('Export in DB')
+    db_table='public."OUTPUT_RESIDUI_ENTE"'
+
+    df_output_residui_ente.write \
+        .format("jdbc") \
+        .option("url", jdbc_connection) \
+        .option("dbtable", db_table) \
+        .option("user", response_SecretString['username']) \
+        .option("password", response_SecretString['password']) \
+        .option("driver", "org.postgresql.Driver") \
+        .mode("append") \
+        .save()
+    
+    df_output_residui_reg_recap = df_paperdel_res_tot_filtred.groupBy(["province","Regione","unifiedDeliveryDriver"])\
+        .agg(F.countDistinct('requestId'))\
+        .withColumnRenamed("count(DISTINCT requestId)", "COUNT_RESIDUI")\
+        .withColumn('PROVINCIA_RECAPITISTA', 
+                    F.concat(F.col('province'),F.lit(' - '), F.col('unifiedDeliveryDriver')))\
+        .withColumnRenamed("province", "PROVINCE")\
+        .withColumnRenamed("Regione", "REGIONE")\
+        .withColumnRenamed("unifiedDeliveryDriver", "UNIFIED_DELIVERY_DRIVER")\
+        .withColumn('SIMULAZIONE_ID',F.lit(id_simulazione))\
+        .select("SIMULAZIONE_ID","PROVINCE","REGIONE","UNIFIED_DELIVERY_DRIVER","PROVINCIA_RECAPITISTA","COUNT_RESIDUI")
+    
+    print('Export in DB')
+    db_table='public."OUTPUT_RESIDUI_REG_RECAP"'
+
+    df_output_residui_reg_recap.write \
+        .format("jdbc") \
+        .option("url", jdbc_connection) \
+        .option("dbtable", db_table) \
+        .option("user", response_SecretString['username']) \
+        .option("password", response_SecretString['password']) \
+        .option("driver", "org.postgresql.Driver") \
+        .mode("append") \
+        .save()
+
 
 
 # id_timestamp=[["1"]]

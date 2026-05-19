@@ -5,10 +5,10 @@ Trigger:
     Step function pn-simulatore-recapiti-sf-RecuperoDati-Weekly
 
 Input:
-    date_simulazione: lista di dizionari, dove il formato di ogni dizionario è: {"mese_simulazione": "YYYY-MM-DD"}
+    date_simulazione: lista di dizionari, dove il formato di ogni dizionario è: {"mese_simulazione": "yyyy-MM-dd"}
 
 Output:
-    dizionario dove 'date_simulazione' è una lista di dizionari ed il formato di ogni dizionario è: {"mese_simulazione": "YYYY-MM-DD"}
+    dizionario dove 'date_simulazione' è una lista di dizionari ed il formato di ogni dizionario è: {"mese_simulazione": "yyyy-MM-dd"}
 """
 import json
 from datetime import datetime, timedelta
@@ -109,7 +109,7 @@ def lambda_handler(event, context):
         if prima_settimana_da_processare.day == 1:
             prima_settimana_da_processare = prima_settimana_da_processare + timedelta(days=7)
 
-        # formattiamo la data come "YYYY-MM-DD"
+        # formattiamo la data come "yyyy-MM-dd"
         date_simulazione = [
             {
                 "mese_simulazione": str(prima_settimana_da_processare.date())

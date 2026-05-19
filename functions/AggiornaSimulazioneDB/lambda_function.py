@@ -70,7 +70,7 @@ def lambda_handler(event, context):
     elif event['tipo_simulazione'] == 'Manuale':
         id_simulazione = event['id_simulazione_manuale']
     else:
-        raise Exception('Nessun id_simulazione valorizzato')
+        raise Exception('tipo_simulazione non conforme')
     
     # in base all'output dei task precedenti capiamo se lo stato è 'Lavorata' o 'Non completata' -> la prima condizione ci fa capire che abbiamo effettuato tutti i RUN_ALGORITHM con successo, la seconda che le postalizzazioni sono state importate con successo tramite IMPORT_DATA 
     if 'output_lambda_RecuperoCapacitaDiProduzione' in event and len(event['output_lambda_ListaFileImportData']['Payload']['lista_file_csv'])!=0 and event['output_lambda_INSERTMOCKCAPACITIES']['Payload']['errori_presenti']==0:
