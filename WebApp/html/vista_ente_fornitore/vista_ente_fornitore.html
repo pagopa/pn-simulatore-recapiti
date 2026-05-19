@@ -1,0 +1,376 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+
+<form id="form_vista_ente_cred" method="POST" action="{% url 'ente_fornitore' %}">
+    {% csrf_token %}
+    <div class="container">
+        <div class="row">
+            <div class="col-5 mb-5">
+                <label for="select_vista" class="form-label"><b>Seleziona la vista:</b></label>
+                    <select required class="form-select mt-2" id="select_vista" name="select_vista" >
+                        <option selected disabled class="text-center" value="">--- Seleziona una vista ---</option>
+                        <option value="PER ENTE"{% if vista_selection == "PER ENTE" %} selected{% endif %}>PER ENTE</option>
+                        <option value="PER FORNITORE" {% if vista_selection == "PER FORNITORE" %} selected{% endif %}>PER FORNITORE</option>
+                    </select>
+            </div>
+            <div class="col-5 mb-5">
+                <label class="form-label"><b>Mese di riferimento:</b></label>
+                    <select required class="form-select mt-2" id="select_data" name="select_data" >
+                        <option selected disabled class="text-center" value="" >--- Seleziona un mese  ---</option>
+                        {% for singolo_mese in lista_mesi %}
+                            <option value="{{singolo_mese.0}}" {% if mesi_selection == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
+                        {% endfor %}
+                    </select>
+            </div>
+            <div class="col-2 mt-4">
+                <button type="submit" class="btn btn-primary mt-3 text-align-end" id="button_carica" onclick="control_spinner('show')">Carica dati</button>
+            </div>
+        </div>
+    </div>
+</form>
+<div class="container">
+    <div class="row">
+        <div class="card-footer text-body-secondary text-center" >
+            <div class="spinner-border text-primary d-none" id="spinner" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- DATATABLES: tabella_ente_fornitore  -->
+
+{% if table_flag == "1" %}
+    <div control_spinner()></div>
+    {% if vista_selection == "PER ENTE" %}
+        <div class="container">
+            <table class="table table-hover table-striped table-bordered mt-3" id="tabella_ente" nome="tabella_ente" style="padding-top:20px;  text-align:center;">
+                <thead>
+                    <tr>
+                        <th >MESE COMMESSA</th>
+                        <th >ENTE ID</th>
+                        <th >REGIONE</th>
+                        <th >PRODOTTO</th>
+                        <th >VOLUME</th>
+                    </tr>
+                </thead>
+                <tbody >
+                    {% if tabella_dati.dati %}
+                        {% for rows_sender in tabella_dati.dati %}
+                            <tr>
+                                <td >{{ rows_sender.DELIVERY_DATE|date:"Y-m"}}</td>
+                                <td >{{ rows_sender.PA_ID }}</td>
+                                <td >{{rows_sender.REGIONE}}</td>
+                                <td >{{rows_sender.PRODUCT_TYPE}}</td>
+                                <td >{{rows_sender.SUM_MONTHLY_ESTIMATE}}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="5">La tabella non contiene dati.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    {% elif vista_selection == "PER FORNITORE" %}
+        <div class="container">
+            <div class="row">
+                <div class="col-10"></div>
+                <div class="col-2 text-center mt-3 mb-3">
+                    <p class="mb-0"><i class="fa-solid fa-file-csv fa-2xl zoom-in" onclick="download_table_fornitore()" style="cursor: pointer;"></i></p>
+                    <label style="font-size: 14px;">Download file completo</label>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row">
+                <div class="accordion accordion_recapitista">
+                {% for recap in tabella_dati %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                        <button class="accordion-button" style="font-weight: bold" type="button" id="header-{{ forloop.counter }}"data-bs-toggle="collapse" data-bs-target="#collapse-{{ forloop.counter }}" aria-expanded="true" aria-controls="collapseOne">
+                            Recapitista: {{ recap.recapitista }}
+                        </button>
+                        </h2>
+                        <div id="collapse-{{ forloop.counter }}" class="accordion-collapse collapse" data-bs-parent="#accordionFornitore">
+                            <div class="accordion-body">
+                                <table class="table table-striped tabella-fornitore" id="" style="padding-top:20px;  text-align:center;">
+                                    <thead>
+                                        <tr>
+                                            <th >MESE COMMESSA</th>
+                                            <th >RECAPITISTA</th>
+                                            <th >REGIONE</th>
+                                            <th >PRODOTTO</th>
+                                            <th >VOLUME</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody >
+                                        {% if recap.dati %}
+                                            {% for righe_recap in recap.dati %}
+                                                <tr>
+                                                    <td >{{ righe_recap.DELIVERY_DATE}}</td>
+                                                    <td >{{ righe_recap.UNIFIED_DELIVERY_DRIVER }}</td>
+                                                    <td >{{righe_recap.REGIONE}}</td>
+                                                    <td >{{righe_recap.PRODUCT_TYPE}}</td>
+                                                    <td >{{righe_recap.SUM_MONTHLY_ESTIMATE}}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr><td colspan="5">La tabella non contiene dati.</td></tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <h5 class="text-center">Non ci sono dati disponibili.</h5>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+
+<!--spinner che parte quando l'utente clicca sul tasto "Download file completo"-->
+<div id="spinner_loading"></div>
+{% endblock %}
+
+{% block scripts %}
+
+
+<!--TABELLA VIEW ENTE-->
+<script>
+    
+        // TABELLA VIEW ENTE
+        var fullDate = new Date();
+        var currentDate = fullDate.getFullYear() + "_" + (fullDate.getMonth() + 1).toString().padStart(2, "0") + "_" + fullDate.getDate().toString().padStart(2, "0");
+        var selectedData = document.getElementById("select_data").value.toLowerCase();
+        var selectedVista = document.getElementById("select_vista").value.toLowerCase();
+
+            new DataTable("#tabella_ente", {
+            destroy: true,
+            layout:{
+                bottom2End: {
+                    buttons: [                    {
+                                extend: 'copy',
+                                title: 'Vista'+'_'+selectedVista+'_'+selectedData,
+                                className: 'btn btn-sm btn-primary',
+                                exportOptions: {
+                                    columns: [0,1,2,3,4]
+                                }
+                            },
+                            {
+                                extend: 'csv',
+                                text: 'Download CSV',
+                                fieldSeparator: ',',
+                                className: 'btn btn-sm btn-primary',
+                                filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
+                                exportOptions: {
+                                    columns: [0,1,2,3,4]
+                                }
+                            }
+                        ],
+                        
+                }
+            },
+            ordering: {
+                indicators: false,
+                handler: false
+            },
+            // ordinamento decrescente sulla prima colonna
+            order: [ ],
+            pageLength : 10,
+            lengthMenu: [[5, 10, 15, 20, -1], [5, 10, 15, 20, 'All']],
+            responsive: false,
+            columnDefs:[
+                {
+                    // colonna DELIVERY_DATE
+                    targets: 0,
+                    columnControl: ['order', ['search']],
+                    "className": "dt-center",
+                    "defaultContent": " "
+                },
+                    
+                {
+                    // colonna PA_ID
+                    targets: 1,
+                    columnControl: ['order', ['search']],
+                    "className": "dt-center",
+                    "defaultContent": " "
+                },
+                {
+                    // colonna REGIONE
+                    targets: 2,
+                    columnControl: ['order', ['search']],
+                    "className": "dt-center",
+                    "defaultContent": " ",
+                },
+                {
+                    // colonna PRODOTTO_TYPE
+                    targets: 3,
+                    columnControl: ['order', ['search','searchList']],
+                    "className": "dt-center",
+                    "defaultContent": " "
+                },
+                {
+                    // colonna SUM_POSTALIZZAZIONI
+                    targets: 4,
+                    columnControl: ['order', ['search']],
+                    "className": "dt-center",
+                    "defaultContent": " ",
+                    render: $.fn.dataTable.render.number('.', ',', 0)
+                },
+            ],
+            bAutoWidth: false,
+
+            });
+
+</script>
+
+<script>
+    
+
+    document.querySelectorAll(".tabella-fornitore").forEach(function(table) {
+        new DataTable("table.table-striped", {
+            destroy: true,
+        // rimuoviamo il vecchio ordinamento per inserire il nuovo con columnControl 
+            ordering: {
+            indicators: false,
+            handler: false
+        },
+
+        layout:{
+            bottom2End: {
+                buttons: [                    {
+                            extend: 'copy',
+                            title: 'Vista'+'_'+selectedVista+'_'+selectedData,
+                            className: 'btn btn-sm btn-primary',
+                            exportOptions: {
+                                columns: [0,1,2,3,4]
+                            }
+                        },
+                        {
+                            extend: 'csv',
+                            text: 'Download CSV',
+                            fieldSeparator: ',',
+                            className: 'btn btn-sm btn-primary',
+                            filename: 'Vista'+'_'+selectedVista+'_'+selectedData,
+                            exportOptions: {
+                                columns: [0,1,2,3,4]
+                            }
+                        }
+                    ],
+                    
+            }
+        },
+
+        // ordinamento decrescente sulla prima colonna
+        order: [ ],
+        pageLength : -1,
+        lengthMenu: [[5, 10, 20, -1], [5, 10, 20, 'All']],
+        responsive: false,
+        columnDefs:[
+            {
+                // colonna DELIVERY_DATE
+                targets: 0,
+                columnControl: ['order', ['search']],
+                "className": "dt-center",
+                "defaultContent": " "
+            },
+                
+            {
+                // colonna RECAPITISTA
+                targets: 1,
+                columnControl: ['order', ['search','searchList']],
+                "className": "dt-center",
+                "defaultContent": " "
+            },
+            {
+                // colonna REGIONE
+                targets: 2,
+                columnControl: ['order', ['search']],
+                "className": "dt-center",
+                "defaultContent": " "
+            },
+            {
+                // colonna PRODUCT_TYPE
+                targets: 3,
+                columnControl: ['order', ['search','searchList']],
+                "className": "dt-center",
+                "defaultContent": " "
+            },
+            {
+                // colonna SUM_MONTHLY_ESTIMATE
+                targets: 4,
+                columnControl: ['order', ['search']],
+                "className": "dt-center",
+                "defaultContent": " ",
+                render: function (data) {
+                    if (typeof data === 'string') {
+                        data = data.replace('.', ''); 
+                    }
+                    return $.fn.dataTable.render.number('.', ',', 0).display(data);
+                }
+            },
+        ],
+        bAutoWidth: false,
+
+        });
+    });
+</script>
+
+<script>
+    // Script to controll the spinner showed in the ModalAggiunere. 
+    function control_spinner(show) {
+        const spinner = document.getElementById('spinner');
+        var selectedData = document.getElementById("select_data").value.toLowerCase();
+        var selectedVista = document.getElementById("select_vista").value.toLowerCase();
+        if (show && selectedData!='' && selectedVista!='') {
+            spinner.classList.remove('d-none');
+        } else {
+            spinner.classList.add('d-none');
+        }
+    }
+</script>
+
+<script>
+    async function download_table_fornitore() {
+        /*
+        Funzione che permette il download della vista completa per fornitore
+        */
+        // start spinner
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        try {
+            // richiesta backend
+            const response = await fetch(`/download_vista_fornitore/${selectedData}`);
+            if (!response.ok) {
+                throw new Error('Errore nel download, riprovare!');
+            }
+            // convertiamo la risposta in blob
+            const blob = await response.blob();
+            // creiamo l'URL per il download
+            const url = window.URL.createObjectURL(blob);
+            const button_fittizio = document.createElement('a');
+            button_fittizio.href = url;
+            // recuperiamo il nome del file dall'header
+            button_fittizio.download = response.headers.get('Content-Disposition').match(/filename="(.+)"/)[1];
+            document.body.appendChild(button_fittizio);
+            // facciamo partire il download con un click simulato 
+            button_fittizio.click();
+            // pulizia ambiente
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(button_fittizio);
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+        } catch (error) {
+            console.error('Errore:', error);
+            // stop spinner
+            document.getElementById("spinner_loading").innerHTML = '';
+            alert('Errore durante il download, riprovare!');
+        }
+    }
+</script>
+{% endblock  %}

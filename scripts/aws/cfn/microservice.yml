@@ -246,7 +246,7 @@ Parameters:
   
   LambdaCalcoloPrimaSettimanaMesiInAvanti:
     Type: Number 
-    Description: 'MesiInAvantivanti for the CalcoloPrimaSettimana Lambda function'
+    Description: 'MesiInAvanti for the CalcoloPrimaSettimana Lambda function'
     Default: 0
 
 Resources:
@@ -973,11 +973,22 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
+                  - s3:PutObject*
                   - s3:GetObject
                   - s3:ListBucket
                 Resource:
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}'
                   - !Sub 'arn:aws:s3:::${SimulatoreDataBucketName}/*'
+        - PolicyName: LambdaInvokeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-${MicroServiceUniqueName}-Lambda-*"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PnDelayerLambdaName}"
 
   # Lambda MergeDeclaredCapacityDB
   MergeDeclaredCapacityDBLambda:
@@ -1343,14 +1354,14 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
-  RecuperoResiduiPaperDeliveryGlueJob:
+  RecuperoRisultatiPaperDeliveryGlueJob:
     Type: AWS::Glue::Job
     Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoResiduiPaperDelivery"
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoRisultatiPaperDelivery"
       Role: !GetAtt GlueJobSimulatoreRole.Arn
       Command:
         Name: glueetl
-        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoResiduiPaperDelivery.py"
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoRisultatiPaperDelivery.py"
         PythonVersion: "3"
       DefaultArguments:
         "--job-bookmark-option": "job-bookmark-disable"
@@ -1362,7 +1373,7 @@ Resources:
         "--enable-continuous-cloudwatch-log": "true"
         "--job-language": "python"
         "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
-        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorReadEndpointAddress}/${RdsSimulatorDbName}"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
         "--s3_bucket": !Ref SimulatoreDataBucketName
       MaxRetries: 0
@@ -1377,14 +1388,14 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
 
-  RecuperoRisultatiPaperDeliveryGlueJob:
+  AssegnazionePeakCapacityCAPGlueJob:
     Type: AWS::Glue::Job
     Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-RecuperoRisultatiPaperDelivery"
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-AssegnazionePeakCapacityCAP"
       Role: !GetAtt GlueJobSimulatoreRole.Arn
       Command:
         Name: glueetl
-        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/RecuperoRisultatiPaperDelivery.py"
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/AssegnazionePeakCapacityCAP.py"
         PythonVersion: "3"
       DefaultArguments:
         "--job-bookmark-option": "job-bookmark-disable"
@@ -1641,7 +1652,6 @@ Resources:
                   - glue:GetJobRuns
                   - glue:BatchStopJobRun
                 Resource:
-                  - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoResiduiPaperDeliveryGlueJob}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoDeclaredCapacityDeltaGlueJob}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoDeclaredCapacityCAPS3GlueJob}"
                   - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:job/${RecuperoSenderLimitDeltaGlueJob}"
@@ -1696,7 +1706,6 @@ Resources:
         Key: !Sub "${MicroserviceBucketBaseKey}/static/stepfunctions/definitions/RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanale.json"
       DefinitionSubstitutions:
         CalcoloPrimaSettimanaLambdaArn: !GetAtt CalcoloPrimaSettimanaLambda.Arn
-        RecuperoResiduiPaperDeliveryGlueJobName: !Ref RecuperoResiduiPaperDeliveryGlueJob
         RecuperoDeclaredCapacityDeltaGlueJobName: !Ref RecuperoDeclaredCapacityDeltaGlueJob
         RecuperoDeclaredCapacityCAPS3GlueJobName: !Ref RecuperoDeclaredCapacityCAPS3GlueJob
         MergeDeclaredCapacityDBLambdaArn: !GetAtt MergeDeclaredCapacityDBLambda.Arn
