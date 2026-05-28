@@ -24,6 +24,28 @@ import csv
 import itertools
 
 
+def calcolo_numero_settimana_attuale_nel_mese():
+    """
+    Funzione che calcola e restituisce il numero della settimana attuale rispetto al mese corrente.
+    Note:
+        - 0=prima settimana, 1=seconda settimana, ...
+        - se il primo del mese è lunedì, la prima settimana la segna come 0
+        - se il primo del mese non è lunedì, la seconda settimana inizia dal primo lunedì
+
+    Returns:
+        int: numero della settimana attuale rispetto al mese corrente
+    """
+    # recuperiamo la data odierna
+    data_input = date.today()
+    # calcoliamo il primo giorno del mese corrente
+    primo_del_mese = data_input.replace(day=1)
+    # calcoliamo giorno della settimana del primo del mese (RICORDA: con weekday(), 0=lunedì, 6=domenica)
+    offset = primo_del_mese.weekday()
+    # calcoliamo numero settimana nel mese
+    numero_settimana = (data_input.day + offset - 1) // 7
+    return numero_settimana
+
+
 def recupero_ultima_data_estrazione(bucket_name, mese_simulazione):
     """
     Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
@@ -53,6 +75,125 @@ def recupero_ultima_data_estrazione(bucket_name, mese_simulazione):
     # se non viene trovata alcuna cartella corrispondente
     raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
 
+def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
+    """
+    Funzione che recupera i residui attraverso la lambda 'GET_RESIDUAL_PAPERS', salva il/i csv dei residui su s3 (split se vi sono più di 10k righe) e ritorna la lista del/dei csv caricato/i su s3
+
+    Args:
+        deliveryDate (string): indica la settimana per il recupero dei residui, nel formato 'yyyy-MM-dd'
+        prefix_s3 (string): prefisso del bucket fino alla cartella dove andremo a depositare la cartella che conterrà il csv dei residui
+        id_simulazione (string): identificativo univoco della simulazione sul db
+    
+    Returns:
+        list: lista contenente un dizionario per ogni file csv dei residui che dovrà essere importato nella settimana target di simulazione
+    """
+    # inizializzazione urllib3
+    http = urllib3.PoolManager()
+    # chiamiamo la GET_RESIDUAL_PAPERS dando in input la deliveryDate
+    config = Config(read_timeout=900) # allungato a 15 minuti
+    lambda_delayer = boto3.client('lambda',config=config)
+    payload_lambda={
+        "operationType": "GET_RESIDUAL_PAPERS",
+        "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate]
+    }
+    # gestione risposta GET_RESIDUAL_PAPERS
+    response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
+    read_response = response_lambda['Payload'].read()
+    string_response = read_response.decode('utf-8')
+    response_dict = json.loads(string_response)
+    if response_dict['statusCode'] != 200:
+        raise Exception(f"Errore durante la GET_RESIDUAL_PAPERS: {response_dict}")
+    # dalla resposta alla GET_RESIDUAL_PAPERS recuperiamo link (per il download contenente il csv dei residui) e nome del file generato
+    downloadUrl = json.loads(response_dict['body'])['downloadUrl']
+    key = json.loads(response_dict['body'])['key'].split('/')[-1][:-4] # rimuoviamo il .csv dal nome del file
+    # download file dal presigned url
+    response = http.request('GET', downloadUrl, preload_content=False)
+    # check stato risposta
+    if response.status != 200:
+        raise Exception(f"Errore durante il download dei residui, statusCode: {response.status}")
+    # leggiamo il contenuto del file
+    file_content = response.data
+    # chiudiamo la connessione
+    response.release_conn()
+    # controlliamo che il file csv non sia vuoto
+    if len(file_content) != 0:
+        lista_csv_da_importare = []
+        # decodifica file csv
+        decoded_content = file_content.decode('utf-8')
+        # contiamo il numero totale delle righe del csv
+        n_rows = decoded_content.count('\n')
+        # estraiamo il contenuto del csv
+        file_content = csv.reader(io.StringIO(decoded_content))
+        # recuperiamo l'header
+        header = next(file_content)
+        # il numero massimo di righe per ogni file csv è 10000, ma per essere sicuri mettiamo impostiamo il numero massimo a 9900
+        max_rows = 9900
+        # dividiamo il csv per far sì che ogni chunk abbia max 9900 righe
+        num_chunks=math.ceil(n_rows/max_rows)
+        for index in range(num_chunks):
+            # ad ogni iterazione prendiamo un chunk da 9900 righe e carichiamo il csv su s3
+            chunk = list(itertools.islice(file_content, max_rows))
+            s3_file_key = f'{prefix_s3}residui_id_{id_simulazione}/{key}_part_{index}.csv'
+            # componiamo il file csv
+            buffer = io.StringIO()
+            writer = csv.writer(buffer, delimiter=';')
+            writer.writerow(header)
+            writer.writerows(chunk)
+            # codifica file csv
+            csv_file = buffer.getvalue().encode("utf-8")
+            # carichiamo il csv su S3
+            s3_client = boto3.client('s3') # inizializzazione connessione verso s3
+            s3_client.put_object(
+                Bucket=os.environ['source_bucket'],
+                Key=s3_file_key,
+                Body=csv_file,
+                ContentType='text/csv'
+            )
+            lista_csv_da_importare.append({'s3_file_key':s3_file_key})
+        return lista_csv_da_importare
+    else:
+        print(f"Non ci sono residui!")
+        return []
+
+
+def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string):
+    """
+    Funzione che gestisce la logica dei residui
+
+    Args:
+        prefix_s3 (string): prefisso del bucket fino alla cartella dove andremo a depositare la cartella che conterrà il csv dei residui
+        id_simulazione (string): identificativo univoco della simulazione sul db
+        prima_settimana_simulazione_string (string): data della prima settimana di simulazione, nel formato yyyy-MM-dd
+    
+    Returns:
+        list of dict: lista contenente un dizionario per ogni file csv dei residui che dovrà essere importato nella prima settimana di simulazione
+    """
+    prima_settimana_simulazione = date.fromisoformat(prima_settimana_simulazione_string)
+    # controlliamo se vogliamo simulare il mese in cui ci troviamo, un mese passato o un mese futuro
+    if prima_settimana_simulazione.month == date.today().month:
+        # SIMULAZIONE MESE CORRENTE
+        if calcolo_numero_settimana_attuale_nel_mese() == 0:
+            # caso in cui siamo nella prima settimana, quindi il mese inizia con lunedì oppure il mese inizia a cavallo con la fine del precedente
+            delivery_date_residui = prima_settimana_simulazione - timedelta(days=7)
+        else:
+            # caso in cui siamo dalla seconda settimana in poi
+            delivery_date_residui = prima_settimana_simulazione
+        # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
+        if date.today()==delivery_date_residui:
+            delivery_date_residui = delivery_date_residui - timedelta(days=7)
+    elif prima_settimana_simulazione.month > date.today().month:
+        # SIMULAZIONE MESE FUTURO (comprende anche il caso del superamento del cut-off)
+        delivery_date_residui = date.today() - timedelta(days=date.today().weekday())
+        # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
+        if date.today()==delivery_date_residui:
+            delivery_date_residui = delivery_date_residui - timedelta(days=7)
+    else:
+        # SIMULAZIONE MESE PASSATO
+        delivery_date_residui = prima_settimana_simulazione
+    # recuperiamo i residui per poi fare import data sulla prima settimana di simulazione
+    lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione)
+    return lista_file_residui
+
 
 def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione):
     """
@@ -72,7 +213,7 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
     objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3, Delimiter="/")
     lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
     # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere le capacità dei CAP o i residui            
-    lista_settimane = [x for x in lista_settimane if 'cap_capacities' not in x or 'residui_id_' not in x]
+    lista_settimane = [x for x in lista_settimane if 'cap_capacities' not in x and 'residui_id_' not in x]
     lista_file_csv = []
     count=1
     for singola_settimana in lista_settimane:
@@ -83,7 +224,8 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
                 tmp_list.append({'s3_file_key':obj["Key"]})
         lista_file_csv.append({"lista_file_csv_"+str(count):tmp_list})
         count+=1
-
+    # recupero residui
+    lista_file_csv[0]['lista_file_csv_1'].extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione))
     # serve per fare in modo di avere sempre 6 settimane. Se ne abbiamo di meno inseriamo le altre vuote
     if len(lista_file_csv)==4:
         lista_file_csv.append({"lista_file_csv_5":[]})

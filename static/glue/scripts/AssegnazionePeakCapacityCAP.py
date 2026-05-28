@@ -88,6 +88,10 @@ for _ in range(30):  # limite di sicurezza a 30 gg
     # altrimenti vado al giorno precedente
     target_date -= datetime.timedelta(days=1)
 
+if output_prefix == None:
+    # se non viene trovata alcuna cartella corrispondente
+    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+
 # Lettura file
 schema_cap_capacities = T.StructType() \
       .add("unifiedDeliveryDriver",T.StringType(),True) \
