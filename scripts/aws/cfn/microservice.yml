@@ -1379,7 +1379,7 @@ Resources:
       MaxRetries: 0
       Timeout: 480
       GlueVersion: "5.0"
-      WorkerType: G.1X
+      WorkerType: G.2X
       NumberOfWorkers: 2
       ExecutionClass: STANDARD
       Connections:
