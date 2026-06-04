@@ -225,9 +225,9 @@ df_output_grafico_reg_recap.write \
 # print('Export in S3 - Risultati dopo la 5 settimana')
 # # Export in S3
 # df_paperdel_tot_5week =  df_paperdel_tot_filtred.filter(F.col('SETTIMANA_DELIVERY') > lista_date[4])
-# prima_data = lista_date[0]
-# anno_riferimento = prima_data[:4]
-# mese_riferimento = prima_data[5:7]
+prima_data = lista_date[0]
+anno_riferimento = prima_data[:4]
+mese_riferimento = prima_data[5:7]
 
 # path = "s3://"+s3_bucket+"/output/risultati/" + anno_riferimento + "/" \
 #                                                                         + mese_riferimento + "/oltre_5_settimane/" \
@@ -316,7 +316,8 @@ if count_residui_ultima_settimana > 0:
         .mode("append") \
         .save()
     
-    df_output_residui_reg_recap = df_paperdel_res_tot_filtred.groupBy(["province","Regione","unifiedDeliveryDriver"])\
+    df_output_residui_reg_recap = df_paperdel_res_tot_filtred.join(df_cap_prov, df_paperdel_res_tot_filtred.province == df_cap_prov.COD_SIGLA_PROVINCIA)\
+        .groupBy(["province","Regione","unifiedDeliveryDriver"])\
         .agg(F.countDistinct('requestId'))\
         .withColumnRenamed("count(DISTINCT requestId)", "COUNT_RESIDUI")\
         .withColumn('PROVINCIA_RECAPITISTA', 
