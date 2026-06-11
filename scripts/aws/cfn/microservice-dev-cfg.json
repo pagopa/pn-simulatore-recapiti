@@ -18,6 +18,8 @@
     "TableDriverCapacities": "pn-PaperDeliveryDriverCapacities",
     "TableDriverCapacitiesMock": "pn-PaperDeliveryDriverCapacitiesMock",
     "LambdaCalcoloPrimaSettimanaCutOffDay": "22",
-    "LambdaCalcoloPrimaSettimanaMesiInAvanti": "0"
+    "LambdaCalcoloPrimaSettimanaMesiInAvanti": "0",
+    "RecuperoRisultatiPaperDeliveryGlueJobWorkerType": "G.1X",
+    "RecuperoRisultatiPaperDeliveryGlueJobNumberOfWorkers": "2"
   }
 }
