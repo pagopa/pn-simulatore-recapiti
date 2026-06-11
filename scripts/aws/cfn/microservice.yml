@@ -249,6 +249,19 @@ Parameters:
     Description: 'MesiInAvanti for the CalcoloPrimaSettimana Lambda function'
     Default: 0
 
+  RecuperoRisultatiPaperDeliveryGlueJobWorkerType:
+    Type: String
+    Description: 'Worker type for RecuperoRisultatiPaperDeliveryGlueJob'
+    Default: G.1X
+    AllowedValues:
+      - G.1X
+      - G.2X
+
+  RecuperoRisultatiPaperDeliveryGlueJobNumberOfWorkers:
+    Type: Number
+    Description: 'Number of workers for RecuperoRisultatiPaperDeliveryGlueJob'
+    Default: 2
+
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -1379,42 +1392,8 @@ Resources:
       MaxRetries: 0
       Timeout: 480
       GlueVersion: "5.0"
-      WorkerType: G.1X
-      NumberOfWorkers: 2
-      ExecutionClass: STANDARD
-      Connections:
-        Connections:
-          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
-      ExecutionProperty:
-        MaxConcurrentRuns: 1
-
-  AssegnazionePeakCapacityCAPGlueJob:
-    Type: AWS::Glue::Job
-    Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-AssegnazionePeakCapacityCAP"
-      Role: !GetAtt GlueJobSimulatoreRole.Arn
-      Command:
-        Name: glueetl
-        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/AssegnazionePeakCapacityCAP.py"
-        PythonVersion: "3"
-      DefaultArguments:
-        "--job-bookmark-option": "job-bookmark-disable"
-        "--enable-metrics": "true"
-        "--enable-spark-ui": "true"
-        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
-        "--enable-job-insights": "true"
-        "--enable-glue-datacatalog": "true"
-        "--enable-continuous-cloudwatch-log": "true"
-        "--job-language": "python"
-        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
-        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
-        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
-        "--s3_bucket": !Ref SimulatoreDataBucketName
-      MaxRetries: 0
-      Timeout: 480
-      GlueVersion: "5.0"
-      WorkerType: G.1X
-      NumberOfWorkers: 2
+      WorkerType: !Ref RecuperoRisultatiPaperDeliveryGlueJobWorkerType
+      NumberOfWorkers: !Ref RecuperoRisultatiPaperDeliveryGlueJobNumberOfWorkers
       ExecutionClass: STANDARD
       Connections:
         Connections:
