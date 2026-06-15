@@ -536,7 +536,7 @@ class view_tabella_sintesi_reg_recap(pg.View):
     SUM_COUNT_REQUEST = models.IntegerField(null=True)
     AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
     SUM_COUNT_RESIDUI = models.IntegerField(null=True)
-    SUM_COUNT_REQUEST_5_SETT = models.IntegerField(null=True) 
+    SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC = models.IntegerField(null=True) 
 
     sql = """
     WITH "CTE_RECAPITISTI_MESE" AS
