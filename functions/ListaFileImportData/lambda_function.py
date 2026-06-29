@@ -133,7 +133,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
         for index in range(num_chunks):
             # ad ogni iterazione prendiamo un chunk da 9900 righe e carichiamo il csv su s3
             chunk = list(itertools.islice(file_content, max_rows))
-            s3_file_key = f'{prefix_s3}residui_id_{id_simulazione}/{key}_part_{index}.csv'
+            s3_file_key = f'{prefix_s3}residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
             # componiamo il file csv
             buffer = io.StringIO()
             writer = csv.writer(buffer, delimiter=';')
@@ -152,13 +152,12 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
             lista_csv_da_importare.append({'s3_file_key':s3_file_key})
         return lista_csv_da_importare
     else:
-        print(f"Non ci sono residui!")
         return []
 
 
 def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string):
     """
-    Funzione che gestisce la logica dei residui
+    Funzione che gestisce la logica dei residui e ritorna la lista dei file da importare nella prima settimana di run
 
     Args:
         prefix_s3 (string): prefisso del bucket fino alla cartella dove andremo a depositare la cartella che conterrà il csv dei residui
@@ -169,8 +168,8 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         list of dict: lista contenente un dizionario per ogni file csv dei residui che dovrà essere importato nella prima settimana di simulazione
     """
     prima_settimana_simulazione = date.fromisoformat(prima_settimana_simulazione_string)
-    # controlliamo se vogliamo simulare il mese in cui ci troviamo, un mese passato o un mese futuro
-    if prima_settimana_simulazione.month == date.today().month:
+    # controlliamo se vogliamo simulare il mese in cui ci troviamo, un mese passato o il mese successivo
+    if (prima_settimana_simulazione.year,prima_settimana_simulazione.month) == (date.today().year,date.today().month):
         # SIMULAZIONE MESE CORRENTE
         if calcolo_numero_settimana_attuale_nel_mese() == 0:
             # caso in cui siamo nella prima settimana, quindi il mese inizia con lunedì oppure il mese inizia a cavallo con la fine del precedente
@@ -181,18 +180,29 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
         if date.today()==delivery_date_residui:
             delivery_date_residui = delivery_date_residui - timedelta(days=7)
-    elif prima_settimana_simulazione.month > date.today().month:
-        # SIMULAZIONE MESE FUTURO (comprende anche il caso del superamento del cut-off)
-        delivery_date_residui = date.today() - timedelta(days=date.today().weekday())
-        # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
-        if date.today()==delivery_date_residui:
-            delivery_date_residui = delivery_date_residui - timedelta(days=7)
+    elif (prima_settimana_simulazione.year,prima_settimana_simulazione.month) > (date.today().year,date.today().month):
+        # SIMULAZIONE MESE FUTURO CUT-OFF (ricorda: da requisito, recuperiamo i residui solo se simuliamo il mese successivo)
+        if prima_settimana_simulazione.year == date.today().year and ((prima_settimana_simulazione.month - date.today().month) == 1):
+            delivery_date_residui = date.today() - timedelta(days=date.today().weekday())
+            # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
+            if date.today()==delivery_date_residui:
+                delivery_date_residui = delivery_date_residui - timedelta(days=7)   
+        else:
+            delivery_date_residui = None
     else:
         # SIMULAZIONE MESE PASSATO
         delivery_date_residui = prima_settimana_simulazione
     # recuperiamo i residui per poi fare import data sulla prima settimana di simulazione
-    lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione)
-    return lista_file_residui
+    if delivery_date_residui:
+        lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione)
+        if len(lista_file_residui) != 0:
+            print("Ci sono residui!")
+        else:
+            print("Non ci sono residui!")
+        return lista_file_residui
+    else:
+        print("Non recuperiamo residui!")
+        return []
 
 
 def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione):
@@ -213,7 +223,7 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
     objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3, Delimiter="/")
     lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
     # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere le capacità dei CAP o i residui            
-    lista_settimane = [x for x in lista_settimane if 'cap_capacities' not in x and 'residui_id_' not in x]
+    lista_settimane = [x for x in lista_settimane if '/cap_capacities/' not in x and '/residui/' not in x]
     lista_file_csv = []
     count=1
     for singola_settimana in lista_settimane:

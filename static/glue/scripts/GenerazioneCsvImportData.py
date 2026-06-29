@@ -9,6 +9,7 @@ from awsglue.job import Job
 args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_simulazione','s3_bucket','secretsManager_SecretId','jdbc_connection'])
 # args = getResolvedOptions(sys.argv, ['JOB_NAME'])
 # mese_simulazione = '2025-10-06'
+mese_simulazione = args['mese_simulazione']
 
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -75,7 +76,8 @@ df_senderlim_tot = spark.read \
 print('Lettura SENDER_LIMIT')
 df_senderlim_tot.show()
 
-df_senderlim_tot = df_senderlim_tot.drop('ID')
+df_senderlim_tot = df_senderlim_tot.drop('ID')\
+                                   .filter(F.col('DELIVERY_DATE').cast('string')==mese_simulazione)
 
 # Lista delle province
 df_province=df_cap_prov.select('COD_SIGLA_PROVINCIA').distinct()
@@ -106,11 +108,8 @@ row_list=df_senderlim_tot_rs.collect()
 dict_response_senderlim_items=[row.asDict() for row in row_list]
 
 # Estrazione del calendario mensile per settimana e del numero di giorni nel mese
-anno = int(args['mese_simulazione'][:4])
-mese = int(args['mese_simulazione'][5:7])
-
-# anno = int(mese_simulazione[:4])
-# mese = int(mese_simulazione[5:7])
+anno = int(mese_simulazione[:4])
+mese = int(mese_simulazione[5:7])
 print(anno+mese)
 
 settimane = calendar.monthcalendar(anno, mese)
@@ -264,8 +263,8 @@ anno_corrente = timestamp_df.collect()[0][1][:4]
 mese_corrente = timestamp_df.collect()[0][1][4:6]
 giorno_corrente = timestamp_df.collect()[0][1][6:8]
 
-anno_str = args['mese_simulazione'][:4]
-mese_str = args['mese_simulazione'][5:7]
+anno_str = mese_simulazione[:4]
+mese_str = mese_simulazione[5:7]
 
 path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
                                                           + mese_corrente + "/" \
