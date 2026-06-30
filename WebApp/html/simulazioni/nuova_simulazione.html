@@ -43,23 +43,6 @@
             <br>
             <div class="row mb-3 align-items-center">
                 <div class="col-auto">
-                    <label class="form-label"><b>Mese da simulare</b></label>
-                </div>
-                <div class="col-auto w-50">
-                    <select required class="form-select" id="mese_da_simulare" name="mese_da_simulare" {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}disabled{% endif %}>
-                        <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
-                        {% for singolo_mese in lista_mesi %}
-                            <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}
-                    <input type="hidden" name="mese_da_simulare" value="{{ simulazione_selezionata.MESE_SIMULAZIONE }}">
-                {% endif %}
-            </div>
-            <br>
-            <div class="row mb-3 align-items-center">
-                <div class="col-auto">
                     <label class="form-label"><b>Data-ora pianificazione</b>&nbsp;&nbsp;</label>
                 </div>
                 <div class="col-auto">
@@ -77,7 +60,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Campo datetime (inizialmente nascosto) -->
             <div class="row mb-3 align-items-center d-none" id="datetimeField">
                 <div class="col-auto">
@@ -87,6 +69,25 @@
                     <input type="datetime-local" class="form-control" autocomplete="off" style="width:auto;" id="timeSchedule" name="schedule_datetime">
                 </div>
             </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label"><b>Mese da simulare</b></label>
+                </div>
+                <div class="col-auto w-50">
+                    <select required class="form-select" id="mese_da_simulare" name="mese_da_simulare" {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}disabled{% endif %}>
+                        <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
+                        {% for singolo_mese in lista_mesi %}
+                            <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}
+                    <input type="hidden" name="mese_da_simulare" value="{{ simulazione_selezionata.MESE_SIMULAZIONE }}">
+                {% endif %}
+            </div>
+            <p id="informativa_residui"></p>
+            
             <!-- bottoni salva-avanti -->
             <div class="row">
                 <div class="col d-grid gap-2 mx-auto">
@@ -448,6 +449,46 @@
         ],
         defaultDate: '{{simulazione_selezionata.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
     });
+</script>
+
+<!-- Alert informativo che avvisa l'utente su eventuali residui che verranno recuperati -->
+<script>
+    const select_mese_da_simulare = document.getElementById('mese_da_simulare');
+    const radiobox_schedule = document.getElementById("inlineRadio1");
+    const radiobox_now = document.getElementById("inlineRadio2");
+    const trigger_datetime = document.getElementById("timeSchedule");
+
+    function recupero_data_residui() {
+        if (select_mese_da_simulare.value != '' && ((radiobox_schedule.checked && trigger_datetime.value !== "") || (radiobox_now.checked))) {
+            $.ajax({
+                url: '/recupero_data_residui_ajax',
+                type: 'GET',
+                data: {
+                    'select_mese_da_simulare': select_mese_da_simulare.value, 
+                    'radiobox_schedule':radiobox_schedule.checked, 
+                    'trigger_datetime':trigger_datetime.value,
+                    'radiobox_now': radiobox_now.checked
+                },
+                success: function(resp){
+                    if (resp['data_residui'] != null){
+                        document.getElementById('informativa_residui').innerHTML = `Sulla base dei dati inseriti in Data-ora pianificazione e Mese da simulare, per questa simulazione verranno recuperati i residui del ${resp['data_residui']}`;
+                    } else {
+                        document.getElementById('informativa_residui').innerHTML = `Sulla base dei dati inseriti in Data-ora pianificazione e Mese da simulare, per questa simulazione non verranno recuperati residui`;
+                    }
+                },
+                error: function(resp){
+                    document.getElementById('informativa_residui').innerHTML = '';
+                }
+            });
+        }
+        else{
+            document.getElementById('informativa_residui').innerHTML = '';
+        }
+    }
+    select_mese_da_simulare.addEventListener('change', recupero_data_residui);
+    radiobox_schedule.addEventListener('change', recupero_data_residui);
+    radiobox_now.addEventListener('change', recupero_data_residui);
+    trigger_datetime.addEventListener('input', recupero_data_residui);
 </script>
 
 <script>

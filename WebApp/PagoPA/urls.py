@@ -26,6 +26,7 @@ urlpatterns = [
     path('recupero_capacita_ajax', ajax_recupero_capacita, name="ajax_recupero_capacita"),
     path('recupero_simulazioni_da_confrontare_ajax', ajax_recupero_simulazioni_da_confrontare, name="ajax_recupero_simulazioni_da_confrontare"),
     path('recupero_province/', recupero_province, name='recupero_province'),
+    path('recupero_data_residui_ajax', ajax_recupero_data_residui, name="ajax_recupero_data_residui"),
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),
