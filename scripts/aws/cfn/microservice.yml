@@ -1389,6 +1389,7 @@ Resources:
         "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
         "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
         "--s3_bucket": !Ref SimulatoreDataBucketName
+        "--conf": "spark.rpc.message.maxSize=256"
       MaxRetries: 0
       Timeout: 480
       GlueVersion: "5.0"
