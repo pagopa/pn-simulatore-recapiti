@@ -471,9 +471,9 @@
                 },
                 success: function(resp){
                     if (resp['data_residui'] != null){
-                        document.getElementById('informativa_residui').innerHTML = `Verranno recuperati i residui del ${resp['data_residui']}`;
+                        document.getElementById('informativa_residui').innerHTML = `Sulla base dei dati inseriti in Data-ora pianificazione e Mese da simulare, per questa simulazione verranno recuperati i residui del ${resp['data_residui']}`;
                     } else {
-                        document.getElementById('informativa_residui').innerHTML = `Non verranno recuperati residui`;
+                        document.getElementById('informativa_residui').innerHTML = `Sulla base dei dati inseriti in Data-ora pianificazione e Mese da simulare, per questa simulazione non verranno recuperati residui`;
                     }
                 },
                 error: function(resp){

@@ -194,6 +194,7 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         delivery_date_residui = prima_settimana_simulazione
     # recuperiamo i residui per poi fare import data sulla prima settimana di simulazione
     if delivery_date_residui:
+        print(f'La delivery date per il recupero dei residui è: {delivery_date_residui}')
         lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione)
         if len(lista_file_residui) != 0:
             print("Ci sono residui!")

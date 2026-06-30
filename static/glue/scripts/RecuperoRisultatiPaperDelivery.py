@@ -96,7 +96,31 @@ def lambda_to_dict(prov,operationType,list_parameters):
   return dict_response_body
   
 # Richiamo della lambda
-
+# AMBIENTE DI DEV
+schema_paperdel = T.StructType() \
+      .add("attempt",T.StringType(),True) \
+      .add("cap",T.StringType(),True) \
+      .add("communicationType",T.StringType(),True) \
+      .add("createdAt",T.StringType(),True) \
+      .add("deliveryDate",T.StringType(),True) \
+      .add("iun",T.StringType(),True) \
+      .add("notificationSentAt",T.StringType(),True) \
+      .add("pk",T.StringType(),True) \
+      .add("prepareRequestDate",T.StringType(),True)\
+      .add("priority",T.StringType(),True) \
+      .add("productType",T.StringType(),True) \
+      .add("province",T.StringType(),True) \
+      .add("requestId",T.StringType(),True)\
+      .add("senderPaId",T.StringType(),True)\
+      .add("senderPaIdOriginalSentAt",T.StringType(),True)\
+      .add("senderPriority",T.StringType(),True)\
+      .add("sk",T.StringType(),True)\
+      .add("tenderId",T.StringType(),True)\
+      .add("unifiedDeliveryDriver",T.StringType(),True)\
+      .add("week_delivery",T.StringType(),True)\
+      .add("workflowStep",T.StringType(),True)
+# AMBIENTE DI PROD
+'''
 schema_paperdel = T.StructType() \
       .add("attempt",T.StringType(),True) \
       .add("cap",T.StringType(),True) \
@@ -116,7 +140,7 @@ schema_paperdel = T.StructType() \
       .add("unifiedDeliveryDriver",T.StringType(),True)\
       .add("week_delivery",T.StringType(),True)\
       .add("workflowStep",T.StringType(),True)
-
+'''
 
 prima_data = lista_date[0]
 anno_riferimento = prima_data[:4]
