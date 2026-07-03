@@ -63,7 +63,7 @@ def lambda_handler(event, context):
     if event['tipo_simulazione'] == 'Automatizzata':
         settimana_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-MM-dd ma a noi interessa solamente yyyy-MM
         # calcoliamo il datetime now
-        start_timestamp_esecuzione_simulazione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
+        start_timestamp_simulazione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
         # recupero variabili d'ambiente
         secretsManager_SecretId = os.environ['secretsManager_SecretId']
         db_host = os.environ['DB_HOST']
@@ -78,20 +78,20 @@ def lambda_handler(event, context):
         cur.execute(    
         f'''
         INSERT INTO public."SIMULAZIONE" ("NOME","DESCRIZIONE","STATO","TIMESTAMP_ESECUZIONE","MESE_SIMULAZIONE","TIPO_CAPACITA","TIPO_SIMULAZIONE") 
-        VALUES ('Automatizzata {settimana_simulazione}','Pianificazione settimanale automatizzata {settimana_simulazione}','In lavorazione','{start_timestamp_esecuzione_simulazione}','{settimana_simulazione}','Produzione','Automatizzata') 
+        VALUES ('Automatizzata {settimana_simulazione}','Pianificazione settimanale automatizzata {settimana_simulazione}','In lavorazione','{start_timestamp_simulazione}','{settimana_simulazione}','Produzione','Automatizzata') 
         RETURNING "ID";
         '''
         )
-        id_simulazione_creata = str(cur.fetchone()[0])
+        id_simulazione_automatizzata = str(cur.fetchone()[0])
         conn.commit()
         # chiusura connessione
         cur.close()
         conn.close()
     
     elif event['tipo_simulazione'] == 'Manuale':
-        id_simulazione_creata = '-'
+        id_simulazione_automatizzata = '-'
 
     else:
         raise Exception('tipo_simulazione non conforme')
 
-    return {'statusCode': 200, 'id_simulazione_automatizzata':id_simulazione_creata}
+    return {'statusCode': 200, 'id_simulazione_automatizzata':id_simulazione_automatizzata, 'start_timestamp_simulazione': start_timestamp_simulazione}

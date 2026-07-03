@@ -16,7 +16,7 @@ import json
 import boto3
 from botocore.config import Config
 import os
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 import math
 import urllib3
 import io
@@ -24,9 +24,13 @@ import csv
 import itertools
 
 
-def calcolo_numero_settimana_attuale_nel_mese():
+def calcolo_numero_settimana_attuale_nel_mese(start_timestamp_simulazione):
     """
     Funzione che calcola e restituisce il numero della settimana attuale rispetto al mese corrente.
+
+    Args:
+        start_timestamp_simulazione (string): timestamp di stard di esecuzione della step function della simulazione, formato "yyyy-MM-dd HH:mm:ss"
+
     Note:
         - 0=prima settimana, 1=seconda settimana, ...
         - se il primo del mese è lunedì, la prima settimana la segna come 0
@@ -35,8 +39,7 @@ def calcolo_numero_settimana_attuale_nel_mese():
     Returns:
         int: numero della settimana attuale rispetto al mese corrente
     """
-    # recuperiamo la data odierna
-    data_input = date.today()
+    data_input = datetime.strptime(start_timestamp_simulazione, '%Y-%m-%d %H:%M:%S').date()
     # calcoliamo il primo giorno del mese corrente
     primo_del_mese = data_input.replace(day=1)
     # calcoliamo giorno della settimana del primo del mese (RICORDA: con weekday(), 0=lunedì, 6=domenica)
@@ -46,18 +49,19 @@ def calcolo_numero_settimana_attuale_nel_mese():
     return numero_settimana
 
 
-def recupero_ultima_data_estrazione(bucket_name, mese_simulazione):
+def recupero_ultima_data_estrazione(bucket_name, mese_simulazione, start_timestamp_simulazione):
     """
     Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
 
     Args:
         bucket_name (string): nome del bucket s3 di progetto
         mese_simulazione (string): mese di simulazione, formato "yyyy-MM"
+        start_timestamp_simulazione (string): timestamp di stard di esecuzione della step function della simulazione, formato "yyyy-MM-dd HH:mm:ss"
 
     Returns:
         string: prefisso del bucket fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA
     """
-    target_date = date.today()
+    target_date = datetime.strptime(start_timestamp_simulazione, '%Y-%m-%d %H:%M:%S').date()
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     for _ in range(30):  # limite di sicurezza a 30 gg
@@ -155,7 +159,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
         return []
 
 
-def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string):
+def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string, start_timestamp_simulazione):
     """
     Funzione che gestisce la logica dei residui e ritorna la lista dei file da importare nella prima settimana di run
 
@@ -167,25 +171,26 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
     Returns:
         list of dict: lista contenente un dizionario per ogni file csv dei residui che dovrà essere importato nella prima settimana di simulazione
     """
+    date_today = datetime.strptime(start_timestamp_simulazione, '%Y-%m-%d %H:%M:%S').date()
     prima_settimana_simulazione = date.fromisoformat(prima_settimana_simulazione_string)
     # controlliamo se vogliamo simulare il mese in cui ci troviamo, un mese passato o il mese successivo
-    if (prima_settimana_simulazione.year,prima_settimana_simulazione.month) == (date.today().year,date.today().month):
+    if (prima_settimana_simulazione.year,prima_settimana_simulazione.month) == (date_today.year,date_today.month):
         # SIMULAZIONE MESE CORRENTE
-        if calcolo_numero_settimana_attuale_nel_mese() == 0:
+        if calcolo_numero_settimana_attuale_nel_mese(start_timestamp_simulazione) == 0:
             # caso in cui siamo nella prima settimana, quindi il mese inizia con lunedì oppure il mese inizia a cavallo con la fine del precedente
             delivery_date_residui = prima_settimana_simulazione - timedelta(days=7)
         else:
             # caso in cui siamo dalla seconda settimana in poi
             delivery_date_residui = prima_settimana_simulazione
         # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
-        if date.today()==delivery_date_residui:
+        if date_today==delivery_date_residui:
             delivery_date_residui = delivery_date_residui - timedelta(days=7)
-    elif (prima_settimana_simulazione.year,prima_settimana_simulazione.month) > (date.today().year,date.today().month):
+    elif (prima_settimana_simulazione.year,prima_settimana_simulazione.month) > (date_today.year,date_today.month):
         # SIMULAZIONE MESE FUTURO CUT-OFF (ricorda: da requisito, recuperiamo i residui solo se simuliamo il mese successivo)
-        if prima_settimana_simulazione.year == date.today().year and ((prima_settimana_simulazione.month - date.today().month) == 1):
-            delivery_date_residui = date.today() - timedelta(days=date.today().weekday())
+        if prima_settimana_simulazione.year == date_today.year and ((prima_settimana_simulazione.month - date_today.month) == 1):
+            delivery_date_residui = date_today - timedelta(days=date_today.weekday())
             # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
-            if date.today()==delivery_date_residui:
+            if date_today==delivery_date_residui:
                 delivery_date_residui = delivery_date_residui - timedelta(days=7)   
         else:
             delivery_date_residui = None
@@ -206,7 +211,7 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         return []
 
 
-def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione):
+def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione, start_timestamp_simulazione):
     """
     Recuperiamo la lista dei file csv sui quali effettuare l'operazione di IMPORT_DATA
 
@@ -236,7 +241,7 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
         lista_file_csv.append({"lista_file_csv_"+str(count):tmp_list})
         count+=1
     # recupero residui
-    lista_file_csv[0]['lista_file_csv_1'].extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione))
+    lista_file_csv[0]['lista_file_csv_1'].extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione))
     # serve per fare in modo di avere sempre 6 settimane. Se ne abbiamo di meno inseriamo le altre vuote
     if len(lista_file_csv)==4:
         lista_file_csv.append({"lista_file_csv_5":[]})
@@ -253,6 +258,7 @@ def lambda_handler(event, context):
     prima_settimana_simulazione = event["mese_simulazione"]
     mese_simulazione = prima_settimana_simulazione[:7] # mese_simulazione che recuperiamo dalla step function è nel formato yyyy-MM-dd ma a noi interessa solamente yyyy-MM
     tipo_simulazione = event["tipo_simulazione"]
+    start_timestamp_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['start_timestamp_simulazione']
     if tipo_simulazione == 'Automatizzata':
         # recupero parametro id_simulazione
         id_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['id_simulazione_automatizzata']
@@ -262,7 +268,7 @@ def lambda_handler(event, context):
     else:
         raise Exception('Parametro tipo_simulazione non valorizzato')
     # recuperiamo il path s3 per prendere i csv delle postalizzazioni
-    full_prefix = recupero_ultima_data_estrazione(source_bucket, mese_simulazione)
+    full_prefix = recupero_ultima_data_estrazione(source_bucket, mese_simulazione, start_timestamp_simulazione)
     # recuperiamo la lista dei csv delle postalizzazioni
     lista_file_csv = recupero_lista_csv_sorgenti(source_bucket,full_prefix,id_simulazione,prima_settimana_simulazione)
     

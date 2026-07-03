@@ -38,14 +38,6 @@ def lambda_presigned_url(lambda_delayer, source_filename):
             "presignedUrlType": "UPLOAD"
         }
     }
-    '''
-    nuovo parameters rilascio GA26Q2.A
-    {
-        "fileName": source_filename,
-        "checksumSha256B64": "abcd1234efgh5678ijkl9012mnop3456",
-        "presignedUrlType": "UPLOAD"
-    }
-    '''
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
     string_response = read_response.decode('utf-8')
@@ -143,12 +135,16 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     )
     if put_response.status_code not in (200, 201, 204):
         raise Exception(put_response.text)
-
-    # IMPORT DATA
-    lambda_import_data(lambda_delayer,destination_filename, date_per_import_data)
-
-    # cancelliamo la copia dell'oggetto sul bucket di progetto
-    s3_client.delete_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
+    try:
+        # IMPORT DATA
+        lambda_import_data(lambda_delayer,destination_filename, date_per_import_data)
+        # cancelliamo la copia dell'oggetto sul bucket di progetto
+        s3_client.delete_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
+    except:
+        # cancelliamo la copia dell'oggetto sul bucket di progetto
+        s3_client.delete_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
+        # ricreiamo l'eccezione originale triggerata nel try
+        raise
 
     return destination_filename
 
