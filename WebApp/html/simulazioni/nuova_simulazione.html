@@ -2,6 +2,24 @@
 {% block content %}
 {% load static %}
 
+<style>
+    /* Questo style rimuove il feedback di validazione dei campi */
+    .was-validated .form-control:valid,
+    .form-control.is-valid,
+    .was-validated .form-select:valid,
+    .form-select.is-valid,
+    .was-validated .form-check-input:valid,
+    .form-check-input.is-valid {
+        border-color: #ced4da !important;
+        background-image: none !important;
+        box-shadow: none !important;
+    }
+
+    .valid-feedback {
+        display: none !important;
+    }
+</style>
+
 <br><br>
 
 <!-- Position bar bootstrap -->
@@ -104,13 +122,30 @@
 
     <!-- STEP 2 - Postalizzazioni di mock aggiuntive -->
     <div class="step d-none" id="step2">
-        <h5 class="text-center">Postalizzazioni di mock aggiuntive</h5>
-        <br>
+        <div class="row">
+            <h5 class="text-center">Modalità di pianificazione delle postalizzazioni</h5>
+            <br>
+        </div>
+
         <div class="card p-4">
-            <div class="form-check">
-                <input class="form-check-input" checked disabled type="checkbox" id="commesse_default">
-                <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
+            <div class="row d-flex align-items-center">
+                <div class="col-4 "></div>
+                <div class="col-4 text-end"> 
+                    <button type="button" class="btn btn-primary btn-md d-none" onclick="getNomeUtente(utenteExtra=true)" id="buttonPostMax"> Inserire postalizzazioni fuori commessa </button>
+                </div>
+                <div class = "col-4 ">
+                    <input class="form-check-input" type="checkbox" value="" id="flagPostMax">
+                    <label class="form-check-label" for="flagPostMax"> Aggiungi postalizzazioni fuori commessa</label>
+                </div>
             </div>
+            <div class="row">
+                    <label class="form-label"><b>Scegliere la modalità di pianificazione delle postalizzazioni:</b></label>
+            </div>
+            <select required class="form-select" id="commesse_default" aria-label="Default select example">
+                <option selected enabled value="1">Utilizza le commesse di default</option>
+                <option value="2">Utilizza le commesse di default e le commesse di mock</option>
+                <option value="3">Utilizza solo le commesse di mock</option>
+            </select>
             <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
@@ -127,50 +162,38 @@
             </div>
 
             <br>
+            <div class="row">
+                <div class="col-auto d-flex ">
+                    <label for="inputEnte" id="labelEnte" class="form-label d-none fw-bold">ID Ente:</label>
+                </div>
+                <div class="col-auto d-flex ">
+                    <input type="text" id="inputEnte" class="form-control d-none" placeholder="Inserire ID Ente">
+                </div>
+                <div class="col-auto d-flex justify-content-end">
+                    <button type="button" id="buttonApriModal" class="btn btn-primary d-none"  
+                    onclick="getNomeUtente()">Compilare commesse di mock </button>
+                </div> 
+            </div>
+            <br>
+            <!-- Questa tabella va inserita sempre che una tabella di Moc sia compilatta, altrimente resta nascosta-->
+            <div class="row">
+                <div class="col">
+                    <table class="table table-striped table-group-divider caption-top d-none" id="table_ente">
+                        <caption>Lista delle commesse inserite: 
+                            <button type="button" id="btn_tutti_dati" class="btn btn-sm btn-outline-primary" style="float: right" onclick="unioneTabelle()" data-bs-toggle="popover" data-bs-trigger="hover"
+                                data-bs-placement="top" title="Tutte le tabelle">Visualizza il contenuto in una tabella unica</button></caption>
+                        <thead class="text-center">
+                            <tr>
+                                <th  scope="col">ID Ente</th>
+                                <th  scope="col">Azione</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-center" id="table_ente_body"></tbody>
+                    </table>
+                </div>
+            </div>
 
-            <table class="table table-hover d-none" id="table_postalizzazioni">
-                <thead class="text-center">
-                    <tr>
-                        <th scope="col">Regione</th>
-                        <th scope="col">Provincia</th>
-                        <th scope="col">Prodotto</th>
-                        <th scope="col">N° di postalizzazioni</th>
-                        <th scope="col">
-                            <button type="button" id="aggiungi_riga_tabella_step2" class="btn btn-outline-success btn-sm" title="Aggiungi riga">+</button>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="table-group-divider text-center">
-                    <tr id="riga-1">
-                        <td>
-                            <select class="form-select regione-select" name="regione">
-                                <option value="" selected disabled class="form-control text-center">--- Seleziona regione ---</option>
-                                {% for regione in lista_regioni %}
-                                    <option value="{{ regione }}">{{ regione }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-                        <td>
-                            <select class="form-select provincia-select" name="provincia">
-                                <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
-                            </select>
-                        </td>
-                        <td>
-                            <select class="form-select prodotto-select" name="prodotto">
-                                <option value="" selected disabled class="text-center">--- Seleziona prodotto ---</option>
-                                <option value="AR" class="text-center">AR</option>
-                                <option value="890" class="text-center">890</option>
-                            </select>
-                        </td>
-                        <td>
-                            <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="1" title="Rimuovi riga">-</button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+
 
             <br><br>
 
@@ -183,7 +206,7 @@
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="step_successivo_multiform()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                    <button type="button" class="btn btn-primary enabled" id="avanzaTwoToThree"  onclick="step_successivo_multiform()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
         </div>
@@ -266,6 +289,76 @@
     </div>
 </form>
 
+<!-- Modal Postalizzazioni : Questo modal è aperto ogni volta che l'utente sceglie di inserire una tabella di Moc aggiuntiva-->
+<div class="modal fade" id="modalPostalizzazioni" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form class="needs-validation"  id="tablePostalizzazioniForm">
+                <div class="modal-body">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="titolo_modal">Table Ente 1</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div> 
+                    <div class="modal-body">
+                        <table class="table table-hover" id="table_postalizzazioni">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th scope="col">Regione</th>
+                                        <th scope="col">Provincia</th>
+                                        <th scope="col">Prodotto</th>
+                                        <th scope="col">N° di postalizzazioni</th>
+                                        <th scope="col">
+                                            <button type="button" id="aggiungi_riga_tabella_step2" class="btn btn-outline-success btn-sm"  title="Aggiungi riga" >+</button>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table-group-divider text-center">
+                                    <tr id="riga-1">
+                                        <td>
+                                            <select class="form-select regione-select" id="selectRegione-1" name="regione" required>
+                                                <option value="" selected disabled
+                                                    class="form-control text-center">--- Seleziona regione ---</option>
+                                                    <option value="Tutte le regioni">Tutte le regioni</option>
+                                                    {% for regione in lista_regioni %}
+                                                        <option value="{{ regione }}">{{ regione }}</option>
+                                                    {% endfor %}
+                                            </select>
+                                            <div class="invalid-feedback">Selezionare una regione o tutte le regioni.</div>
+                                        </td>
+                                        <td>
+                                            <select class="form-select provincia-select" id="selectProvincia-1" name="provincia" required>
+                                                <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
+                                                <option value="Tutte le province">Tutte le province</option>
+                                            </select>
+                                            <div class="invalid-feedback">Selezionare una provincia o tutte le province.</div>
+                                        </td>
+                                        <td>
+                                            <select class="form-select prodotto-select" id="selectProdotto-1" name="prodotto" required>
+                                                <option selected  disabled  value="" class="text-center">--- Seleziona prodotto---</option>
+                                                <option value="AR" class="text-center">AR</option>
+                                                <option value="890" class="text-center">890</option>
+                                            </select>
+                                             <div class="invalid-feedback">Selezionare un prodotto</div>
+                                        </td>
+                                        <td>
+                                            <input class="form-control text-center postalizzazioni-input" id="numPostalizz-1" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);"oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                                            <div class="invalid-feedback">Inserire una quantità</div>
+                                        </td>
+                                    </tr>
+                            </tbody>
+                        </table>
+                    </div> 
+                </div> 
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="chiudePulisce()">Elimina</button>
+                    <button type="button" id="buttonSaveCloseModal" class="btn btn-primary" onclick=validaTabellaPostalizz()>Salva tabella</button> <!--data-bs-dismiss="modal"-->
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!--MODAL PER IL BOTTONE SALVA COME BOZZA-->
 <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -283,6 +376,36 @@
             </div>
         </div>
     </div>
+</div>
+<!--MODAL VISUALIZZA_TABELLA: Questo modal si apre quando l'utente desidera visualizzare il contenuto di una tabella MOC già compilata-->
+<div class="modal fade modal-xl" id="ModalVisualizzaTabella" tabindex="-1" role="dialog" aria-labelledby="ModalVisualizaTabellaLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="TitleModalVisualizaTabella"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="bodyModalVisualizzaTabella"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="ModalCambioOpzione" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Attenzione</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Sei sicuro di voler cambiare modalità di pianificazione delle postalizzazioni? Se sì, cancellerai tutti i dati delle commesse di mock e/o fuori commessa già inseriti.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="tornaSelect()">Annulla</button>
+        <button type="button" class="btn btn-primary" id="button_confermo" onclick="svuotaListaTabelleOperations()">Conferma</button>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock content %}
 
@@ -518,6 +641,9 @@
         var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
         // riempimento input nascosto con capacità modificate dall'utente
         wrap_capacita_json();
+
+        const datiTabelleMock = estrarreDati();
+        $('<input>').attr({type: 'hidden', name: 'dati_tabelle_mock', value: JSON.stringify(datiTabelleMock)}).appendTo('#multiStepForm');
         multiStepForm.submit();
     }    
 </script>
@@ -910,53 +1036,103 @@
 
 <!-- Recupera la provincia a partire dalla selezione della regione e gestisce + e - nello STEP 2 -->
 <script>
-    $(document).ready(function() {
-        let rowCount = 1;
+    var rowCount = 1;
+
+    function getNomeUtente(utenteExtra=false) {
+
+        const nomeUtente = $('#inputEnte').val().trim();
         
-        // aggiungi_riga_tabella_step2
-        $('#aggiungi_riga_tabella_step2').click(function() {
+
+        // if (!nomeUtente) {
+        //     $('#inputEnte').addClass('is-invalid').focus();
+        //     return;
+        // }
+
+        // $('#inputEnte').removeClass('is-invalid');
+        if (!utenteExtra) {
+            $('#titolo_modal').text('Tabella per: ' + nomeUtente);
+        } else{
+            $('#titolo_modal').text('Tabella per: ' + "FUORI COMMESSA");
+        }
+
+        const modalPost = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalPostalizzazioni'));
+        modalPost.show();
+        rowCount = 1;
+    }
+
+    $('#table_postalizzazioni tbody').on('click', '.rimuovi_riga_tabella_step2', function() {
+        const rowId = $(this).data('row');
+        $(`#riga-${rowId}`).remove();
+    });
+
+    $(document).ready(function () {
+
+        //validateAggRige();
+        $('#aggiungi_riga_tabella_step2').click(function () {
+
             rowCount++;
             const newRow = `
-                <tr id="riga-${rowCount}">
-                    <td>
-                        <select class="form-select regione-select" name="regione">
-                            <option value="" selected disabled class="form-control text-center">--- Seleziona regione ---</option>
+            <tr id="riga-${rowCount}">
+                <td>
+                    <select class="form-select regione-select" id="selectRegione-${rowCount}" name="regione${rowCount}" required>
+                        <option value="" selected disabled
+                            class="form-control text-center">--- Seleziona regione ---</option>
+                            <option value="Tutte le regioni">Tutte le regioni</option>
                             {% for regione in lista_regioni %}
                                 <option value="{{ regione }}">{{ regione }}</option>
                             {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <select class="form-select provincia-select" name="provincia">
-                            <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
-                        </select>
-                    </td>
-                    <td>
-                        <select class="form-select prodotto-select" name="prodotto">
-                            <option value="" selected disabled class="text-center">--- Seleziona prodotto ---</option>
-                            <option value="AR" class="text-center">AR</option>
-                            <option value="890" class="text-center">890</option>
-                        </select>
-                    </td>
-                    <td>
-                        <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    </td>
-                    <td>
-                        <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="${rowCount}" title="Rimuovi riga">-</button>
-                    </td>
-                </tr>
+                    </select>
+                    <div class="invalid-feedback">Selezionare una regione o tutte le regione.</div>
+                </td>
+                <td>
+                    <select class="form-select provincia-select" id="selectProvincia-${rowCount}" name="provincia${rowCount}" required>
+                        <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
+                        <option value="Tutte le province">Tutte le province</option>
+                    </select>
+                    <div class="invalid-feedback">Selezionare una provincia o tutte le province.</div>
+                </td>
+                <td>
+                    <select class="form-select prodotto-select" id="selectProdotto-${rowCount}" name="prodotto${rowCount}" required>
+                        <option selected  disabled  value="" class="text-center">--- Seleziona prodotto---</option>
+                        <option value="AR" class="text-center">AR</option>
+                        <option value="890" class="text-center">890</option>
+                    </select>
+                        <div class="invalid-feedback">Selezionare un prodotto.</div>
+                </td>
+                <td>
+                    <input class="form-control text-center postalizzazioni-input" id="numPostalizz-${rowCount}" name="numPostalizz${rowCount}" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);"oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                    <div class="invalid-feedback">Inserire una quantità</div>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="${rowCount}" title="Rimuovi riga" ><i class="fa-regular fa-trash-can" ></i></button>
+                </td>
+            </tr>
             `;
-            $('tbody').append(newRow);
+            $('#table_postalizzazioni tbody').append(newRow);
+            // if (rowCount == 2) {
+            //     const riga = document.getElementById("riga-1");
+
+            //     const colAgg = document.createElement("td");
+            //     colAgg.classList.add("colonna-cestino");
+            //     colAgg.innerHTML = `
+            //     <button type="button"
+            //             class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="1" title="Rimuovi riga" id="button_cestino"><i class="fa-regular fa-trash-can"></i></button>
+            //             </td>`;
+            //     riga.appendChild(colAgg);
+            // }
         });
+
 
         // rimuovi riga
-        $('tbody').on('click', '.rimuovi_riga_tabella_step2', function() {
-            const rowId = $(this).data('row');
-            $(`#riga-${rowId}`).remove();
-        });
+        // $('#table_postalizzazioni tbody').on('click', '.rimuovi_riga_tabella_step2', function() {
+        //     const rowId = $(this).data('row');
+        //     $(`#riga-${rowId}`).remove();
+        //     rowCount--;
+        //     console.log("conta linhas: ", rowCount);
+        // });
 
         // get provincia from regione selezionata
-        $('tbody').on('change', '.regione-select', function() {
+        $('#table_postalizzazioni tbody').on('change', '.regione-select', function() {
             var regione = $(this).val();
             var provinciaSelect = $(this).closest('tr').find('.provincia-select');
             $.ajax({
@@ -967,6 +1143,8 @@
                 success: function(data) {
                     provinciaSelect.empty();
                     provinciaSelect.append('<option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>');
+                    provinciaSelect.append('<option value="Tutte le province">Tutte le province</option>');
+
                     $.each(data, function(index, provincia) {
                         provinciaSelect.append('<option value="' + provincia + '">' + provincia + ' </option>');
                     });
@@ -977,19 +1155,41 @@
     });
 </script>
 
+<!-- <script>
+    function aggOrCancellCestino(){
+        if (rowCount == 1) {
+            const riga = document.getElementById("riga-1");
+            const td = riga.querySelector(".rimuovi_riga_tabella_step2");
 
+            if (td) {
+                td.remove(); 
+            }
+    }
+
+}
+document.getElementById("button_cestino").addEventListener("click", aggOrCancellCestino);
+</script> -->
 <!-- mostra/nascondi sezione STEP 2 se selezionata la checkbox "Utilizza le commesse di default" -->
 <script>
-    const checkbox_default = document.getElementById("commesse_default");
-    const table_postalizzazioni = document.getElementById("table_postalizzazioni");
+    const select_default = document.getElementById("commesse_default");
+    //const table_postalizzazioni = document.getElementById("table_postalizzazioni");
+    const inputEnte = document.getElementById("inputEnte");
+    const label_Ente = document.getElementById("labelEnte");
+    const button_Apri_Modal = document.getElementById("buttonApriModal");
 
-    checkbox_default.addEventListener('change', e => {
-        if (!(e.target.checked)) {
-            table_postalizzazioni.classList.remove("d-none"); // mostra
-        } else {
-            table_postalizzazioni.classList.add("d-none"); // nasconde
-        }
-    });
+    select_default.addEventListener("change", (event) => {
+       
+        if(event.target.value !== "1"){
+                inputEnte.classList.remove("d-none"); 
+                label_Ente.classList.remove("d-none"); 
+                button_Apri_Modal.classList.remove("d-none");
+            } else {
+                inputEnte.classList.add("d-none"); 
+                label_Ente.classList.add("d-none"); 
+                button_Apri_Modal.classList.add("d-none"); 
+            }
+        });
+    
 </script>
 
 
@@ -1148,4 +1348,464 @@
         }
     });
 </script>
+
+<script>
+    let listaTabelle = []; // ATTENZIONE (VARIABILE GLOBALE) - Questa lista conserva le tabelle di MOC compilatate da ogni ente
+
+   function clearModal() {
+       // Pulisci il contenuto del modal Postalizzazioni - Basicamente resettiamo il modal per la prossima volta che viene aperto
+       // Le righe sono eliminate e alla fine ne viene aggiunta una nuova vuota. ATTENZIONE  la variabile rowCount ha scopo globale
+
+        const tabellaModalle = document.getElementById("table_postalizzazioni");
+        document.getElementById("inputEnte").value = '';
+
+        while (tabellaModalle.rows.length > 1) {
+            tabellaModalle.deleteRow(1);
+            
+        }
+        
+         rowCount=1;
+            const newRow = `
+            <tr id="riga-${rowCount}">
+                <td>
+                    <select class="form-select regione-select" id="selectRegione-${rowCount}" name="regione${rowCount}" required>
+                        <option value="" selected disabled
+                            class="form-control text-center">--- Seleziona regione ---</option>
+                            <option value="Tutte le regioni">Tutte le regioni</option>
+                            {% for regione in lista_regioni %}
+                                <option value="{{ regione }}">{{ regione }}</option>
+                            {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Deve selezionare una regione o tutte le regione.</div>
+                </td>
+                <td>
+                    <select class="form-select provincia-select" id="selectProvincia-${rowCount}" name="provincia${rowCount}" required>
+                        <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
+                        <option value="Tutte le province">Tutte le province</option>
+                    </select>
+                    <div class="invalid-feedback">Deve selezionare una provinvia o tutte le province.</div>
+                </td>
+                <td>
+                    <select class="form-select prodotto-select" id="selectProdotto-${rowCount}" name="prodotto${rowCount}" required>
+                        <option selected  disabled  value="" class="text-center">--- Seleziona prodotto---</option>
+                        <option value="AR" class="text-center">AR</option>
+                        <option value="890" class="text-center">890</option>
+                    </select>
+                        <div class="invalid-feedback">Deve selezionare un prodotto.</div>
+                </td>
+                <td>
+                    <input class="form-control text-center postalizzazioni-input" id="numPostalizz-${rowCount}" name="numPostalizz${rowCount}" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);"oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                    <div class="invalid-feedback">Inserire una quantità</div>
+                </td>
+            </tr>
+            `;
+            $('#table_postalizzazioni tbody').append(newRow);
+
+    }
+
+    function InsertTable() {
+        // Questa funzione, una volta che la tabella di MOC è compilata inserisce tabella nella lista listaTabelle.
+        // La tabella è sempre conservata come un elemento HTML.
+        const checkBoxMax = document.getElementById('flagPostMax');
+        const tabellaModale = document.getElementById("table_postalizzazioni");
+        const ente = document.getElementById("inputEnte").value;
+        const resultTable = document.createElement("table");
+        const form = document.getElementById('tablePostalizzazioniForm');
+        const modalTitle = document.getElementById("titolo_modal").textContent;
+
+        if (modalTitle !== "Tabella per: FUORI COMMESSA"){
+            resultTable.id = `${ente}`;
+            resultTable.className = "table display caption-top tableModalEnte";
+            let caption = resultTable.createCaption();
+            caption.textContent = `Tabella - Ente ${ente}`;
+        } else {
+            resultTable.id = "FUORI_COMMESSA";
+            resultTable.className = "table display caption-top tableModalEnte";
+            let caption = resultTable.createCaption();
+            caption.textContent = `Tabella - FUORI COMMESSA`;
+        }
+
+        const thead = resultTable.createTHead();
+        const tbody = resultTable.createTBody();
+
+        const copyRows = Array.from(tabellaModale.rows);
+
+        for (let row of copyRows) {
+            const isHeaderRow = row.querySelector("th") !== null;
+
+            if (isHeaderRow) {
+               
+                const newRow = thead.insertRow();
+                for (let cell of row.cells) {
+                    if (cell.cellIndex < 4) {
+                        const th = document.createElement("th");
+                        th.textContent = cell.textContent.trim();
+                        newRow.appendChild(th);
+                    }
+                }
+            } else {
+                
+                const newRow = tbody.insertRow();
+                for (let cell of row.cells) {
+                    if (cell.cellIndex < 4) {
+                        const newCell = newRow.insertCell();
+                        const input = cell.querySelector("input");
+                        const select = cell.querySelector("select");
+                        if (input) {
+                            newCell.textContent = input.value;
+                        } else if (select) {
+                            newCell.textContent = select.options[select.selectedIndex].value;
+                        } else {
+                            newCell.textContent = cell.textContent.trim();
+                        }
+                    }
+                }
+            }
+        }
+
+        listaTabelle.push(resultTable); // CONSERVA LA TABELLA NELLA LISTA PER LA VISUALIZZAZIONE NELLA PAGINA DI RIEPILOGO
+        updateButtonAvanza();// PERMETTE OPPURE BLOCCA L'UTENTE DI AVANZARE SENZA COMPILARE UNA TABELLA DI MOC AGGIUNTIVA 
+        clearModal(); // CANCELLA LE RIGHE DELLA TABELLA POSTALIZZAZIONI 
+        form.reset(); // REINIZIALIZZA IL FORM TABELLA POSTALIZZAZIONI
+        creaTabellaEnte();
+       
+    }
+</script>
+<script>
+    function creaTabellaEnte(){
+        // Questa funzione crea la tabella dove vengono visualizzate le tabelle MOC create dall'utente
+        const  tabellaEnte = document.getElementById("table_ente");
+        tabellaEnte.classList.add("d-none");
+        let countEnteRow = 0; 
+
+        if (listaTabelle.length > 0 ) {
+            tabellaEnte.classList.remove("d-none");
+            
+            
+            let rowsHTML = listaTabelle.map(element => `
+                <tr>
+                    <td>${element.id}</td>
+                    <td><button type="button" id="btn_visualizza_${element.id}" value="${element.id}" class="btn btn-sm btn-outline-info" onclick="visualizzaTabella(event)" data-bs-toggle="popover" data-bs-trigger="hover"
+                        data-bs-placement="top" title="visualizzare tabella"><i class="fa-solid fa-binoculars" ></i></button>
+                        <button type="button" id="btn_cancella_${element.id}" value="${element.id}"class="btn btn-sm btn-outline-danger" onclick="cancellaTabella(event)" data-bs-toggle="popover" data-bs-trigger="hover"
+                        data-bs-placement="top" title="Cancellare tabella"><i class="fa-regular fa-trash-can" ></i></button>
+                    </td> 
+                </tr>
+            `).join('');
+
+            const tbody = tabellaEnte.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = rowsHTML;
+                } else {
+                    tabellaEnte.innerHTML += `<tbody>${rowsHTML}</tbody>`;
+                }
+            } else {
+                tabellaEnte.classList.add("d-none");
+            }
+    }
+</script>
+<script>
+function visualizzaTabella(event) {
+    // Questa funzione permette all'utente di visualizzare la tabella di MOC creata.
+    const button = event.currentTarget;
+    const value = button.value.trim();
+    const tabellaEnte = listaTabelle.find(tabella => tabella.id === value);
+    if (!tabellaEnte) {
+        console.error("Tabella non trovata per id:", button.value);
+        return;
+    }
+
+    const modalBody = document.getElementById('bodyModalVisualizzaTabella');
+    modalBody.innerHTML = "";
+    modalBody.appendChild(tabellaEnte.cloneNode(true));
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('ModalVisualizzaTabella')).show();
+    new DataTable(`#${tabellaEnte.id}`);
+    
+};
+</script>
+
+
+<script>
+    function cancellaTabella(event) {
+        // Questa funzione permette all'utente di cancellare la tabella di MOC creata.
+        const button = event.currentTarget;
+        const row = button.closest("tr");
+        const tableEnte = document.getElementById("table_ente");
+        const value = button.value.trim();
+        const index = listaTabelle.findIndex(table => table.id === value);
+        listaTabelle.splice(index, 1);
+        row.remove(); 
+        if(listaTabelle.length === 0){
+            tableEnte.classList.add("d-none");
+             }
+        blockButtonPostMax();
+        updateButtonAvanza();
+        
+    }
+</script>
+
+<script>
+    function updateButtonAvanza() {
+        // QUESTA FUNZIONE NON PERMETTE DI AVANZARE SE NON CI SONO TABELLE NELLA LISTA E L'UTENTE HA SCELTO QUALCHE OPZIONE DI MOC AGGIUNTIVA
+        let menuStepTwo = document.getElementById('commesse_default').value;
+        let buttonAvanzaTwoToThree = document.getElementById("avanzaTwoToThree");
+        const tableEnte = document.getElementById("table_ente");
+        const checkBoxMax = document.getElementById('flagPostMax');
+
+        if ((menuStepTwo === "1") && (listaTabelle.length == 0) && (checkBoxMax.checked==false)){
+            buttonAvanzaTwoToThree.classList.remove("disabled");
+            buttonAvanzaTwoToThree.classList.add("enabled");
+            //svuotaListaTabelle();
+            //tableEnte.classList.add("d-none");
+        } else if ((menuStepTwo === "1") && (listaTabelle.length > 0) && (checkBoxMax.checked==false)){
+            buttonAvanzaTwoToThree.classList.remove("disabled");
+            buttonAvanzaTwoToThree.classList.add("enabled");
+            //svuotaListaTabelle();
+        } else if (((menuStepTwo === "2") || (menuStepTwo === "3")) && (listaTabelle.length > 0)){
+            buttonAvanzaTwoToThree.classList.remove("disabled");
+            buttonAvanzaTwoToThree.classList.add("enabled");
+            //svuotaListaTabelle();
+        } else if((menuStepTwo === "1" )  && (listaTabelle.length > 0)&& (checkBoxMax.checked==true)){
+            buttonAvanzaTwoToThree.classList.remove("disabled");
+            buttonAvanzaTwoToThree.classList.add("enabled");
+            //svuotaListaTabelle();
+        } else if((menuStepTwo === "1" )  && (listaTabelle.length == 0) && (checkBoxMax.checked==true)){
+            buttonAvanzaTwoToThree.classList.remove("enabled");
+            buttonAvanzaTwoToThree.classList.add("disabled");
+            //svuotaListaTabelle();
+        }
+        else {
+            buttonAvanzaTwoToThree.classList.remove("enabled");
+            buttonAvanzaTwoToThree.classList.add("disabled");
+            //svuotaListaTabelle()
+        }
+    }
+
+    document.getElementById('commesse_default').addEventListener('change', updateButtonAvanza);
+
+</script>
+
+<script>
+    function validateTableRules() {
+        // Questa funzione controlla che l'utente abbia inserito almeno una riga nella tabella prima di inviare il modulo
+        const rows = document.querySelectorAll('#table_postalizzazioni tbody tr');
+
+        if (rows.length === 0) {
+            alert("Devi inserire almeno una riga.");
+            return false;
+        }
+
+        return true;
+}
+</script>
+
+<script>
+    function validaTabellaPostalizz() {
+        // Questa funzione controlla la validazione dei campi della tabella postalizzazioni prima di inviare il modulo.
+        // Segue il standard di validazione di Bootstrap 5. 
+        const form = document.getElementById('tablePostalizzazioniForm');
+        const modalPost = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalPostalizzazioni'));
+        
+
+        // Activate Bootstrap validation UI
+        form.classList.add('was-validated');
+
+        // Check validity of ALL inputs in table
+        if (!form.checkValidity()) {
+            return; // stop if invalid
+        }
+
+        // OPTIONAL: extra table-level rules (recommended)
+        if (!validateTableRules()) {
+            return;
+        }
+
+        // If everything is OK
+        InsertTable();
+        modalPost.hide();
+        form.reset();
+        form.classList.remove('was-validated');
+        blockButtonPostMax();
+    }
+
+</script>
+
+<script>
+    function chiudePulisce() {
+        // Funzione per chiudere il modal e pulire il form quando l'utente decide per chiudere il modale senza inviare il form.
+        const form = document.getElementById('tablePostalizzazioniForm');
+        form.reset();
+        clearModal();
+        form.classList.remove('was-validated');
+    }
+</script>
+
+<script>
+    function unioneTabelle(){
+
+        const tabellaGlobale = document.createElement('table');
+        tabellaGlobale.id = "TabellaGloballe";
+        const theadGlobale = listaTabelle[0].querySelector('thead');
+
+        if (theadGlobale) {
+            tabellaGlobale.appendChild(theadGlobale.cloneNode(true));
+        }
+
+        const tbodyGlobale = document.createElement('tbody');
+        tabellaGlobale.appendChild(tbodyGlobale);
+
+        listaTabelle.forEach(tabella => {
+            const tbodyAux = tabella.querySelector('tbody');
+        
+            if (tbodyAux) {
+                const righe = tbodyAux.querySelectorAll('tr');
+                righe.forEach(lines => {
+                const righeCloned = lines.cloneNode(true); 
+                tbodyGlobale.appendChild(righeCloned);
+                });
+            }
+            });
+        
+        const modalBody = document.getElementById('bodyModalVisualizzaTabella');
+        modalBody.innerHTML = "";
+        modalBody.appendChild(tabellaGlobale.cloneNode(true));
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('ModalVisualizzaTabella')).show();
+        new DataTable(`#${tabellaGlobale.id}`, {
+            layout:{
+            bottom2End: {
+                buttons: [
+                        {
+                            extend: 'csv',
+                            text: 'Download CSV',
+                            fieldSeparator: ',',
+                            className: 'btn btn-sm btn-primary',
+                            filename: 'Vista',
+                            exportOptions: {
+                                columns: [0,1,2,3]
+                            }
+                        }
+                    ],
+               }}
+        });
+    }
+</script>
+
+<script>
+    // Questo script nasconde oppure mostra il button che permette di aggiungere una postalizzazioni Extra
+    function showButtonPostMax(){
+        const checkBoxMax = document.getElementById('flagPostMax');
+        if (checkBoxMax.checked) {
+            document.getElementById('buttonPostMax').classList.remove('d-none');
+        } else {
+            document.getElementById('buttonPostMax').classList.add('d-none');
+        }
+        updateButtonAvanza();
+    }
+    document.getElementById('flagPostMax').addEventListener('change', showButtonPostMax);
+</script>
+
+<script>
+    function blockButtonPostMax(){
+        // Questa funzione blocca l'utilizzo del checkbox e del button per aggiungere una postalizzazione FUORI_COMMESSA se esiste gia una tabella
+        
+        const extraTableName = "FUORI_COMMESSA";
+        let tableExtra = listaTabelle.findIndex(table => table.id === extraTableName);
+        if (tableExtra !== -1) {
+            //document.getElementById('flagPostMax').checked = false;
+            document.getElementById("flagPostMax").disabled=true;
+            document.getElementById("buttonPostMax").disabled=true;
+            
+
+        } else{
+            document.getElementById("flagPostMax").disabled=false;
+            document.getElementById("buttonPostMax").disabled=false;
+        }
+        //updateButtonAvanza();
+    }
+</script>
+<script>
+    function svuotaListaTabelleOperations() {
+        const modalCambioOpzione = bootstrap.Modal.getOrCreateInstance(document.getElementById("ModalCambioOpzione"));
+        listaTabelle = [];
+        creaTabellaEnte();
+        updateButtonAvanza();
+        blockButtonPostMax();
+        modalCambioOpzione.hide();
+    };
+</script>
+<script>
+    function svuotaListaTabelle() {
+        //Questa funzione svuota la listaTabelle e aggiorna la tabella Ente.
+        
+        if(listaTabelle.length == 0){
+            return;
+        }else{
+            
+            const modalCambioOpzione = bootstrap.Modal.getOrCreateInstance(document.getElementById("ModalCambioOpzione"));
+            modalCambioOpzione.show();
+        }
+
+    }
+    document.getElementById('commesse_default').addEventListener('change', svuotaListaTabelle);
+</script>
+
+<script>
+
+    let anticoSelect;
+    $('#commesse_default').on('focus', function() {anticoSelect = $(this).val(); });
+        
+    function tornaSelect(){
+        document.getElementById('commesse_default').value = anticoSelect;
+    }
+</script>
+
+<script>
+    function estrarreDati() {
+    // Questa funzione estrae i dati della lista listaTabelle e restituisce un array di oggetti contenente i dati delle tabelle presente nella lista listaTabelle
+        const dati = [];
+        var geo = "Italia"
+        if (listaTabelle.length > 0){
+            listaTabelle.forEach(elementTabella => {
+                for (let i = 1; i < elementTabella.rows.length; i++) {
+                    const righe = elementTabella.rows[i];
+                    if (righe.cells[0].innerText == "Tutte le regioni" && righe.cells[1].innerText == "Tutte le province") {
+                            geo = "Italia"
+                    }else if(righe.cells[0].innerText != "Tutte le regioni" && righe.cells[1].innerText == "Tutte le province"){
+                        geo = righe.cells[0].innerText
+                    }else {
+                        geo = righe.cells[1].innerText
+                    }
+
+                    dati.push({
+                        "PA_ID": elementTabella.id,
+                        "SUDDIVISIONE_GEOGRAFICA": geo,
+                        "PRODUCT_TYPE": righe.cells[2].innerText,
+                        "MONTHLY_ESTIMATE": righe.cells[3].innerText
+                    });
+                    
+                }
+            });
+        }
+        return dati;
+}
+</script>
+
+<!-- <script>
+        
+    function inviaTabella(datiTabella) {
+        const dadosTabela1 = extrairDadosDaTabela('minhaTabela1');
+        fetch('/salvar-dados-tabela/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Não esqueça do CSRF Token do Django
+            },
+            body: JSON.stringify({ tabelas: dadosTabela1 })
+        })
+        .then(response => response.json())
+        .then(data => console.log('Sucesso:', data));
+    }
+</script> -->
 {% endblock %}

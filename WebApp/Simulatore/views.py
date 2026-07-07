@@ -15,6 +15,8 @@ import csv
 from django.http import HttpResponse
 from django.views.decorators.gzip import gzip_page
 import locale
+import pandas as pd
+pd.set_option('future.no_silent_downcasting', True)
 locale.setlocale(locale.LC_ALL, 'it_IT.UTF-8')
 
 
@@ -123,12 +125,13 @@ def salva_simulazione(request):
     last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
     tipo_simulazione = 'Manuale'
     # recupero parametri dalla pagina html
-    nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json = recupero_parametri_input_utente(request)
+    nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json, lista_tabelle_mock = recupero_parametri_input_utente(request)
 
     # salvataggio simulazione sul db (tabella SIMULAZIONE)
     if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
         # nuova simulazione o new_from_old
         id_simulazione_salvata = salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
+        salvataggio_tabelle_mock(lista_tabelle_mock,id_simulazione_salvata,timestamp_esecuzione,mese_da_simulare)
     else:
         # simulazione esistente che viene modificata
         id_simulazione_salvata = aggiornamento_db_simulazione_esistente(request.POST['id_simulazione'],nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
@@ -538,6 +541,7 @@ def recupero_parametri_input_utente(request):
         string: mese della simulazione scelto dall'utente, formato yyyy-MM
         string: BAU, Picco o Combinata
         dict: capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
+        list: lista di dizionari dati delle tabelle MOCK
     """
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = None
@@ -570,11 +574,12 @@ def recupero_parametri_input_utente(request):
         tipo_capacita_da_modificare = request.POST['tipo_capacita_da_modificare']
     # recuperiamo le capacità modificate dall'utente
     capacita_json = request.POST.get('capacita_json')
+    lista_tabelle_mock = request.POST.get('dati_tabelle_mock')
     try:
         capacita_json = json.loads(capacita_json)
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
-    return nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json
+    return nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json,lista_tabelle_mock
 
 def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
     """
@@ -615,6 +620,40 @@ def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,st
             # ricreiamo l'eccezione originale triggerata nel try
             raise
     return id_simulazione_salvata
+
+def salvataggio_tabelle_mock(lista_tabelle_mock,id_simulazione,timestamp_esecuzione,mese_da_simulare):
+    """
+    Questa funzione gestisce il caso di inserimento sul db di una nuova simulazione
+    
+    Args:
+        nome_simulazione (string): nome della simulazione da salvare sul db
+        descrizione_simulazione (string): descrizione della simulazione da salvare sul db
+        stato (string): stato della simulazione da salvare sul db
+        tipo_trigger (string): tipo trigger della simulazione da salvare sul db
+        timestamp_esecuzione (string): datetime now nel formato yyyy-MM-dd HH:mm:ss
+        mese_da_simulare (string): mese della simulazione da salvare sul db, formato yyyy-MM
+        tipo_capacita_da_modificare (string): tipo capacità modificata della simulazione da salvare sul db
+        tipo_simulazione (string): tipo trigger della simulazione da salvare sul db
+
+    Returns:
+        int: identificativo univoco della simulazione salvata
+    """
+    # salvataggio nuova simulazione sul DB
+    dati_mock = json.loads(lista_tabelle_mock)
+    print(timestamp_esecuzione)
+    for elements in dati_mock:
+        table_mock.objects.create(
+            ID_SIMULAZIONE = id_simulazione,
+            DELIVERY_DATE = mese_da_simulare,
+            PA_ID = elements["PA_ID"],
+            MONTHLY_ESTIMATE = elements["MONTHLY_ESTIMATE"],
+            PRODUCT_TYPE =elements["PRODUCT_TYPE"],
+            SUDDIVISIONE_GEOGRAFICA = elements["SUDDIVISIONE_GEOGRAFICA"],
+            LAST_UPDATE_TIMESTAMP = timestamp_esecuzione
+            )
+
+     
+
 
 
 def aggiornamento_db_simulazione_esistente(id_simulazione,nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
@@ -921,6 +960,14 @@ def gestione_prodotti_rs(mese_da_simulare,tipo_capacita_da_modificare,last_updat
         )
     table_capacita_simulate.objects.bulk_create(lista_capacita_rs_da_salvare)
 
+def formatNullData(tabella):
+    df_aux = pd.DataFrame(tabella)
+    
+    mask = df_aux["PRODUCT_890"].isna() & df_aux["PRODUCT_AR"].isna()
+    df_aux.loc[mask, "PRODUCT_890"] = df_aux["PRODUCT_890"].ffill().infer_objects(copy=False)
+    df_aux.loc[mask, "PRODUCT_AR"] = df_aux["PRODUCT_AR"].ffill().infer_objects(copy=False)
+    
+    return df_aux
 
 
 @gzip_page # utile per comprimere la risposta
@@ -982,7 +1029,9 @@ def elaborazione_capacita_per_provincia(row):
         product_list += '890,'
     if row['PRODUCT_AR'] == True:
         product_list += 'AR,'
-    product_list += 'RS'
+
+
+    product_list += 'RS' 
     # rimuoviamo gli ultimi 2 elementi da ogni riga recuperata dal db (product_890 e product_AR)
     del row['PRODUCT_890']
     del row['PRODUCT_AR']
