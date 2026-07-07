@@ -96,10 +96,18 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
     # chiamiamo la GET_RESIDUAL_PAPERS dando in input la deliveryDate
     config = Config(read_timeout=900) # allungato a 15 minuti
     lambda_delayer = boto3.client('lambda',config=config)
+    # AMBIENTE DI DEV
+    payload_lambda={
+        "operationType": "GET_RESIDUAL_PAPERS",
+        "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate, '2026-07-03']
+    }
+    # AMBIENTE DI PROD
+    '''
     payload_lambda={
         "operationType": "GET_RESIDUAL_PAPERS",
         "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate]
     }
+    '''
     # gestione risposta GET_RESIDUAL_PAPERS
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
@@ -127,7 +135,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
         # contiamo il numero totale delle righe del csv
         n_rows = decoded_content.count('\n')
         # estraiamo il contenuto del csv
-        file_content = csv.reader(io.StringIO(decoded_content))
+        file_content = csv.reader(io.StringIO(decoded_content), delimiter=';')
         # recuperiamo l'header
         header = next(file_content)
         # il numero massimo di righe per ogni file csv è 10000, ma per essere sicuri mettiamo impostiamo il numero massimo a 9900
@@ -140,7 +148,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
             s3_file_key = f'{prefix_s3}residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
             # componiamo il file csv
             buffer = io.StringIO()
-            writer = csv.writer(buffer, delimiter=';')
+            writer = csv.writer(buffer, delimiter=';', quoting=csv.QUOTE_ALL)
             writer.writerow(header)
             writer.writerows(chunk)
             # codifica file csv
@@ -211,7 +219,7 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         return []
 
 
-def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione, start_timestamp_simulazione):
+def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione,start_timestamp_simulazione):
     """
     Recuperiamo la lista dei file csv sui quali effettuare l'operazione di IMPORT_DATA
 
@@ -270,7 +278,7 @@ def lambda_handler(event, context):
     # recuperiamo il path s3 per prendere i csv delle postalizzazioni
     full_prefix = recupero_ultima_data_estrazione(source_bucket, mese_simulazione, start_timestamp_simulazione)
     # recuperiamo la lista dei csv delle postalizzazioni
-    lista_file_csv = recupero_lista_csv_sorgenti(source_bucket,full_prefix,id_simulazione,prima_settimana_simulazione)
+    lista_file_csv = recupero_lista_csv_sorgenti(source_bucket,full_prefix,id_simulazione,prima_settimana_simulazione,start_timestamp_simulazione)
     
     if len(lista_file_csv) != 0:
 

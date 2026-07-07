@@ -251,6 +251,19 @@ class table_capacita_simulate_cap(models.Model):
         ]
 
 
+class table_mock(models.Model):
+    ID = models.AutoField(primary_key=True)
+    ID_SIMULAZIONE = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    DELIVERY_DATE = models.CharField(null=True)
+    PA_ID = models.CharField(max_length=80, null=True)
+    MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    PRODUCT_TYPE = models.CharField(max_length=80, null=True)
+    SUDDIVISIONE_GEOGRAFICA = models.CharField(max_length=80, null=True)
+    LAST_UPDATE_TIMESTAMP = models.CharField(max_length=80, null=True) # sistemare !!!
+    class Meta:
+        db_table = 'SENDER_LIMIT_MOCK'
+
+
 # VISTA output_capacity_setting
 class view_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)
