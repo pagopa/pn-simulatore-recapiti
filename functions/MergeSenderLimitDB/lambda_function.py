@@ -78,7 +78,7 @@ def lambda_handler(event, context):
                 AND public."SENDER_LIMIT"."PRODUCT_TYPE" = public."SENDER_LIMIT_DELTA"."PRODUCT_TYPE"
                 AND public."SENDER_LIMIT"."DELIVERY_DATE" = public."SENDER_LIMIT_DELTA"."DELIVERY_DATE") 
             --When records are matched, update the records if there is any change
-            WHEN MATCHED AND public."SENDER_LIMIT"."LAST_UPDATE_TIMESTAMP" < public."SENDER_LIMIT_DELTA"."LAST_UPDATE_TIMESTAMP" 
+            WHEN MATCHED AND public."SENDER_LIMIT"."MONTHLY_ESTIMATE" <> public."SENDER_LIMIT_DELTA"."MONTHLY_ESTIMATE" 
             THEN UPDATE SET 
             "PK" = public."SENDER_LIMIT_DELTA"."PK", "DELIVERY_DATE" = public."SENDER_LIMIT_DELTA"."DELIVERY_DATE",
             "WEEKLY_ESTIMATE" = public."SENDER_LIMIT_DELTA"."WEEKLY_ESTIMATE", "MONTHLY_ESTIMATE" = public."SENDER_LIMIT_DELTA"."MONTHLY_ESTIMATE", 

@@ -79,7 +79,9 @@ def lambda_handler(event, context):
                 public."DECLARED_CAPACITY"."PRODUCT_RS" = public."DECLARED_CAPACITY_DELTA"."PRODUCT_RS" AND
                 public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM" = public."DECLARED_CAPACITY_DELTA"."ACTIVATION_DATE_FROM") 
             --When records are matched, update the records if there is any change
-            WHEN MATCHED AND public."DECLARED_CAPACITY"."LAST_UPDATE_TIMESTAMP" < public."DECLARED_CAPACITY_DELTA"."LAST_UPDATE_TIMESTAMP" 
+            WHEN MATCHED AND (public."DECLARED_CAPACITY"."CAPACITY" <> public."DECLARED_CAPACITY_DELTA"."CAPACITY" OR 
+                              public."DECLARED_CAPACITY"."PEAK_CAPACITY" <> public."DECLARED_CAPACITY_DELTA"."PEAK_CAPACITY" OR
+                              public."DECLARED_CAPACITY"."PRODUCTION_CAPACITY" <> public."DECLARED_CAPACITY_DELTA"."PRODUCTION_CAPACITY")  
             THEN UPDATE SET 
             "PK" = public."DECLARED_CAPACITY_DELTA"."PK", 
             "CAPACITY" = public."DECLARED_CAPACITY_DELTA"."CAPACITY", "GEOKEY" = public."DECLARED_CAPACITY_DELTA"."GEOKEY", 
