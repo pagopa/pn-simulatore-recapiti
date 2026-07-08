@@ -105,12 +105,12 @@
     <!-- STEP 2 - Postalizzazioni di mock aggiuntive -->
     <div class="step d-none" id="step2">
         <h5 class="text-center">Postalizzazioni di mock aggiuntive</h5>
-        <br>
+            <br>
         <div class="card p-4">
             <div class="form-check">
                 <input class="form-check-input" checked disabled type="checkbox" id="commesse_default">
                 <label class="form-check-label" for="commesse_default">Utilizza le commesse di default</label>
-            </div>
+                </div>
             <div class="row text-center d-none">
                 <div class="col-8">
                 </div>
@@ -129,8 +129,8 @@
             <br>
 
             <table class="table table-hover d-none" id="table_postalizzazioni">
-                <thead class="text-center">
-                    <tr>
+                        <thead class="text-center">
+                            <tr>
                         <th scope="col">Regione</th>
                         <th scope="col">Provincia</th>
                         <th scope="col">Prodotto</th>
@@ -138,8 +138,8 @@
                         <th scope="col">
                             <button type="button" id="aggiungi_riga_tabella_step2" class="btn btn-outline-success btn-sm" title="Aggiungi riga">+</button>
                         </th>
-                    </tr>
-                </thead>
+                            </tr>
+                        </thead>
                 <tbody class="table-group-divider text-center">
                     <tr id="riga-1">
                         <td>
@@ -170,7 +170,7 @@
                         </td>
                     </tr>
                 </tbody>
-            </table>
+                    </table>
 
             <br><br>
 
@@ -917,34 +917,34 @@
         $('#aggiungi_riga_tabella_step2').click(function() {
             rowCount++;
             const newRow = `
-                <tr id="riga-${rowCount}">
-                    <td>
+            <tr id="riga-${rowCount}">
+                <td>
                         <select class="form-select regione-select" name="regione">
                             <option value="" selected disabled class="form-control text-center">--- Seleziona regione ---</option>
                             {% for regione in lista_regioni %}
                                 <option value="{{ regione }}">{{ regione }}</option>
                             {% endfor %}
-                        </select>
-                    </td>
-                    <td>
+                    </select>
+                </td>
+                <td>
                         <select class="form-select provincia-select" name="provincia">
-                            <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
-                        </select>
-                    </td>
-                    <td>
+                        <option value="" class="form-control text-center" selected disabled>--- Seleziona provincia ---</option>
+                    </select>
+                </td>
+                <td>
                         <select class="form-select prodotto-select" name="prodotto">
                             <option value="" selected disabled class="text-center">--- Seleziona prodotto ---</option>
-                            <option value="AR" class="text-center">AR</option>
-                            <option value="890" class="text-center">890</option>
-                        </select>
-                    </td>
-                    <td>
+                        <option value="AR" class="text-center">AR</option>
+                        <option value="890" class="text-center">890</option>
+                    </select>
+                </td>
+                <td>
                         <input class="form-control text-center postalizzazioni-input" placeholder="Inserire n° post." autocomplete="off" type="text" inputmode="numeric" step="1" min="1" maxlength="8" onkeydown="return (event.keyCode!=13);" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    </td>
-                    <td>
+                </td>
+                <td>
                         <button type="button" class="btn btn-outline-danger btn-sm rimuovi_riga_tabella_step2" data-row="${rowCount}" title="Rimuovi riga">-</button>
-                    </td>
-                </tr>
+                </td>
+            </tr>
             `;
             $('tbody').append(newRow);
         });
@@ -986,10 +986,10 @@
     checkbox_default.addEventListener('change', e => {
         if (!(e.target.checked)) {
             table_postalizzazioni.classList.remove("d-none"); // mostra
-        } else {
+            } else {
             table_postalizzazioni.classList.add("d-none"); // nasconde
-        }
-    });
+            }
+        });
 </script>
 
 
