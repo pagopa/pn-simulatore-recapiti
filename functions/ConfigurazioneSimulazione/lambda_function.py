@@ -6,7 +6,6 @@ Trigger:
 
 Input:
     tipo_simulazione: 'Automatizzata' o 'Manuale'
-    id_simulazione_manuale: valorizzata con l'id di simulazione in caso di simulazione 'Manuale', vuota per simulazione 'Automatizzata'
     mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-MM-dd
 
 Output:
