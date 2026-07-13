@@ -359,7 +359,7 @@ def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
         s3_client (botocore.client.S3): connessione ad s3
         source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di INSERT_MOCK_CAPACITIES
-        mese_simulazione (string): mese di simulazione, formato "yyyy-MM-dd"
+        mese_simulazione (string): mese di simulazione, formato "yyyy-MM"
         start_timestamp_simulazione (string): timestamp di stard di esecuzione della step function della simulazione, formato "yyyy-MM-dd HH:mm:ss"
 
     Returns:

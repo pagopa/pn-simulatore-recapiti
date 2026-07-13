@@ -101,7 +101,7 @@ def lambda_import_data(lambda_delayer,filename,date_per_import_data):
     if response_dict['statusCode'] not in (200, 201, 204):
         raise Exception(response_dict['body'])
 
-def carica_oggetto(s3_client, s3_file_key, source_bucket):
+def carica_oggetto(s3_client, s3_file_key, source_bucket, mese_simulazione):
     """
     Questa funzione gestisce le operazioni di GET_PRESIGNED_URL e IMPORT_DATA, con le relative operazioni a corredo
 
@@ -109,6 +109,7 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
         s3_client (botocore.client.S3): connessione ad s3
         s3_file_key (string): chiave dell'oggetto sorgente da caricare nel presigned URL e conseguentemente importare tramite l'operazione di IMPORT_DATA
         source_bucket (string): bucket di origine dell'oggetto sorgente
+        mese_simulazione (string): mese di simulazione, formato "yyyy-MM-dd"
 
     Returns:
         string: nome del file oggetto della IMPORT_DATA 
@@ -117,7 +118,10 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     lambda_delayer = boto3.client('lambda',config=config)
     source_path = '/'.join(s3_file_key.split('/')[:-1])
     source_filename = s3_file_key.split('/')[-1]
-    date_per_import_data = s3_file_key.split('/')[-2]
+    if '/residui/' in s3_file_key:
+        date_per_import_data = mese_simulazione
+    else:
+        date_per_import_data = s3_file_key.split('/')[-2]
     # GET PRESIGNED URL
     uploadUrl, destination_filename = lambda_presigned_url(lambda_delayer,source_filename)
     # creiamo una copia dell'oggetto (che poi elimineremo) con il nome indicato dalla GET PRESIGNED URL
@@ -153,11 +157,12 @@ def lambda_handler(event, context):
     # recupero variabili d'ambiente
     source_bucket = os.environ['source_bucket']
     s3_file_key = event['s3_file_key']
+    mese_simulazione = event['mese_simulazione']
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     
     # carichiamo i csv nella destinazione recuperata attraverso la GET_PRESIGNED_URL ed effettuiamo l'operazione di IMPORT_DATA
-    destination_filename = carica_oggetto(s3_client, s3_file_key, source_bucket)
+    destination_filename = carica_oggetto(s3_client, s3_file_key, source_bucket, mese_simulazione)
     
     # salviamo i nomi dei destination_file su s3
     s3_client.put_object(
