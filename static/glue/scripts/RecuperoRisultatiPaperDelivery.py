@@ -33,7 +33,7 @@ id_simulazione_automatizzata = args['id_simulazione_automatizzata'] # tipo: stri
 id_simulazione_manuale = args['id_simulazione_manuale'] # tipo: stringa
 if id_simulazione_automatizzata != '-':
     id_simulazione = int(id_simulazione_automatizzata)
-elif id_simulazione_manuale != '':
+elif id_simulazione_manuale != '-':
     id_simulazione = int(id_simulazione_manuale)
 else:
     raise Exception("I parametri id_simulazione_automatizzata e id_simulazione_manuale sono entrambi nulli!")
