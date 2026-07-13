@@ -97,17 +97,17 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
     config = Config(read_timeout=900) # allungato a 15 minuti
     lambda_delayer = boto3.client('lambda',config=config)
     # AMBIENTE DI DEV
-    '''
     payload_lambda={
         "operationType": "GET_RESIDUAL_PAPERS",
         "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate, '2026-07-03']
     }
-    '''
     # AMBIENTE DI PROD
+    '''
     payload_lambda={
         "operationType": "GET_RESIDUAL_PAPERS",
         "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate]
     }
+    '''
     
     # gestione risposta GET_RESIDUAL_PAPERS
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
