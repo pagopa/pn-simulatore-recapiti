@@ -23,7 +23,7 @@ dash-html-components==2.0.0
 dash-table==5.0.0
 dash_ag_grid==33.3.3
 dash_mantine_components==2.3.0
-Django==5.2.13
+Django==5.2.15
 django-bootstrap5==25.2
 django-pgviews==0.6.0
 django-plotly-dash==2.5.0
