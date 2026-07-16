@@ -497,7 +497,7 @@ class view_output_grafico_mappa_picchi(pg.View):
 # VISTA view_tabella_sintesi_ente
 class view_tabella_sintesi_ente(pg.View):
     id = models.AutoField(primary_key=True)
-    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
     SENDER_PA_ID = models.CharField(max_length=80, null=True)
     SUM_COUNT_REQUEST = models.IntegerField(null=True)
     AVG_COUNT_REQUEST = models.DecimalField(max_digits=7, decimal_places=5, null=True)
@@ -528,7 +528,7 @@ class view_tabella_sintesi_ente(pg.View):
 # VISTA view_tabella_sintesi_reg_recap
 class view_tabella_sintesi_reg_recap(pg.View):
     id = models.AutoField(primary_key=True)
-    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
     PROVINCE = models.CharField(max_length=5, null=True)
     REGIONE = models.CharField(max_length=50, null=True)
     UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
