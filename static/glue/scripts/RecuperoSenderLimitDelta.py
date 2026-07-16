@@ -85,6 +85,7 @@ def lambda_to_dict(prov,operationType,list_parameters):
 
 # Richiamo della lambda per provincia
 # AMBIENTE DI DEV
+'''
 schema_senderlim = T.StructType() \
       .add("archiveFileKey",T.StringType(),True) \
       .add("DELIVERY_DATE",T.StringType(),True) \
@@ -97,8 +98,8 @@ schema_senderlim = T.StructType() \
       .add("PROVINCE",T.StringType(),True) \
       .add("ttl",T.StringType(),True) \
       .add("WEEKLY_ESTIMATE",T.IntegerType(),True)
-# AMBIENTE DI PROD
 '''
+# AMBIENTE DI PROD
 schema_senderlim = T.StructType() \
       .add("DELIVERY_DATE",T.StringType(),True) \
       .add("fileKey",T.StringType(),True) \
@@ -110,7 +111,6 @@ schema_senderlim = T.StructType() \
       .add("PROVINCE",T.StringType(),True) \
       .add("ttl",T.StringType(),True) \
       .add("WEEKLY_ESTIMATE",T.IntegerType(),True)
-'''
 
 date = args['mese_simulazione']
 

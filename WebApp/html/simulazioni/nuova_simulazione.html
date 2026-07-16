@@ -485,6 +485,7 @@
             document.getElementById('informativa_residui').innerHTML = '';
         }
     }
+    // aggiungiamo l'eventlistener sulle change della select del mese da simulare e sui radiobox schedule/now (con conseguente )
     select_mese_da_simulare.addEventListener('change', recupero_data_residui);
     radiobox_schedule.addEventListener('change', recupero_data_residui);
     radiobox_now.addEventListener('change', recupero_data_residui);
@@ -748,12 +749,14 @@
     }
 </script>
 
-<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità -->
+<!-- GESTIONE CASISTICHE MODIFICA SIMULAZIONE O NEW_FROM_OLD -->
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         if (document.querySelector('#tipo_capacita_da_modificare').value != '' && document.querySelector('#mese_da_simulare').value != ''){
             carica_tabella_capacita_ajax(true);
         }
+        // trigger fittizio informativa_residui
+        recupero_data_residui();
     });
 </script>
 

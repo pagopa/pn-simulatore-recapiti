@@ -79,7 +79,7 @@ def recupero_ultima_data_estrazione(bucket_name, mese_simulazione, start_timesta
     # se non viene trovata alcuna cartella corrispondente
     raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
 
-def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
+def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simulazione_string):
     """
     Funzione che recupera i residui attraverso la lambda 'GET_RESIDUAL_PAPERS', salva il/i csv dei residui su s3 (split se vi sono più di 10k righe) e ritorna la lista del/dei csv caricato/i su s3
 
@@ -87,6 +87,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
         deliveryDate (string): indica la settimana per il recupero dei residui, nel formato 'yyyy-MM-dd'
         prefix_s3 (string): prefisso del bucket fino alla cartella dove andremo a depositare la cartella che conterrà il csv dei residui
         id_simulazione (string): identificativo univoco della simulazione sul db
+        prima_settimana_simulazione_string (string): data della prima settimana di simulazione, nel formato yyyy-MM-dd
     
     Returns:
         list: lista contenente un dizionario per ogni file csv dei residui che dovrà essere importato nella settimana target di simulazione
@@ -96,18 +97,10 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
     # chiamiamo la GET_RESIDUAL_PAPERS dando in input la deliveryDate
     config = Config(read_timeout=900) # allungato a 15 minuti
     lambda_delayer = boto3.client('lambda',config=config)
-    # AMBIENTE DI DEV
-    payload_lambda={
-        "operationType": "GET_RESIDUAL_PAPERS",
-        "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate, '2026-07-03']
-    }
-    # AMBIENTE DI PROD
-    '''
     payload_lambda={
         "operationType": "GET_RESIDUAL_PAPERS",
         "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate]
     }
-    '''
     
     # gestione risposta GET_RESIDUAL_PAPERS
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
@@ -162,7 +155,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione):
                 Body=csv_file,
                 ContentType='text/csv'
             )
-            lista_csv_da_importare.append({'s3_file_key':s3_file_key})
+            lista_csv_da_importare.append({'settimana_import':prima_settimana_simulazione_string,'s3_file_key':s3_file_key})
         return lista_csv_da_importare
     else:
         return []
@@ -209,7 +202,7 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
     # recuperiamo i residui per poi fare import data sulla prima settimana di simulazione
     if delivery_date_residui:
         print(f'La delivery date per il recupero dei residui è: {delivery_date_residui}')
-        lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione)
+        lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione,prima_settimana_simulazione_string)
         if len(lista_file_residui) != 0:
             print("Ci sono residui!")
         else:
@@ -240,23 +233,14 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
     # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere le capacità dei CAP o i residui            
     lista_settimane = [x for x in lista_settimane if '/cap_capacities/' not in x and '/residui/' not in x]
     lista_file_csv = []
-    count=1
     for singola_settimana in lista_settimane:
-        tmp_list = []
         objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=singola_settimana)
         for obj in objects.get("Contents", []):
             if obj["Key"][-4:] == '.csv':
-                tmp_list.append({'s3_file_key':obj["Key"]})
-        lista_file_csv.append({"lista_file_csv_"+str(count):tmp_list})
-        count+=1
+                # nota: singola_settimana ha il formato 'input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione/yyyy-MM-dd_settimana_esecuzione/', dunque, settimana_import avrà il formato 'yyyy-MM-dd_settimana_esecuzione'
+                lista_file_csv.append({'settimana_import':singola_settimana.split('/')[-2],'s3_file_key':obj["Key"]})
     # recupero residui
-    lista_file_csv[0]['lista_file_csv_1'].extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione))
-    # serve per fare in modo di avere sempre 6 settimane. Se ne abbiamo di meno inseriamo le altre vuote
-    if len(lista_file_csv)==4:
-        lista_file_csv.append({"lista_file_csv_5":[]})
-        lista_file_csv.append({"lista_file_csv_6":[]})
-    elif len(lista_file_csv)==5:
-        lista_file_csv.append({"lista_file_csv_6":[]})
+    lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione))
     return lista_file_csv
 
 
@@ -282,7 +266,6 @@ def lambda_handler(event, context):
     lista_file_csv = recupero_lista_csv_sorgenti(source_bucket,full_prefix,id_simulazione,prima_settimana_simulazione,start_timestamp_simulazione)
     
     if len(lista_file_csv) != 0:
-
         return {'statusCode': 200, 'lista_file_csv': lista_file_csv}
     else:
-        raise Exception("Lista file csv vuota")
+        raise Exception("Lista file csv vuota, errore durante il recupero delle postalizzazioni!")

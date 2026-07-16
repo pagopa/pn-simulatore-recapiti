@@ -387,7 +387,7 @@ def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale
 def lambda_handler(event, context):
     # recuperiamo il numero totale di file assegnati alla IMPORT_DATA per il caricamento
     lista_file_da_caricare = event["output_lambda_ListaFileImportData"]['Payload']['lista_file_csv']
-    numero_file_da_caricare = len(lista_file_da_caricare[0]['lista_file_csv_1']) + len(lista_file_da_caricare[1]['lista_file_csv_2']) + len(lista_file_da_caricare[2]['lista_file_csv_3']) + len(lista_file_da_caricare[3]['lista_file_csv_4']) + len(lista_file_da_caricare[4]['lista_file_csv_5']) + len(lista_file_da_caricare[5]['lista_file_csv_6'])
+    numero_file_da_caricare = len(lista_file_da_caricare)
     # recupero parametri d'ambiente dalla step function
     source_bucket = os.environ['source_bucket']
     mese_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-MM-dd ma a noi interessa solamente yyyy-MM
