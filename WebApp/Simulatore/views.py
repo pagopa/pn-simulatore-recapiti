@@ -312,6 +312,88 @@ def recupero_province(request):
         return JsonResponse(lista_province, safe=False)
     return JsonResponse([], safe=False)
 
+def ajax_recupero_data_residui(request):
+    """
+    Questa funzione viene invocata tramite tecnologia AJAX e ci permette di recuperare la data dei residui
+
+    Args:
+        request (django.core.handlers.wsgi.WSGIRequest): oggetto creato da Django a partire dalla richiesta HTTP grezza che arriva dal server web e contiene l'input dell'utente
+        
+    Returns:
+        string: data residui in formato yyyy-mm-dd, None se non è previsto il recupero dei residui
+    """
+    select_mese_da_simulare = request.GET['select_mese_da_simulare']
+    trigger_datetime = request.GET['trigger_datetime']
+    radiobox_now = request.GET['radiobox_now']
+    if radiobox_now == 'true':
+        data_residui = gestione_residui(date.today(), calcolo_prima_settimana(select_mese_da_simulare))
+    else:
+        data_residui = gestione_residui(datetime.strptime(trigger_datetime, '%d/%m/%Y %H:%M').date(), calcolo_prima_settimana(select_mese_da_simulare))
+    return JsonResponse({'data_residui': data_residui})
+
+def calcolo_numero_settimana_attuale_nel_mese(data_simulazione):
+    """
+    Funzione che calcola e restituisce il numero della settimana nel mese
+
+    Args:
+        data_simulazione (date): data a partire dalla quale calcolare il numero della settimana nel mese
+    
+    Note:
+        - 0=prima settimana, 1=seconda settimana, ...
+        - se il primo del mese è lunedì, la prima settimana la segna come 0
+        - se il primo del mese non è lunedì, la seconda settimana inizia dal primo lunedì
+
+    Returns:
+        int: numero della settimana nel mese
+    """
+    # recuperiamo la data odierna
+    data_input = data_simulazione
+    # calcoliamo il primo giorno del mese corrente
+    primo_del_mese = data_input.replace(day=1)
+    # calcoliamo giorno della settimana del primo del mese (RICORDA: con weekday(), 0=lunedì, 6=domenica)
+    offset = primo_del_mese.weekday()
+    # calcoliamo numero settimana nel mese
+    numero_settimana = (data_input.day + offset - 1) // 7
+    return numero_settimana
+
+def gestione_residui(data_simulazione, prima_settimana_simulazione_string):
+    """
+    Funzione che gestisce la logica dei residui e ritorna la data dei residui
+
+    Args:
+        data_simulazione (date): data in cui partirà la simulazione manuale, nel formato yyyy-MM-dd
+        prima_settimana_simulazione_string (string): data della prima settimana di simulazione, nel formato yyyy-MM-dd
+    
+    Returns:
+        string: data residui in formato yyyy-mm-dd
+    """
+    prima_settimana_simulazione = date.fromisoformat(prima_settimana_simulazione_string)
+    # controlliamo se vogliamo simulare il mese in cui ci troviamo, un mese passato o il mese successivo
+    if (prima_settimana_simulazione.year,prima_settimana_simulazione.month) == (data_simulazione.year,data_simulazione.month):
+        # SIMULAZIONE MESE CORRENTE
+        if calcolo_numero_settimana_attuale_nel_mese(data_simulazione) == 0:
+            # caso in cui siamo nella prima settimana, quindi il mese inizia con lunedì oppure il mese inizia a cavallo con la fine del precedente
+            delivery_date_residui = prima_settimana_simulazione - timedelta(days=7)
+        else:
+            # caso in cui siamo dalla seconda settimana in poi
+            delivery_date_residui = prima_settimana_simulazione
+        # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
+        if data_simulazione==delivery_date_residui:
+            delivery_date_residui = delivery_date_residui - timedelta(days=7)
+    elif (prima_settimana_simulazione.year,prima_settimana_simulazione.month) > (data_simulazione.year,data_simulazione.month):
+        # SIMULAZIONE MESE FUTURO CUT-OFF (ricorda: da requisito, recuperiamo i residui solo se simuliamo il mese successivo)
+        if prima_settimana_simulazione.year == data_simulazione.year and ((prima_settimana_simulazione.month - data_simulazione.month) == 1):
+            delivery_date_residui = data_simulazione - timedelta(days=data_simulazione.weekday())
+            # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
+            if data_simulazione==delivery_date_residui:
+                delivery_date_residui = delivery_date_residui - timedelta(days=7)   
+        else:
+            delivery_date_residui = None
+    else:
+        # SIMULAZIONE MESE PASSATO
+        delivery_date_residui = prima_settimana_simulazione
+    return delivery_date_residui
+
 
 def recupero_lista_mesi_simulazione_univoci():
     """
@@ -870,7 +952,7 @@ def download_capacita_per_provincia(request, id_simulazione, recupero_capacita_m
         lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
     # scriviamo sul file con chunk_size=1000
     for row in lista_capacita.iterator(chunk_size=1000):
-        # questo filtro evita che vengano inseriti nel csv dei prodotti con AR e 890 settati a None
+        # questo filtro evita che vengano inseriti nel csv dei prodotti con AR e 890 settati a False
         if row['PRODUCT_890'] == None and row['PRODUCT_AR'] == None:
             continue
         else:
