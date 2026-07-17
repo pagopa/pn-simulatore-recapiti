@@ -46,7 +46,7 @@
                     <label class="form-label"><b>Nome simulazione</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
+                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" id="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
                 </div>
             </div>
             <br>
@@ -55,7 +55,36 @@
                     <label class="form-label"><b>Descrizione (opzionale)</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione">{{simulazione_selezionata.DESCRIZIONE|default_if_none:''}}</textarea>
+                    <textarea class="form-control" autocomplete="off" name="descrizione_simulazione" id="descrizione_simulazione">{{simulazione_selezionata.DESCRIZIONE|default_if_none:''}}</textarea>
+                </div>
+            </div>
+            <br>
+            <div class="row mb-3 align-items-center">
+                <div class="col-auto">
+                    <label class="form-label"><b>Data-ora pianificazione</b>&nbsp;&nbsp;</label>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Schedule -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="radiobutton_trigger" id="radiobutton_trigger_schedule" value="schedule" required {% if simulazione_selezionata.TRIGGER == 'Schedule' %}checked{% endif %}>
+                        <label class="form-check-label" for="radiobutton_trigger_schedule">Schedule</label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <!-- Radio Now -->
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="radiobutton_trigger" id="radiobutton_trigger_now" value="now" {% if simulazione_selezionata.TRIGGER == 'Now' %}checked{% endif %}>
+                        <label class="form-check-label" for="radiobutton_trigger_now">Now</label>
+                    </div>
+                </div>
+            </div>
+            <!-- Campo datetime (inizialmente nascosto) -->
+            <div class="row mb-3 align-items-center d-none" id="datetimeField">
+                <div class="col-auto">
+                    <label class="form-label"><b>Seleziona data-ora</b></label>
+                </div>
+                <div class="col-auto">
+                    <input type="datetime-local" class="form-control" autocomplete="off" style="width:auto;" id="timeSchedule" name="schedule_datetime">
                 </div>
             </div>
             <br>
@@ -64,7 +93,7 @@
                     <label class="form-label"><b>Mese da simulare</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <select required class="form-select" id="mese_da_simulare" name="mese_da_simulare" {% if simulazione_selezionata.MESE_SIMULAZIONE != None %}disabled{% endif %}>
+                    <select required class="form-select" id="mese_da_simulare" name="mese_da_simulare" {% if simulazione_selezionata.new_from_old == True %}style="pointer-events: none; background-color: #f0f0f0;"{% endif %} onchange="pulizia_step_3()">
                         <option selected disabled class="text-center" value="">--- Seleziona un mese da simulare ---</option>
                         {% for singolo_mese in lista_mesi %}
                             <option value="{{singolo_mese.0}}" {% if simulazione_selezionata.MESE_SIMULAZIONE == singolo_mese.0 %}selected{% endif %}>{{singolo_mese.1}}</option>
@@ -75,36 +104,8 @@
                     <input type="hidden" name="mese_da_simulare" value="{{ simulazione_selezionata.MESE_SIMULAZIONE }}">
                 {% endif %}
             </div>
-            <br>
-            <div class="row mb-3 align-items-center">
-                <div class="col-auto">
-                    <label class="form-label"><b>Data-ora pianificazione</b>&nbsp;&nbsp;</label>
-                </div>
-                <div class="col-auto">
-                    <!-- Radio Schedule -->
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="schedule" required {% if simulazione_selezionata.TRIGGER == 'Schedule' %}checked{% endif %}>
-                        <label class="form-check-label" for="inlineRadio1">Schedule</label>
-                    </div>
-                </div>
-                <div class="col-auto">
-                    <!-- Radio Now -->
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="now" {% if simulazione_selezionata.TRIGGER == 'Now' %}checked{% endif %}>
-                        <label class="form-check-label" for="inlineRadio2">Now</label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Campo datetime (inizialmente nascosto) -->
-            <div class="row mb-3 align-items-center d-none" id="datetimeField">
-                <div class="col-auto">
-                    <label class="form-label"><b>Seleziona data-ora</b></label>
-                </div>
-                <div class="col-auto">
-                    <input type="datetime-local" class="form-control" autocomplete="off" style="width:auto;" id="timeSchedule" name="schedule_datetime">
-                </div>
-            </div>
+            <p id="informativa_residui"></p>
+            
             <!-- bottoni salva-avanti -->
             <div class="row">
                 <div class="col d-grid gap-2 mx-auto">
@@ -113,7 +114,7 @@
                     <button type="button" class="btn btn-primary" class="disabled" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled>Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="step_successivo_multiform()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                    <button type="button" class="btn btn-primary" onclick="step_successivo_multiform('1')">Avanti <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
         </div>
@@ -133,17 +134,17 @@
                     <button type="button" class="btn btn-primary btn-md d-none" onclick="getNomeUtente(utenteExtra=true)" id="buttonPostMax"> Inserire postalizzazioni fuori commessa </button>
                 </div>
                 <div class = "col-4 ">
-                    <input class="form-check-input" type="checkbox" value="" id="flagPostMax">
-                    <label class="form-check-label" for="flagPostMax"> Aggiungi postalizzazioni fuori commessa</label>
+                    <input class="form-check-input" type="checkbox" value="" id="checkbox_postalizzazioni_fuori_commessa" {% if simulazione_selezionata.POSTALIZZAZIONI_FUORI_COMMESSA %}checked{% endif %}>
+                    <label class="form-check-label" for="checkbox_postalizzazioni_fuori_commessa"> Aggiungi postalizzazioni fuori commessa</label>
                 </div>
             </div>
             <div class="row">
                     <label class="form-label"><b>Scegliere la modalità di pianificazione delle postalizzazioni:</b></label>
             </div>
-            <select required class="form-select" id="commesse_default" aria-label="Default select example">
-                <option selected enabled value="1">Utilizza le commesse di default</option>
-                <option value="2">Utilizza le commesse di default e le commesse di mock</option>
-                <option value="3">Utilizza solo le commesse di mock</option>
+            <select required class="form-select" name="pianificazione_postalizzazioni" id="pianificazione_postalizzazioni" aria-label="Default select example">
+                <option selected enabled value="Utilizza le commesse di default">Utilizza le commesse di default</option>
+                <option value="Utilizza le commesse di default e le commesse di mock" {% if simulazione_selezionata.PIANIFICAZIONE_POSTALIZZAZIONI == 'Utilizza le commesse di default e le commesse di mock' %}selected{% endif %}>Utilizza le commesse di default e le commesse di mock</option>
+                <option value="Utilizza solo le commesse di mock" {% if simulazione_selezionata.PIANIFICAZIONE_POSTALIZZAZIONI == 'Utilizza solo le commesse di mock' %}selected{% endif %}>Utilizza solo le commesse di mock</option>
             </select>
             <div class="row text-center d-none">
                 <div class="col-8">
@@ -199,13 +200,13 @@
             <!-- bottoni indietro-salva-avanti -->
             <div class="row text-center">
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="step_precedente_multiform()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                    <button type="button" class="btn btn-primary" onclick="step_precedente_multiform('2')"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary enabled" id="avanzaTwoToThree"  onclick="step_successivo_multiform()">Avanti <i class="fa-solid fa-arrow-right"></i></button>
+                    <button type="button" class="btn btn-primary enabled" id="avanzaTwoToThree" onclick="step_successivo_multiform('2')">Avanti <i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
         </div>
@@ -243,6 +244,7 @@
                 </div>
                 <div class="col-2 mx-auto"></div>
             </div>
+            <p id="informativa_mock" class="mt-2 d-none"><b>*</b>il numero di postalizzazioni mensili e settimanali viene conteggiato tenendo in considerazione le commesse di mock e/o le postalizzazioni fuori commessa</p>
 
             <br>
 
@@ -257,7 +259,7 @@
             <!-- bottoni indietro-salva-avvia -->
             <div class="row text-center">
                 <div class="col d-grid gap-2 mx-auto">
-                    <button type="button" class="btn btn-primary" onclick="step_precedente_multiform()"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
+                    <button type="button" class="btn btn-primary" onclick="step_precedente_multiform('3')"><i class="fa-solid fa-arrow-left"></i> Indietro</button>
                 </div>
                 <div class="col d-grid gap-2 mx-auto">
                     <button type="button" class="btn btn-primary" id="salva_bozza" data-bs-toggle="modal" data-bs-target="#exampleModal">Salva come bozza <i class="fa-solid fa-file-signature"></i></button>
@@ -389,6 +391,7 @@
     </div>
 </div>
 
+<!-- MODAL ATTENZIONE: se viene modificata la selezione per la modalità di pianificazione delle postalizzazioni, tutte i dati delle commesse di mock e/o fuori commessa andranno persi -->
 <div class="modal" id="ModalCambioOpzione" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -400,20 +403,63 @@
         <p>Sei sicuro di voler cambiare modalità di pianificazione delle postalizzazioni? Se sì, cancellerai tutti i dati delle commesse di mock e/o fuori commessa già inseriti.</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="tornaSelect()">Annulla</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="tornaSelect()">Annulla</button>
         <button type="button" class="btn btn-primary" id="button_confermo" onclick="svuotaListaTabelleOperations()">Conferma</button>
       </div>
     </div>
   </div>
 </div>
+
+<!-- MODAL ATTENZIONE: se si vuole passare dallo STEP 3 allo STEP 2 tutte le modifiche alle capacità andranno perse -->
+<div class="modal" id="ModalAnnullaModificheCapacita" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Attenzione</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Sei sicuro di voler tornare allo step precedente? Se sì, eventuali modifiche alle capacità andranno perse.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-primary" id="button_confermo" onclick="pulizia_step_3();step_precedente_multiform('2');">Conferma</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="spinner_loading"></div>
+
+{{ tabelle_mock|json_script:"dati-postalizzazioni-step2" }}
+
 {% endblock content %}
 
 
 {% block scripts %}
-<!-- GESTIONE STEP -->
 <script>
+    // DICHIARAZIONI VARIABILI E COSTANTI
+    const param = new URLSearchParams(window.location.search);
+    const select_mese_da_simulare = document.getElementById('mese_da_simulare');
+    const radiobox_schedule = document.getElementById("radiobutton_trigger_schedule");
+    const radiobox_now = document.getElementById("radiobutton_trigger_now");
+    const input_datetime_schedule = document.getElementById("timeSchedule");
+    const datetimeField = document.getElementById("datetimeField");
+    // variabile che ospiterà l'id_simulazione in caso di nuova simulazione o modifica simulazione
+    let id_simulazione = null;
+    // new_from_old - variabile che ospiterà un eventuale id_simulazione di una simulazione esistente
+    let id_old_simulazione = param.get('id');
     // inizializziamo lo step della form corrente a 1 -> inizialmente mostreremo all'utente il primo step
     let currentStep = 1;
+
+    // SPINNER DI CARICAMENTO
+    function spinner_loading() {
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.9; background-color: #fff; z-index: 1060;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+    }
+</script>
+
+<!-- GESTIONE STEP -->
+<script>
     // mostra step iniziale
     mostra_step_multiform(1);
     // gestione invio
@@ -424,6 +470,41 @@
     document.querySelector('input[type="text"][required]').addEventListener('input', gestione_bottone_salva_bozza);
     // Controllo iniziale
     gestione_bottone_salva_bozza();
+
+    async function crea_simulazione() {
+        let bozza_nome_simulazione = document.getElementById('nome_simulazione').value;
+        let bozza_descrizione_simulazione = document.getElementById("descrizione_simulazione").value;
+        let bozza_mese_da_simulare = select_mese_da_simulare.value;
+        let bozza_radiobox_schedule = radiobox_schedule.checked;
+        let bozza_radiobox_now = radiobox_now.checked;
+        let bozza_datetime_schedule = input_datetime_schedule.value;
+
+        // start spinner
+        spinner_loading();
+        try {
+            // await serve per restare in attesa finché AJAX non ha finito
+            const resp = await $.ajax({
+                url: `/salvataggio_simulazione_step1_ajax`,
+                type: 'GET',
+                data: {
+                    'bozza_nome_simulazione': bozza_nome_simulazione,
+                    'bozza_descrizione_simulazione': bozza_descrizione_simulazione,
+                    'bozza_mese_da_simulare': bozza_mese_da_simulare,
+                    'bozza_radiobox_schedule':bozza_radiobox_schedule,
+                    'bozza_radiobox_now':bozza_radiobox_now,
+                    'bozza_datetime_schedule':bozza_datetime_schedule
+                }
+            });
+            return resp['id_simulazione_salvata'].toString();
+        } catch (error) {
+            // Se va in errore entra qui
+            alert('Errore imprevisto');
+            return '-';
+        } finally {
+            // stop
+            document.getElementById("spinner_loading").innerHTML = '';
+        }
+    }
 
     function mostra_step_multiform(step) {
         /*
@@ -456,13 +537,17 @@
         currentStep = step;
     }
 
-    function step_successivo_multiform() {
+    async function step_successivo_multiform(step_attuale) {
         /*
         Funzione che permette di mostrare all'utente lo step della form successivo rispetto a quello corrente
+
+        Args:
+        step_attuale (string): numero di step attuale. Possibili valori: ['1','2']
         */
         // controlla validità dei campi required mostrando il messaggio di default del browser
         const currentStepEl = document.getElementById("step" + currentStep);
         const requiredFields = currentStepEl.querySelectorAll("[required]");
+        const simulazione_esistente = '{{simulazione_esistente}}';
         let isValid = true;
         let firstInvalid = null;
         requiredFields.forEach(field => {
@@ -475,16 +560,61 @@
             firstInvalid.reportValidity();
             return;
         }
-        if (currentStep < 3) {
-            mostra_step_multiform(currentStep + 1);
+        if (step_attuale=='1'){
+            // CREAZIONE NUOVA SIMULAZIONE SUL DB
+            if (simulazione_esistente=='True'){
+                id_simulazione = '{{simulazione_selezionata.ID}}';
+            }
+            else{
+                if (id_simulazione==null){//questo controllo serve ad evitare di ricreare una nuova simulazione se facciamo più volte il passaggio da STEP 1 a STEP 2
+                    id_simulazione = await crea_simulazione();
+                }
+            }
         }
+        else{//step_attuale=='2'
+            if(simulazione_esistente=='False' || id_old_simulazione!=null){
+                var bozza_mese_da_simulare = document.getElementById("mese_da_simulare").value;
+                var pianificazione_postalizzazioni = document.getElementById("pianificazione_postalizzazioni").value;
+                var checkbox_postalizzazioni_fuori_commessa = document.getElementById("checkbox_postalizzazioni_fuori_commessa").checked;
+                // salviamo le postalizzazioni dello STEP 2
+                const datiTabelleMock = estrarreDatiStep2();
+                // start spinner
+                spinner_loading();
+                $.ajax({
+                    url: `/salvataggio_dati_tabelle_mock_ajax`,
+                    type: 'GET',
+                    data: {'id_simulazione':id_simulazione,'dati_tabelle_mock':JSON.stringify(datiTabelleMock),'pianificazione_postalizzazioni':pianificazione_postalizzazioni,'checkbox_postalizzazioni_fuori_commessa':checkbox_postalizzazioni_fuori_commessa},
+                    success: function (resp) {
+                        // stop spinner
+                        document.getElementById("spinner_loading").innerHTML = '';
+                        if (resp['esito']!=200){
+                            throw new Error("Errore durante il salvataggio");
+                        }
+                    },
+                    error: function (resp) {
+                        alert('Errore durante il salvataggio');
+                        // stop spinner
+                        document.getElementById("spinner_loading").innerHTML = '';
+                    },
+                    complete: function (resp) {
+                        // stop spinner
+                        document.getElementById("spinner_loading").innerHTML = '';
+                    }
+                });
+            }
+        }
+        mostra_step_multiform(currentStep + 1);
     }
     
-    function step_precedente_multiform() {
+    function step_precedente_multiform(step_attuale) {
         /*
         Funzione che permette di mostrare all'utente lo step della form precedente rispetto a quello corrente
         */
-        if (currentStep > 1) {
+        if (step_attuale=='3'){
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("ModalAnnullaModificheCapacita")).show();
+        }
+        else{
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("ModalAnnullaModificheCapacita")).hide();
             mostra_step_multiform(currentStep - 1);
         }
     }
@@ -502,29 +632,24 @@
 
 <!-- mostra/nascondi datetime picker quando viene selezionato/deselezionato il radiobutton "Schedule" -->
 <script>
-    const radioSchedule = document.getElementById("inlineRadio1");
-    const radioNow = document.getElementById("inlineRadio2");
-    const datetimeField = document.getElementById("datetimeField");
-    const timeSchedule = document.getElementById("timeSchedule");
-
     document.addEventListener("DOMContentLoaded", function () {
-        if (radioSchedule.checked) {
+        if (radiobox_schedule.checked) {
             datetimeField.classList.remove("d-none"); // mostra
-            timeSchedule.setAttribute('required','required');
+            input_datetime_schedule.setAttribute('required','required');
         } else {
             datetimeField.classList.add("d-none"); // nasconde
-            timeSchedule.removeAttribute('required');
+            input_datetime_schedule.removeAttribute('required');
         }
     });
 
-    document.querySelectorAll('input[name="inlineRadioOptions"]').forEach(radio => {
+    document.querySelectorAll('input[name="radiobutton_trigger"]').forEach(radio => {
         radio.addEventListener("change", () => {
-            if (radioSchedule.checked) {
+            if (radiobox_schedule.checked) {
                 datetimeField.classList.remove("d-none"); // mostra
-                timeSchedule.setAttribute('required','required');
+                input_datetime_schedule.setAttribute('required','required');
             } else {
                 datetimeField.classList.add("d-none"); // nasconde
-                timeSchedule.removeAttribute('required');
+                input_datetime_schedule.removeAttribute('required');
             }
         });
     });
@@ -573,16 +698,54 @@
     });
 </script>
 
+<!-- Alert informativo che avvisa l'utente su eventuali residui che verranno recuperati -->
+<script>
+    function recupero_data_residui() {
+        if (select_mese_da_simulare.value != '' && ((radiobox_schedule.checked && input_datetime_schedule.value !== "") || (radiobox_now.checked))) {
+            $.ajax({
+                url: '/recupero_data_residui_ajax',
+                type: 'GET',
+                data: {
+                    'select_mese_da_simulare': select_mese_da_simulare.value, 
+                    'radiobox_schedule':radiobox_schedule.checked, 
+                    'input_datetime_schedule':input_datetime_schedule.value,
+                    'radiobox_now': radiobox_now.checked
+                },
+                success: function(resp){
+                    if (resp['data_residui'] != null){
+                        document.getElementById('informativa_residui').innerHTML = `Sulla base dei dati inseriti in Data-ora pianificazione e Mese da simulare, per questa simulazione verranno recuperati i residui del ${resp['data_residui']}`;
+                    } else {
+                        document.getElementById('informativa_residui').innerHTML = `Sulla base dei dati inseriti in Data-ora pianificazione e Mese da simulare, per questa simulazione non verranno recuperati residui`;
+                    }
+                },
+                error: function(resp){
+                    document.getElementById('informativa_residui').innerHTML = '';
+                }
+            });
+        }
+        else{
+            document.getElementById('informativa_residui').innerHTML = '';
+        }
+    }
+    // aggiungiamo l'eventlistener sulle change della select del mese da simulare e sui radiobox schedule/now (con conseguente )
+    select_mese_da_simulare.addEventListener('change', recupero_data_residui);
+    radiobox_schedule.addEventListener('change', recupero_data_residui);
+    radiobox_now.addEventListener('change', recupero_data_residui);
+    input_datetime_schedule.addEventListener('input', recupero_data_residui);
+</script>
+
 <script>
     function gestione_submit_bozza() {
         /*
         Funzione che gestisce il submit "Salva come bozza"
         */
         multiStepForm = document.getElementById("multiStepForm");
-        var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
-        var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
-        var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
-        // riempimento input nascosto con capacità modificate dall'utente
+        $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
+        $('<input>').attr({type:'hidden',name:'id_simulazione',value:id_simulazione}).appendTo('#multiStepForm');
+        $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
+        // riempimento input nascosto con le postalizzazioni dello STEP 2
+        $('<input>').attr({type: 'hidden', name: 'dati_tabelle_mock', value: JSON.stringify(estrarreDatiStep2())}).appendTo('#multiStepForm');
+        // riempimento input nascosto con capacità dello STEP 3
         wrap_capacita_json();
         // submit form
         multiStepForm.submit();
@@ -595,16 +758,37 @@
         Funzione che gestisce il submit "Avvia scheduling"
         */
         multiStepForm = document.getElementById("multiStepForm");
-        var $input = $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
-        var $input = $('<input>').attr({type:'hidden',name:'id_simulazione',value:'{{simulazione_selezionata.ID}}'}).appendTo('#multiStepForm');
-        var $input = $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
-        // riempimento input nascosto con capacità modificate dall'utente
+        $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
+        $('<input>').attr({type:'hidden',name:'id_simulazione',value:id_simulazione}).appendTo('#multiStepForm');
+        $('<input>').attr({type:'hidden',name:'new_from_old',value:'{{simulazione_selezionata.new_from_old}}'}).appendTo('#multiStepForm');
+        // riempimento input nascosto con le postalizzazioni dello STEP 2
+        $('<input>').attr({type: 'hidden', name: 'dati_tabelle_mock', value: JSON.stringify(estrarreDatiStep2())}).appendTo('#multiStepForm');
+        // riempimento input nascosto con capacità dello STEP 3
         wrap_capacita_json();
-
-        const datiTabelleMock = estrarreDati();
-        $('<input>').attr({type: 'hidden', name: 'dati_tabelle_mock', value: JSON.stringify(datiTabelleMock)}).appendTo('#multiStepForm');
+        // submit form
         multiStepForm.submit();
     }    
+</script>
+
+<!-- mostra/nascondi informativa mock sullo STEP 3 quando avviene un change sulla select pianificazione_postalizzazioni o sulla checkbox checkbox_postalizzazioni_fuori_commessa -->
+<script>
+    const checkbox_postalizzazioni_fuori_commessa = document.getElementById("checkbox_postalizzazioni_fuori_commessa");
+    const pianificazione_postalizzazioni = document.getElementById("pianificazione_postalizzazioni");
+    const informativa_mock = document.getElementById('informativa_mock');
+    let testo_asterisco = '';
+
+    function carica_informativa_mock(){
+        if(checkbox_postalizzazioni_fuori_commessa.checked == false && pianificazione_postalizzazioni.value == 'Utilizza le commesse di default'){
+            informativa_mock.classList.add("d-none"); // nasconde
+            testo_asterisco = '';
+        }
+        else{
+            informativa_mock.classList.remove("d-none"); // mostra
+            testo_asterisco = '*';
+        }
+    }
+    checkbox_postalizzazioni_fuori_commessa.addEventListener('change', carica_informativa_mock);
+    pianificazione_postalizzazioni.addEventListener('change', carica_informativa_mock);
 </script>
 
 <script>
@@ -617,7 +801,8 @@
         */
         var tipo_capacita_selezionata = document.querySelector('#tipo_capacita_da_modificare').value;
         var mese_da_simulare_selezionato = document.querySelector('#mese_da_simulare').value;
-        var id_simulazione = '{{simulazione_selezionata.ID}}';
+        var pianificazione_postalizzazioni = document.getElementById("pianificazione_postalizzazioni").value;
+        var checkbox_postalizzazioni_fuori_commessa = document.getElementById("checkbox_postalizzazioni_fuori_commessa").checked;
         // è obbligatorio selezionare sia il tipo di capacità che il mese da simulare
         if (tipo_capacita_selezionata == '' ||  mese_da_simulare_selezionato == ''){
             return;
@@ -631,7 +816,15 @@
         $.ajax({
             url: $('.capacita_recuperate_da_db').data('url'),
             type: 'GET',
-            data: {'mese_da_simulare_selezionato':mese_da_simulare_selezionato, 'tipo_capacita_selezionata':tipo_capacita_selezionata, 'id_simulazione':id_simulazione, 'get_modified_capacity':get_modified_capacity},
+            data: {
+                'mese_da_simulare_selezionato':mese_da_simulare_selezionato,
+                'tipo_capacita_selezionata':tipo_capacita_selezionata,
+                'id_simulazione':id_simulazione,
+                'id_old_simulazione':id_old_simulazione,
+                'get_modified_capacity':get_modified_capacity,
+                'pianificazione_postalizzazioni':pianificazione_postalizzazioni,
+                'checkbox_postalizzazioni_fuori_commessa':checkbox_postalizzazioni_fuori_commessa
+            },
             success: function(resp){
                 var nuova_simulazione = resp.nuova_simulazione;
                 var counter_livello_1 = 0;
@@ -656,7 +849,7 @@
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
                                         <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" aria-expanded="true" aria-controls="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}">
-                                            <b>REGIONE: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI: <span class="somma_postalizzazioni">${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
+                                            <b>REGIONE: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['regione']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PROVINCIA: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['provincia']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PRODOTTI: ${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['product']}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;N° POST. MENSILI${testo_asterisco}: <span class="somma_postalizzazioni">${resp.lista_output_capacity_setting[recapitista][singola_regione_codsiglaprovincia_product][0]['post_monthly_estimate']}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAPACITÀ TOTALE<span class="span_tipo_capacita_selezionata"></span>: <span class="somma_capacita"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="alert_mensile"></span></b>
                                         </button>
                                     </h2>
                                     <div id="recapitista_${counter_livello_1}_regione_provincia_product_${counter_livello_2}" class="accordion-collapse collapse">
@@ -667,7 +860,7 @@
                                                         <th scope="col">Regione</th>
                                                         <th scope="col">Provincia</th>
                                                         <th scope="col">Product</th>
-                                                        <th scope="col">Numero di post. settimanali</th>
+                                                        <th scope="col">Numero di post. settimanali${testo_asterisco}</th>
                                                         <th scope="col">Inizio periodo di validità</th>
                                                         <th scope="col">Fine periodo di validità</th>
                                                         <th scope="col" class="align-bottom">Capacità settimanale<span class="th_capacita_settimanale"></span></th>
@@ -783,7 +976,6 @@
                 $('.table_capacita').each(function() {
                     somma_capacita_settimanale(this);
                 });
-                
                 // cattura il valore della select tipo_capacita_da_modificare e lo inserisce come specifica nella colonna 'Capacità settimanale'
                 tipo_capacita_da_modificare_selezionata();
                 // abilitiamo il tasto "Avvia Scheduling"
@@ -833,12 +1025,26 @@
     }
 </script>
 
-<!-- Modifica simulazione: al caricamento della pagina, carichiamo automaticamente le tabelle delle capacità -->
+<!-- GESTIONE CASISTICHE MODIFICA SIMULAZIONE O NEW_FROM_OLD -->
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        if (document.querySelector('#tipo_capacita_da_modificare').value != '' && document.querySelector('#mese_da_simulare').value != ''){
+    document.addEventListener("DOMContentLoaded", async function () {
+        // MODIFICA SIMULAZIONE - recuperiamo l'id_simulazione dalla simulazione_selezionata
+        if ('{{simulazione_esistente}}'=='True' && '{{simulazione_selezionata.new_from_old}}'=='False'){
+            id_simulazione = '{{simulazione_selezionata.ID}}';
+            if ('{{simulazione_selezionata.MESE_SIMULAZIONE}}'!=null && '{{simulazione_selezionata.TIPO_CAPACITA}}'!=null && '{{simulazione_selezionata.PIANIFICAZIONE_POSTALIZZAZIONI}}'!=null && '{{simulazione_selezionata.POSTALIZZAZIONI_FUORI_COMMESSA}}'!=null){
+                carica_tabella_capacita_ajax(true);   
+            }
+        }
+        // NEW_FROM_OLD - recuperiamo l'id_old_simulazione
+        else if ('{{simulazione_esistente}}'=='False' && '{{simulazione_selezionata.new_from_old}}'=='True'){
+            id_old_simulazione = '{{simulazione_selezionata.ID}}';
             carica_tabella_capacita_ajax(true);
         }
+        // trigger fittizio change STEP 2
+        document.getElementById('checkbox_postalizzazioni_fuori_commessa').dispatchEvent(new Event('change'));
+        document.getElementById('pianificazione_postalizzazioni').dispatchEvent(new Event('change'));
+        // trigger fittizio informativa_residui
+        recupero_data_residui();
     });
 </script>
 
@@ -848,11 +1054,9 @@
         /*
         Funzione che permette il caricamento del testo per la modal che appare al click sul bottone "Avvia scheduling"        
         */
-        tipo_scheduling = document.getElementById('avviso_modal_avvia_scheduling');
-        const radioSchedule = document.getElementById("inlineRadio1");
-        const timeSchedule = document.getElementById("timeSchedule");
-        if (radioSchedule.checked) {
-            tipo_scheduling.textContent = `Sei sicuro di voler avviare lo scheduling con trigger "Schedule" (${timeSchedule.value})?`;
+        let tipo_scheduling = document.getElementById('avviso_modal_avvia_scheduling');
+        if (radiobox_schedule.checked) {
+            tipo_scheduling.textContent = `Sei sicuro di voler avviare lo scheduling con trigger "Schedule" (${input_datetime_schedule.value})?`;
         }
         else{
             tipo_scheduling.innerHTML = 'Sei sicuro di voler avviare lo scheduling con trigger "Now"?';
@@ -1130,7 +1334,7 @@ document.getElementById("button_cestino").addEventListener("click", aggOrCancell
 </script> -->
 <!-- mostra/nascondi sezione STEP 2 se selezionata la checkbox "Utilizza le commesse di default" -->
 <script>
-    const select_default = document.getElementById("commesse_default");
+    const select_default = document.getElementById("pianificazione_postalizzazioni");
     //const table_postalizzazioni = document.getElementById("table_postalizzazioni");
     const inputEnte = document.getElementById("inputEnte");
     const label_Ente = document.getElementById("labelEnte");
@@ -1138,7 +1342,7 @@ document.getElementById("button_cestino").addEventListener("click", aggOrCancell
 
     select_default.addEventListener("change", (event) => {
        
-        if(event.target.value !== "1"){
+        if(event.target.value !== "Utilizza le commesse di default"){
                 inputEnte.classList.remove("d-none"); 
                 label_Ente.classList.remove("d-none"); 
                 button_Apri_Modal.classList.remove("d-none");
@@ -1365,7 +1569,7 @@ document.getElementById("button_cestino").addEventListener("click", aggOrCancell
     function InsertTable() {
         // Questa funzione, una volta che la tabella di MOC è compilata inserisce tabella nella lista listaTabelle.
         // La tabella è sempre conservata come un elemento HTML.
-        const checkBoxMax = document.getElementById('flagPostMax');
+        const checkBoxMax = document.getElementById('checkbox_postalizzazioni_fuori_commessa');
         const tabellaModale = document.getElementById("table_postalizzazioni");
         const ente = document.getElementById("inputEnte").value;
         const resultTable = document.createElement("table");
@@ -1507,29 +1711,29 @@ function visualizzaTabella(event) {
 <script>
     function updateButtonAvanza() {
         // QUESTA FUNZIONE NON PERMETTE DI AVANZARE SE NON CI SONO TABELLE NELLA LISTA E L'UTENTE HA SCELTO QUALCHE OPZIONE DI MOC AGGIUNTIVA
-        let menuStepTwo = document.getElementById('commesse_default').value;
+        let menuStepTwo = document.getElementById('pianificazione_postalizzazioni').value;
         let buttonAvanzaTwoToThree = document.getElementById("avanzaTwoToThree");
         const tableEnte = document.getElementById("table_ente");
-        const checkBoxMax = document.getElementById('flagPostMax');
+        const checkBoxMax = document.getElementById('checkbox_postalizzazioni_fuori_commessa');
 
-        if ((menuStepTwo === "1") && (listaTabelle.length == 0) && (checkBoxMax.checked==false)){
+        if ((menuStepTwo === "Utilizza le commesse di default") && (listaTabelle.length == 0) && (checkBoxMax.checked==false)){
             buttonAvanzaTwoToThree.classList.remove("disabled");
             buttonAvanzaTwoToThree.classList.add("enabled");
             //svuotaListaTabelle();
             //tableEnte.classList.add("d-none");
-        } else if ((menuStepTwo === "1") && (listaTabelle.length > 0) && (checkBoxMax.checked==false)){
+        } else if ((menuStepTwo === "Utilizza le commesse di default") && (listaTabelle.length > 0) && (checkBoxMax.checked==false)){
             buttonAvanzaTwoToThree.classList.remove("disabled");
             buttonAvanzaTwoToThree.classList.add("enabled");
             //svuotaListaTabelle();
-        } else if (((menuStepTwo === "2") || (menuStepTwo === "3")) && (listaTabelle.length > 0)){
+        } else if (((menuStepTwo === "Utilizza le commesse di default e le commesse di mock") || (menuStepTwo === "Utilizza solo le commesse di mock")) && (listaTabelle.length > 0)){
             buttonAvanzaTwoToThree.classList.remove("disabled");
             buttonAvanzaTwoToThree.classList.add("enabled");
             //svuotaListaTabelle();
-        } else if((menuStepTwo === "1" )  && (listaTabelle.length > 0)&& (checkBoxMax.checked==true)){
+        } else if((menuStepTwo === "Utilizza le commesse di default" )  && (listaTabelle.length > 0)&& (checkBoxMax.checked==true)){
             buttonAvanzaTwoToThree.classList.remove("disabled");
             buttonAvanzaTwoToThree.classList.add("enabled");
             //svuotaListaTabelle();
-        } else if((menuStepTwo === "1" )  && (listaTabelle.length == 0) && (checkBoxMax.checked==true)){
+        } else if((menuStepTwo === "Utilizza le commesse di default" )  && (listaTabelle.length == 0) && (checkBoxMax.checked==true)){
             buttonAvanzaTwoToThree.classList.remove("enabled");
             buttonAvanzaTwoToThree.classList.add("disabled");
             //svuotaListaTabelle();
@@ -1541,7 +1745,7 @@ function visualizzaTabella(event) {
         }
     }
 
-    document.getElementById('commesse_default').addEventListener('change', updateButtonAvanza);
+    document.getElementById('pianificazione_postalizzazioni').addEventListener('change', updateButtonAvanza);
 
 </script>
 
@@ -1654,7 +1858,7 @@ function visualizzaTabella(event) {
 <script>
     // Questo script nasconde oppure mostra il button che permette di aggiungere una postalizzazioni Extra
     function showButtonPostMax(){
-        const checkBoxMax = document.getElementById('flagPostMax');
+        const checkBoxMax = document.getElementById('checkbox_postalizzazioni_fuori_commessa');
         if (checkBoxMax.checked) {
             document.getElementById('buttonPostMax').classList.remove('d-none');
         } else {
@@ -1662,7 +1866,7 @@ function visualizzaTabella(event) {
         }
         updateButtonAvanza();
     }
-    document.getElementById('flagPostMax').addEventListener('change', showButtonPostMax);
+    document.getElementById('checkbox_postalizzazioni_fuori_commessa').addEventListener('change', showButtonPostMax);
 </script>
 
 <script>
@@ -1672,13 +1876,13 @@ function visualizzaTabella(event) {
         const extraTableName = "FUORI_COMMESSA";
         let tableExtra = listaTabelle.findIndex(table => table.id === extraTableName);
         if (tableExtra !== -1) {
-            //document.getElementById('flagPostMax').checked = false;
-            document.getElementById("flagPostMax").disabled=true;
+            //document.getElementById('checkbox_postalizzazioni_fuori_commessa').checked = false;
+            document.getElementById("checkbox_postalizzazioni_fuori_commessa").disabled=true;
             document.getElementById("buttonPostMax").disabled=true;
             
 
         } else{
-            document.getElementById("flagPostMax").disabled=false;
+            document.getElementById("checkbox_postalizzazioni_fuori_commessa").disabled=false;
             document.getElementById("buttonPostMax").disabled=false;
         }
         //updateButtonAvanza();
@@ -1707,21 +1911,21 @@ function visualizzaTabella(event) {
         }
 
     }
-    document.getElementById('commesse_default').addEventListener('change', svuotaListaTabelle);
+    document.getElementById('pianificazione_postalizzazioni').addEventListener('change', svuotaListaTabelle);
 </script>
 
 <script>
 
     let anticoSelect;
-    $('#commesse_default').on('focus', function() {anticoSelect = $(this).val(); });
+    $('#pianificazione_postalizzazioni').on('focus', function() {anticoSelect = $(this).val(); });
         
     function tornaSelect(){
-        document.getElementById('commesse_default').value = anticoSelect;
+        document.getElementById('pianificazione_postalizzazioni').value = anticoSelect;
     }
 </script>
 
 <script>
-    function estrarreDati() {
+    function estrarreDatiStep2() {
     // Questa funzione estrae i dati della lista listaTabelle e restituisce un array di oggetti contenente i dati delle tabelle presente nella lista listaTabelle
         const dati = [];
         var geo = "Italia"
@@ -1729,9 +1933,9 @@ function visualizzaTabella(event) {
             listaTabelle.forEach(elementTabella => {
                 for (let i = 1; i < elementTabella.rows.length; i++) {
                     const righe = elementTabella.rows[i];
-                    if (righe.cells[0].innerText == "Tutte le regioni" && righe.cells[1].innerText == "Tutte le province") {
-                            geo = "Italia"
-                    }else if(righe.cells[0].innerText != "Tutte le regioni" && righe.cells[1].innerText == "Tutte le province"){
+                    if (righe.cells[0].innerText === "Tutte le regioni") {
+                        geo = "Italia"
+                    }else if (righe.cells[1].innerText === "Tutte le province"){
                         geo = righe.cells[0].innerText
                     }else {
                         geo = righe.cells[1].innerText
@@ -1749,6 +1953,60 @@ function visualizzaTabella(event) {
         }
         return dati;
 }
+</script>
+
+<script>
+    function pulizia_step_3(){
+        document.getElementById('capacita_recuperate_da_db').innerHTML='';
+        document.getElementById('tipo_capacita_da_modificare').selectedIndex=0;
+    }
+</script>
+
+<script>
+    // questa funzione serve per pre-caricare i dati in tabella per modifica simulazioni e new_from_old
+    function precarica_dati_tabella_ente(paId, righe) {
+        const resultTable = document.createElement("table");
+        resultTable.id = paId;
+        resultTable.className = "table display caption-top tableModalEnte";
+
+        const caption = resultTable.createCaption();
+        caption.textContent = (paId === "FUORI_COMMESSA")
+            ? "Tabella - FUORI COMMESSA"
+            : `Tabella - Ente ${paId}`;
+
+        const thead = resultTable.createTHead();
+        const headerRow = thead.insertRow();
+        ["Regione", "Provincia", "Prodotto", "N. Postalizzazioni"].forEach(text => {
+            const th = document.createElement("th");
+            th.textContent = text;
+            headerRow.appendChild(th);
+        });
+
+        const tbody = resultTable.createTBody();
+        righe.forEach(riga => {
+            const tr = tbody.insertRow();
+            [riga.regione, riga.provincia, riga.prodotto, riga.quantita].forEach(val => {
+                tr.insertCell().textContent = val;
+            });
+        });
+
+        return resultTable;
+    }
+
+    // precompilazione al caricamento della pagina
+    $(document).ready(function () {
+        const datiSalvati = JSON.parse(
+            document.getElementById('dati-postalizzazioni-step2').textContent
+        );
+        if (datiSalvati && datiSalvati.length > 0) {
+            datiSalvati.forEach(ente => {
+                listaTabelle.push(precarica_dati_tabella_ente(ente.PA_ID, ente.righe));
+            });
+            creaTabellaEnte();     // rende visibile table_ente con le righe
+            blockButtonPostMax();  // disabilita checkbox/bottone se FUORI_COMMESSA già presente
+            updateButtonAvanza();  // abilita/disabilita "Avanti" in base allo stato
+        }
+    });
 </script>
 
 <!-- <script>

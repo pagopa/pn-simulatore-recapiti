@@ -121,7 +121,7 @@
                                     </div>
                                     <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}?next={% url 'home' %}">Rimuovi</a>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}?next={% url 'home' %}" onclick="spinner_loading();">Rimuovi</a>
                                     </div>
                                 </div>
                             </div>
@@ -206,12 +206,20 @@
 	</div>
 </div>
 
-<!--spinner che parte quando l'utente clicca sul tasto "download csv"-->
+<!-- SPINNER DI CARICAMENTO -->
 <div id="spinner_loading"></div>
 {% endblock content %}
 
 
 {% block scripts %}
+<script>
+    // SPINNER DI CARICAMENTO
+    function spinner_loading() {
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.9; background-color: #fff; z-index: 1060;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+    }
+</script>
+
+
 <!-- script per la tabella datatables -->
 <script>
     var fullDate = new Date();
@@ -421,7 +429,7 @@
             recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per provincia o solamente di quelle modificate
         */
         // start spinner
-        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        spinner_loading();
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}/${recupero_capacita_modificate}`);
@@ -463,7 +471,7 @@
             recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per CAP o solamente di quelle modificate
         */
         // start spinner
-        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        spinner_loading();
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_cap/${id_simulazione}/${recupero_capacita_modificate}`);

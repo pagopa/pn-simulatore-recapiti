@@ -26,6 +26,9 @@ urlpatterns = [
     path('recupero_capacita_ajax', ajax_recupero_capacita, name="ajax_recupero_capacita"),
     path('recupero_simulazioni_da_confrontare_ajax', ajax_recupero_simulazioni_da_confrontare, name="ajax_recupero_simulazioni_da_confrontare"),
     path('recupero_province/', recupero_province, name='recupero_province'),
+    path('recupero_data_residui_ajax', ajax_recupero_data_residui, name="ajax_recupero_data_residui"),
+    path('salvataggio_simulazione_step1_ajax', ajax_salvataggio_simulazione_step1, name="ajax_salvataggio_simulazione_step1"),
+    path('salvataggio_dati_tabelle_mock_ajax', ajax_salvataggio_dati_tabelle_mock, name="ajax_salvataggio_dati_tabelle_mock"),
 
     # HEALTH CHECK ALB
     path('status', status_view, name='status'),
