@@ -50,6 +50,32 @@
           "--mese_simulazione.$": "$.mese_simulazione"
         }
       },
+      "Next": "GENERAZIONE FILE ZIP COMMESSE MOCK",
+      "ResultPath": null
+    },
+    "GENERAZIONE FILE ZIP COMMESSE MOCK": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${GenerazioneFileZIPCommesseMockGlueJobName}",
+        "Arguments": {
+          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
+          "--mese_simulazione.$": "$.mese_simulazione"
+        }
+      },
+      "Next": "GENERAZIONE CSV IMPORT DATA MOCK",
+      "ResultPath": null
+    },
+    "GENERAZIONE CSV IMPORT DATA MOCK": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${GenerazioneCsvImportDataMockGlueJobName}",
+        "Arguments": {
+          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
+          "--mese_simulazione.$": "$.mese_simulazione"
+        }
+      },
       "Next": "RECUPERO FILE CSV PER IMPORT DATA",
       "ResultPath": null
     },
