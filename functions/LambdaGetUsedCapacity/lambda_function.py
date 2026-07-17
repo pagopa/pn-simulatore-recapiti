@@ -72,7 +72,7 @@ def recupero_dati_db(cur, query):
     return rows
 
 
-def recupero_used_capacity(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default):
+def recupero_used_capacity(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default, start_timestamp_simulazione):
     """
     Recupero della capacità utilizzata dalla RUN_ALGORITHM, tramite la GET_USED_CAPACITY, e processing per conseguente salvataggio sul db
 
@@ -110,7 +110,7 @@ def recupero_used_capacity(lista_settimane_processate, lista_province, lista_rec
                     except:
                         activation_date_from = ''
                         activation_date_to = ''
-                    rows.append([list(recapitista)[0],activation_date_from,activation_date_to,response_dict_body['declaredCapacity'],None,None,provincia[1],provincia[0],None,None,datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S'),flag_default,id_simulazione])
+                    rows.append([list(recapitista)[0],activation_date_from,activation_date_to,response_dict_body['declaredCapacity'],None,None,provincia[1],provincia[0],None,None,start_timestamp_simulazione,flag_default,id_simulazione])
     
     return rows
 
@@ -249,6 +249,7 @@ def lambda_handler(event, context):
     db_name = os.environ['DB_NAME']
     db_port = os.environ['DB_PORT']
     lista_settimane_processate = event["output_lambda_CountResidui"]['Payload']['lista_settimane_processate']
+    start_timestamp_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['start_timestamp_simulazione']
     tipo_simulazione = event["tipo_simulazione"]
     # recupero credenziali da SecretsManager
     creds = recupero_credenziali_db(secretsManager_SecretId)
@@ -266,7 +267,7 @@ def lambda_handler(event, context):
         # FLAG_DEFAULT -> per l'automatizzata va settato sempre a True su tutte le capacità recuperate
         flag_default = True
         # GET_USED_CAPACITY
-        rows = recupero_used_capacity(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default)
+        rows = recupero_used_capacity(lista_settimane_processate, lista_province, lista_recapitisti, id_simulazione, flag_default, start_timestamp_simulazione)
         # scrittura sul db delle capacità recuperate con la GET_USED_CAPACITY
         inserimento_used_capacity_db(cur, rows, 'CAPACITA_SIMULATE')
         # commit dell'inserimento
@@ -285,7 +286,7 @@ def lambda_handler(event, context):
         else:
             flag_default = True
         # GET_USED_CAPACITY
-        rows = recupero_used_capacity(lista_settimane_per_getusedcapacity, lista_province, lista_recapitisti, id_simulazione, flag_default)
+        rows = recupero_used_capacity(lista_settimane_per_getusedcapacity, lista_province, lista_recapitisti, id_simulazione, flag_default, start_timestamp_simulazione)
         # scrittura sul db delle capacità recuperate con la GET_USED_CAPACITY
         inserimento_used_capacity_db(cur, rows, 'CAPACITA_SIMULATE_DELTA')
         # cancelliamo le capacità con ACTIVATION_DATE_TO null ed effettuiamo la merge fra CAPACITA_SIMULATE e CAPACITA_SIMULATE_DELTA
