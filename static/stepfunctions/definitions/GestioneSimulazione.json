@@ -74,270 +74,49 @@
           "JitterStrategy": "FULL"
         }
       ],
-      "Next": "Parallel",
+      "Next": "MAP IMPORT DATA",
       "ResultPath": "$.output_lambda_ListaFileImportData",
       "ResultSelector": {
         "Payload.$": "$.Payload"
       },
       "OutputPath": "$"
     },
-    "Parallel": {
-      "Type": "Parallel",
-      "Next": "ADD ANY MOCK CAPACITIES",
-      "Branches": [
-        {
-          "StartAt": "MAP IMPORT DATA WEEK 1",
-          "States": {
-            "MAP IMPORT DATA WEEK 1": {
-              "Type": "Map",
-              "ItemProcessor": {
-                "ProcessorConfig": {
-                  "Mode": "INLINE"
-                },
-                "StartAt": "IMPORT DATA WEEK 1",
-                "States": {
-                  "IMPORT DATA WEEK 1": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::lambda:invoke",
-                    "Parameters": {
-                      "Payload.$": "$",
-                      "FunctionName": "${ImportDataLambdaArn}"
-                    },
-                    "Retry": [
-                      {
-                        "ErrorEquals": [
-                          "Lambda.ServiceException",
-                          "Lambda.AWSLambdaException",
-                          "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "Exception"
-                        ],
-                        "IntervalSeconds": 1,
-                        "MaxAttempts": 6,
-                        "BackoffRate": 2
-                      }
-                    ],
-                    "End": true
-                  }
-                }
-              },
-              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[0].lista_file_csv_1",
-              "MaxConcurrency": 2,
-              "End": true
-            }
-          }
+    "MAP IMPORT DATA": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
         },
-        {
-          "StartAt": "MAP IMPORT DATA WEEK 2",
-          "States": {
-            "MAP IMPORT DATA WEEK 2": {
-              "Type": "Map",
-              "ItemProcessor": {
-                "ProcessorConfig": {
-                  "Mode": "INLINE"
-                },
-                "StartAt": "IMPORT DATA WEEK 2",
-                "States": {
-                  "IMPORT DATA WEEK 2": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::lambda:invoke",
-                    "Parameters": {
-                      "Payload.$": "$",
-                      "FunctionName": "${ImportDataLambdaArn}"
-                    },
-                    "Retry": [
-                      {
-                        "ErrorEquals": [
-                          "Lambda.ServiceException",
-                          "Lambda.AWSLambdaException",
-                          "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "Exception"
-                        ],
-                        "IntervalSeconds": 1,
-                        "MaxAttempts": 6,
-                        "BackoffRate": 2
-                      }
-                    ],
-                    "End": true
-                  }
-                }
-              },
-              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[1].lista_file_csv_2",
-              "MaxConcurrency": 2,
-              "End": true
-            }
-          }
-        },
-        {
-          "StartAt": "MAP IMPORT DATA WEEK 3",
-          "States": {
-            "MAP IMPORT DATA WEEK 3": {
-              "Type": "Map",
-              "ItemProcessor": {
-                "ProcessorConfig": {
-                  "Mode": "INLINE"
-                },
-                "StartAt": "IMPORT DATA WEEK 3",
-                "States": {
-                  "IMPORT DATA WEEK 3": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::lambda:invoke",
-                    "Parameters": {
-                      "Payload.$": "$",
-                      "FunctionName": "${ImportDataLambdaArn}"
-                    },
-                    "Retry": [
-                      {
-                        "ErrorEquals": [
-                          "Lambda.ServiceException",
-                          "Lambda.AWSLambdaException",
-                          "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "Exception"
-                        ],
-                        "IntervalSeconds": 1,
-                        "MaxAttempts": 6,
-                        "BackoffRate": 2
-                      }
-                    ],
-                    "End": true
-                  }
-                }
-              },
-              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[2].lista_file_csv_3",
-              "MaxConcurrency": 2,
-              "End": true
-            }
-          }
-        },
-        {
-          "StartAt": "MAP IMPORT DATA WEEK 4",
-          "States": {
-            "MAP IMPORT DATA WEEK 4": {
-              "Type": "Map",
-              "ItemProcessor": {
-                "ProcessorConfig": {
-                  "Mode": "INLINE"
-                },
-                "StartAt": "IMPORT DATA WEEK 4",
-                "States": {
-                  "IMPORT DATA WEEK 4": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::lambda:invoke",
-                    "Parameters": {
-                      "Payload.$": "$",
-                      "FunctionName": "${ImportDataLambdaArn}"
-                    },
-                    "Retry": [
-                      {
-                        "ErrorEquals": [
-                          "Lambda.ServiceException",
-                          "Lambda.AWSLambdaException",
-                          "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "Exception"
-                        ],
-                        "IntervalSeconds": 1,
-                        "MaxAttempts": 6,
-                        "BackoffRate": 2
-                      }
-                    ],
-                    "End": true
-                  }
-                }
-              },
-              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[3].lista_file_csv_4",
-              "MaxConcurrency": 2,
-              "End": true
-            }
-          }
-        },
-        {
-          "StartAt": "MAP IMPORT DATA WEEK 5",
-          "States": {
-            "MAP IMPORT DATA WEEK 5": {
-              "Type": "Map",
-              "ItemProcessor": {
-                "ProcessorConfig": {
-                  "Mode": "INLINE"
-                },
-                "StartAt": "IMPORT DATA WEEK 5",
-                "States": {
-                  "IMPORT DATA WEEK 5": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::lambda:invoke",
-                    "Parameters": {
-                      "Payload.$": "$",
-                      "FunctionName": "${ImportDataLambdaArn}"
-                    },
-                    "Retry": [
-                      {
-                        "ErrorEquals": [
-                          "Lambda.ServiceException",
-                          "Lambda.AWSLambdaException",
-                          "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "Exception"
-                        ],
-                        "IntervalSeconds": 1,
-                        "MaxAttempts": 6,
-                        "BackoffRate": 2
-                      }
-                    ],
-                    "End": true
-                  }
-                }
-              },
-              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[4].lista_file_csv_5",
-              "MaxConcurrency": 2,
-              "End": true
-            }
-          }
-        },
-        {
-          "StartAt": "MAP IMPORT DATA WEEK 6",
-          "States": {
-            "MAP IMPORT DATA WEEK 6": {
-              "Type": "Map",
-              "ItemProcessor": {
-                "ProcessorConfig": {
-                  "Mode": "INLINE"
-                },
-                "StartAt": "IMPORT DATA WEEK 6",
-                "States": {
-                  "IMPORT DATA WEEK 6": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::lambda:invoke",
-                    "Parameters": {
-                      "Payload.$": "$",
-                      "FunctionName": "${ImportDataLambdaArn}"
-                    },
-                    "Retry": [
-                      {
-                        "ErrorEquals": [
-                          "Lambda.ServiceException",
-                          "Lambda.AWSLambdaException",
-                          "Lambda.SdkClientException",
-                          "Lambda.TooManyRequestsException",
-                          "Exception"
-                        ],
-                        "IntervalSeconds": 1,
-                        "MaxAttempts": 6,
-                        "BackoffRate": 2
-                      }
-                    ],
-                    "End": true
-                  }
-                }
-              },
-              "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv[5].lista_file_csv_6",
-              "MaxConcurrency": 2,
-              "End": true
-            }
+        "StartAt": "IMPORT DATA",
+        "States": {
+          "IMPORT DATA": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "Payload.$": "$",
+              "FunctionName": "${ImportDataLambdaArn}"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException",
+                  "Exception"
+                ],
+                "IntervalSeconds": 1,
+                "MaxAttempts": 6,
+                "BackoffRate": 2
+              }
+            ],
+            "End": true
           }
         }
-      ],
+      },
+      "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv",
+      "MaxConcurrency": 10,
+      "Next": "ADD ANY MOCK CAPACITIES",
       "ResultPath": null
     },
     "ADD ANY MOCK CAPACITIES": {

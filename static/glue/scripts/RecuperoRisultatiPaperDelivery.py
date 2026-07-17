@@ -33,7 +33,7 @@ id_simulazione_automatizzata = args['id_simulazione_automatizzata'] # tipo: stri
 id_simulazione_manuale = args['id_simulazione_manuale'] # tipo: stringa
 if id_simulazione_automatizzata != '-':
     id_simulazione = int(id_simulazione_automatizzata)
-elif id_simulazione_manuale != '':
+elif id_simulazione_manuale != '-':
     id_simulazione = int(id_simulazione_manuale)
 else:
     raise Exception("I parametri id_simulazione_automatizzata e id_simulazione_manuale sono entrambi nulli!")
@@ -102,6 +102,7 @@ schema_paperdel = T.StructType() \
       .add("cap",T.StringType(),True) \
       .add("communicationType",T.StringType(),True) \
       .add("createdAt",T.StringType(),True) \
+      .add("deliveryDate",T.StringType(),True) \
       .add("iun",T.StringType(),True) \
       .add("notificationSentAt",T.StringType(),True) \
       .add("pk",T.StringType(),True) \
@@ -111,6 +112,8 @@ schema_paperdel = T.StructType() \
       .add("province",T.StringType(),True) \
       .add("requestId",T.StringType(),True)\
       .add("senderPaId",T.StringType(),True)\
+      .add("senderPaIdOriginalSentAt",T.StringType(),True)\
+      .add("senderPriority",T.StringType(),True)\
       .add("sk",T.StringType(),True)\
       .add("tenderId",T.StringType(),True)\
       .add("unifiedDeliveryDriver",T.StringType(),True)\
@@ -274,6 +277,11 @@ if count_residui_ultima_settimana > 0:
         dict_response_items_paperdel_res=dict_response_body_paperdel_res['items']
         for diz in dict_response_items_paperdel_res:
             # Aggiungo le colonne mancanti allo schema target se assenti
+            # AMBIENTE DI DEV
+            '''
+            for col in ['priority','senderPaIdOriginalSentAt','tenderId','unifiedDeliveryDriver']:
+            '''
+            # AMBIENTE DI PROD
             for col in ['priority','tenderId','unifiedDeliveryDriver']:
                 try:
                     col_exists=diz[col]
