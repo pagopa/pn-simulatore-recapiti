@@ -21,6 +21,17 @@ Parameters:
     Type: String
     Description: 'ARN of alarm topic'
 
+  WarningSNSTopicArn:
+    Type: String
+    Default: '-'
+    Description: 'ARN of the routed warning topic'
+
+  AlarmNotificationMode:
+    Type: String
+    Default: STANDARD
+    AllowedValues: [STANDARD, WARNING]
+    Description: Select the destination for CloudWatch alarms.
+
   MicroServiceUniqueName:
     Type: String
     Description: 'Unique name for the microservice'
@@ -262,6 +273,16 @@ Parameters:
     Description: 'Number of workers for RecuperoRisultatiPaperDeliveryGlueJob'
     Default: 2
 
+Rules:
+  WarningTopicRequiredForWarningMode:
+    RuleCondition: !Equals [!Ref AlarmNotificationMode, WARNING]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref WarningSNSTopicArn, '-']]
+        AssertDescription: WarningSNSTopicArn must be provided when AlarmNotificationMode is WARNING.
+
+Conditions:
+  UseWarningAlarmTopic: !Equals [!Ref AlarmNotificationMode, WARNING]
+
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -289,7 +310,7 @@ Resources:
         ContainerEnvEntry7: !Sub 'STEP_FUNCTION_ARN=arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione'
         ContainerEnvEntry8: !Sub 'BUCKET_NAME=${SimulatoreDataBucketName}'
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
         ContainerImageURI: !Ref ContainerImageUri
         ECSClusterName: !Ref VPNECSClusterName
         Subnets: !Ref VPNServicesSubnetsIds
@@ -639,7 +660,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref FillCapProvRegFromS3LookupLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
 
   DeleteDataLambda:
     Type: AWS::Lambda::Function
@@ -1105,7 +1126,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref RimozioneDuplicatiDeclaredCapacityLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
   
   # Lambda RimozioneDuplicatiSenderLimit
   RimozioneDuplicatiSenderLimitLambda:
@@ -1161,7 +1182,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref RimozioneDuplicatiSenderLimitLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
 
   # Lambda PuliziaTabelleOutput
   PuliziaTabelleOutputLambda:
@@ -1217,7 +1238,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref PuliziaTabelleOutputLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
 
   # Glue Connection
   GlueNetworkConnection:
@@ -1829,9 +1850,9 @@ Resources:
       AlarmDescription: "CloudWatch alarm for when GestioneSimulazione Step Function executions fail, timeout or are aborted."
       TreatMissingData: notBreaching
       AlarmActions:
-        - !Ref AlarmSNSTopicArn
+        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
       OKActions:
-        - !Ref AlarmSNSTopicArn
+        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
       Dimensions:
         - Name: RuleName
           Value: !Ref GestioneSimulazioneSFAlarmRule
@@ -1851,9 +1872,9 @@ Resources:
       AlarmDescription: "CloudWatch alarm for when RecuperoDati Weekly Step Function executions fail, timeout or are aborted."
       TreatMissingData: notBreaching
       AlarmActions:
-        - !Ref AlarmSNSTopicArn
+        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
       OKActions:
-        - !Ref AlarmSNSTopicArn
+        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
       Dimensions:
         - Name: RuleName
           Value: !Ref RecuperoDatiWeeklySFAlarmRule
