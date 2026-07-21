@@ -49,14 +49,7 @@ Parameters:
 
   WarningSNSTopicArn:
     Type: String
-    Default: '-'
     Description: ARN of the routed warning topic
-
-  AlarmNotificationTarget:
-    Type: String
-    Default: STANDARD_TOPIC
-    AllowedValues: [STANDARD_TOPIC, WARNING_TOPIC]
-    Description: Select the SNS topic used as destination for CloudWatch alarms.
 
   RdsSimulatorClusterIdentifierSuffix:
     Type: String
@@ -128,16 +121,6 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-
-Rules:
-  WarningTopicRequiredForWarningTarget:
-    RuleCondition: !Equals [!Ref AlarmNotificationTarget, WARNING_TOPIC]
-    Assertions:
-      - Assert: !Not [!Equals [!Ref WarningSNSTopicArn, '-']]
-        AssertDescription: WarningSNSTopicArn must be provided when AlarmNotificationTarget is WARNING_TOPIC.
-
-Conditions:
-  UseWarningAlarmTopic: !Equals [!Ref AlarmNotificationTarget, WARNING_TOPIC]
 
 Resources:
 
@@ -366,7 +349,7 @@ Resources:
         MaxACU: !Ref RdsSimulatorMaxACU
         BackupRetentionPeriod: !Ref RdsSimulatorBackupRetentionPeriod
         DeletionProtectionEnabled: !Ref RdsSimulatorDeletionProtection
-        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
         DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
         DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
         EnableMultiAZ: !Ref RdsSimulatorEnableMultiAZ

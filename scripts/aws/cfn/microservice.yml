@@ -23,14 +23,7 @@ Parameters:
 
   WarningSNSTopicArn:
     Type: String
-    Default: '-'
     Description: 'ARN of the routed warning topic'
-
-  AlarmNotificationTarget:
-    Type: String
-    Default: STANDARD_TOPIC
-    AllowedValues: [STANDARD_TOPIC, WARNING_TOPIC]
-    Description: Select the SNS topic used as destination for CloudWatch alarms.
 
   MicroServiceUniqueName:
     Type: String
@@ -273,16 +266,6 @@ Parameters:
     Description: 'Number of workers for RecuperoRisultatiPaperDeliveryGlueJob'
     Default: 2
 
-Rules:
-  WarningTopicRequiredForWarningTarget:
-    RuleCondition: !Equals [!Ref AlarmNotificationTarget, WARNING_TOPIC]
-    Assertions:
-      - Assert: !Not [!Equals [!Ref WarningSNSTopicArn, '-']]
-        AssertDescription: WarningSNSTopicArn must be provided when AlarmNotificationTarget is WARNING_TOPIC.
-
-Conditions:
-  UseWarningAlarmTopic: !Equals [!Ref AlarmNotificationTarget, WARNING_TOPIC]
-
 Resources:
   SimulatorMicroservice:
     Type: AWS::CloudFormation::Stack
@@ -310,7 +293,7 @@ Resources:
         ContainerEnvEntry7: !Sub 'STEP_FUNCTION_ARN=arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione'
         ContainerEnvEntry8: !Sub 'BUCKET_NAME=${SimulatoreDataBucketName}'
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
-        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
         ECSClusterName: !Ref VPNECSClusterName
         Subnets: !Ref VPNServicesSubnetsIds
@@ -660,7 +643,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref FillCapProvRegFromS3LookupLambda
-        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
 
   DeleteDataLambda:
     Type: AWS::Lambda::Function
@@ -1126,7 +1109,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref RimozioneDuplicatiDeclaredCapacityLambda
-        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
   
   # Lambda RimozioneDuplicatiSenderLimit
   RimozioneDuplicatiSenderLimitLambda:
@@ -1182,7 +1165,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref RimozioneDuplicatiSenderLimitLambda
-        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
 
   # Lambda PuliziaTabelleOutput
   PuliziaTabelleOutputLambda:
@@ -1238,7 +1221,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref PuliziaTabelleOutputLambda
-        AlarmSNSTopicArn: !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
 
   # Glue Connection
   GlueNetworkConnection:
@@ -1796,7 +1779,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - sns:Publish
-                Resource: !Ref AlarmSNSTopicArn
+                Resource: !Ref WarningSNSTopicArn
 
   GestioneSimulazioneSFAlarmRule:
     Type: AWS::Events::Rule
@@ -1816,7 +1799,7 @@ Resources:
             - !GetAtt GestioneSimulazioneStateFunction.Arn
       State: ENABLED
       Targets:
-        - Arn: !Ref AlarmSNSTopicArn
+        - Arn: !Ref WarningSNSTopicArn
           Id: !Sub "${ProjectName}-gestione-sim-sf-alarm"
           RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
 
@@ -1838,7 +1821,7 @@ Resources:
             - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
       State: ENABLED
       Targets:
-        - Arn: !Ref AlarmSNSTopicArn
+        - Arn: !Ref WarningSNSTopicArn
           Id: !Sub "${ProjectName}-recupero-dati-weekly-sf-alarm"
           RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
 
@@ -1850,9 +1833,9 @@ Resources:
       AlarmDescription: "CloudWatch alarm for when GestioneSimulazione Step Function executions fail, timeout or are aborted."
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        - !Ref WarningSNSTopicArn
       OKActions:
-        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        - !Ref WarningSNSTopicArn
       Dimensions:
         - Name: RuleName
           Value: !Ref GestioneSimulazioneSFAlarmRule
@@ -1872,9 +1855,9 @@ Resources:
       AlarmDescription: "CloudWatch alarm for when RecuperoDati Weekly Step Function executions fail, timeout or are aborted."
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        - !Ref WarningSNSTopicArn
       OKActions:
-        - !If [UseWarningAlarmTopic, !Ref WarningSNSTopicArn, !Ref AlarmSNSTopicArn]
+        - !Ref WarningSNSTopicArn
       Dimensions:
         - Name: RuleName
           Value: !Ref RecuperoDatiWeeklySFAlarmRule

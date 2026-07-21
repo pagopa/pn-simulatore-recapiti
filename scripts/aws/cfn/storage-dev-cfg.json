@@ -1,6 +1,5 @@
 {
   "Parameters": {
-    "AlarmNotificationTarget": "WARNING_TOPIC",
     "RdsMinACU": "0",
     "RdsMaxACU" : "8",
     "RdsSimulatorEngineVersion": "17.5",
