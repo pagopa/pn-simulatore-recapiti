@@ -52,11 +52,11 @@ Parameters:
     Default: '-'
     Description: ARN of the routed warning topic
 
-  AlarmNotificationMode:
+  AlarmNotificationTarget:
     Type: String
-    Default: STANDARD
-    AllowedValues: [STANDARD, WARNING]
-    Description: Select the destination for CloudWatch alarms.
+    Default: STANDARD_TOPIC
+    AllowedValues: [STANDARD_TOPIC, WARNING_TOPIC]
+    Description: Select the SNS topic used as destination for CloudWatch alarms.
 
   RdsSimulatorClusterIdentifierSuffix:
     Type: String
@@ -130,14 +130,14 @@ Parameters:
       - 'false'
 
 Rules:
-  WarningTopicRequiredForWarningMode:
-    RuleCondition: !Equals [!Ref AlarmNotificationMode, WARNING]
+  WarningTopicRequiredForWarningTarget:
+    RuleCondition: !Equals [!Ref AlarmNotificationTarget, WARNING_TOPIC]
     Assertions:
       - Assert: !Not [!Equals [!Ref WarningSNSTopicArn, '-']]
-        AssertDescription: WarningSNSTopicArn must be provided when AlarmNotificationMode is WARNING.
+        AssertDescription: WarningSNSTopicArn must be provided when AlarmNotificationTarget is WARNING_TOPIC.
 
 Conditions:
-  UseWarningAlarmTopic: !Equals [!Ref AlarmNotificationMode, WARNING]
+  UseWarningAlarmTopic: !Equals [!Ref AlarmNotificationTarget, WARNING_TOPIC]
 
 Resources:
 

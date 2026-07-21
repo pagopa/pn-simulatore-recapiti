@@ -2,7 +2,7 @@
   "Parameters" : {
     "ProjectName": "pn",
     "MicroServiceUniqueName": "simulatore-recapiti",
-    "AlarmNotificationMode": "WARNING",
+    "AlarmNotificationTarget": "WARNING_TOPIC",
     "MinTasksNumber": "1",
     "MaxTasksNumber": "1",
     "PnDelayerLambdaName": "pn-testDelayerLambda",
