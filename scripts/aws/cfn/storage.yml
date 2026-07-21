@@ -47,6 +47,10 @@ Parameters:
     Type: String
     Description: ARN of the shared SNS topic for alarms
 
+  WarningSNSTopicArn:
+    Type: String
+    Description: ARN of the routed warning topic
+
   RdsSimulatorClusterIdentifierSuffix:
     Type: String
     Description: Suffix to make RDS cluster unique
@@ -345,7 +349,7 @@ Resources:
         MaxACU: !Ref RdsSimulatorMaxACU
         BackupRetentionPeriod: !Ref RdsSimulatorBackupRetentionPeriod
         DeletionProtectionEnabled: !Ref RdsSimulatorDeletionProtection
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
         DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
         DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
         EnableMultiAZ: !Ref RdsSimulatorEnableMultiAZ
