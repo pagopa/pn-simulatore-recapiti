@@ -8,7 +8,7 @@ from awsglue.job import Job
 ## @params: [JOB_NAME]
 args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_simulazione','id_simulazione_manuale','s3_bucket','secretsManager_SecretId','jdbc_connection'])
 # args = getResolvedOptions(sys.argv, ['JOB_NAME'])
-# mese_simulazione = '2025-04-06'
+# mese_simulazione = '2025-10-06'
 
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -26,15 +26,11 @@ import json
 import calendar
 from datetime import date, timedelta
 import math
-import json
-import zipfile
-import os
 
 # recupero parametri d'ambiente del job
 s3_bucket = args['s3_bucket']
 secretsManager_SecretId = args['secretsManager_SecretId']
 jdbc_connection = args['jdbc_connection']
-mese_simulazione = args['mese_simulazione']
 id_simulazione = int(args['id_simulazione_manuale']) # tipo: stringa
 max_rows = 10000
 
@@ -47,13 +43,11 @@ client = boto3.client("secretsmanager")
 response = client.get_secret_value(SecretId=secretsManager_SecretId)
 response_SecretString = json.loads(response['SecretString'])
 
-
-####################
 print('Lettura CAP_PROV_REG')
 
 db_table = 'public."CAP_PROV_REG"'
 
-df_cap_prov_reg = spark.read \
+df_cap_prov = spark.read \
     .format("jdbc") \
     .option("url", jdbc_connection) \
     .option("dbtable", db_table) \
@@ -63,25 +57,9 @@ df_cap_prov_reg = spark.read \
     .load()
 
 
-###########
-print('Lettura SENDER_LIMIT')
-
-db_table = 'public."SENDER_LIMIT"'
-
-df_senderlim = spark.read \
-    .format("jdbc") \
-    .option("url", jdbc_connection) \
-    .option("dbtable", db_table) \
-    .option("user", response_SecretString['username']) \
-    .option("password", response_SecretString['password']) \
-    .option("driver", "org.postgresql.Driver") \
-    .load()
-
-df_senderlim = df_senderlim.filter(F.col('DELIVERY_DATE')==mese_simulazione).drop('ID')
-
+df_cap_prov.show()
 
 ###########
-print('Lettura SENDER_LIMIT_MOCK')
 
 db_table = 'public."SENDER_LIMIT_MOCK"'
 
@@ -94,568 +72,261 @@ df_senderlim_mock = spark.read \
     .option("driver", "org.postgresql.Driver") \
     .load()
 
+print('Lettura SENDER_LIMIT_MOCK')
 df_senderlim_mock.show()
 
-df_senderlim_mock = df_senderlim_mock.filter(F.col('SIMULAZIONE_ID')==F.lit(id_simulazione)).drop('ID')
-                                     
+df_senderlim_mock = df_senderlim_mock.drop('ID')\
+                                     .filter(F.col('SIMULAZIONE_ID')==id_simulazione)
 
 
-###########
-print('Lettura SIMULAZIONE')
-
-db_table = 'public."SIMULAZIONE"'
-
-df_simulazione = spark.read \
-    .format("jdbc") \
-    .option("url", jdbc_connection) \
-    .option("dbtable", db_table) \
-    .option("user", response_SecretString['username']) \
-    .option("password", response_SecretString['password']) \
-    .option("driver", "org.postgresql.Driver") \
-    .load()
-
-df_simulazione.show()
-
-df_simulazione = df_simulazione.filter(F.col('ID')==F.lit(id_simulazione))
-
-
-
-# Decisione dell'azione in base alla pianificazione
-pianificazione_postalizzazioni = df_simulazione.select('PIANIFICAZIONE_POSTALIZZAZIONI').collect()[0]
-
-if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le commesse di mock':
-
-    # Lavorazione su SENDER_LIMIT
-    print('Lavorazione su SENDER_LIMIT')
-
-    # Aggiunta della regione alla tabella
-    df_cap_prov_reg_distinct = df_cap_prov_reg.select('COD_SIGLA_PROVINCIA','REGIONE').distinct()
-
-    df_senderlim_reg = df_senderlim.join(df_cap_prov_reg_distinct, df_senderlim.PROVINCE == df_cap_prov_reg_distinct.COD_SIGLA_PROVINCIA, 'left')\
-                                   .select(df_senderlim['*'],df_cap_prov_reg_distinct['REGIONE'])
-
-    # Aggregazione per regione
-    df_senderlim_reg_grouped = df_senderlim_reg.groupBy('PA_ID','DELIVERY_DATE','PRODUCT_TYPE','REGIONE')\
-                                               .agg(F.sum('MONTHLY_ESTIMATE').alias('MONTHLY_ESTIMATE'), F.max('LAST_UPDATE_TIMESTAMP').alias('LAST_UPDATE_TIMESTAMP'))
-
-    # Scrittura file
-    tmp_dir = '/tmp'
-    mese_simulazione_path = mese_simulazione[:4] + '_' + mese_simulazione[5:7]
-    file_zip = "Commesse_enti_"+mese_simulazione_path+"_ID"+str(id_simulazione)+".zip"
-    tmp_path = tmp_dir + "/" + file_zip
-
-    # Eliminazione del file zip nel caso si trovi già all'interno della cartella
-    tmp_list = os.listdir(tmp_dir)
-    for el in tmp_list:
-        if el==file_zip:
-            os.remove(tmp_path)
-            print('Pulizia della cartella temporanea effettuata')  
-
-    print('Scrittura file')
-    with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
+# Lavoro solamente se ci sono commesse di mock
+if df_senderlim_mock.count()>0:
         
-        for ente in df_senderlim_reg_grouped.select("PA_ID").distinct().collect():
-            
-            ente = ente.asDict()['PA_ID']
-
-            # Se l'ente è un extra la commessa non deve essere creata
-            if 'FUORI_COMMESSA' not in ente.upper(): 
-                print('Elaborazione ente: ',ente)
-                
-                diz_ente_json = {}
-                df_senderlim_ente = df_senderlim_reg_grouped.filter(F.col('PA_ID')==ente)
-            
-                # Riempimento dei campi a livello di ente
-                diz_ente_json['idEnte'] = ente
-                diz_ente_json['contractId'] = ente
-                diz_ente_json['periodo_riferimento'] = str(df_senderlim_reg.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
-                diz_ente_json['last_update'] = str(df_senderlim_ente.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
-            
-                # Riempimento dei campi a livello di prodotto
-                list_prod_json = []
-                
-                for prodotto in df_senderlim_ente.select("PRODUCT_TYPE").distinct().collect():
-            
-                    prodotto = prodotto.asDict()['PRODUCT_TYPE']
-                    df_senderlim_prod = df_senderlim_ente.filter(F.col('PRODUCT_TYPE')==prodotto)
-            
-                    diz_prod_json = {}
-                    diz_prod_json['id'] = prodotto
-                    diz_prod_json['nome'] = prodotto
-            
-                    sum_monthly_estimate_prod = 0
-                    for row in df_senderlim_prod.select('MONTHLY_ESTIMATE').collect():
-                        sum_monthly_estimate_prod += row['MONTHLY_ESTIMATE']
-                    diz_prod_json['valore_totale'] = sum_monthly_estimate_prod
-            
-                    # Riempimento dei campi per nazione
-                    diz_prod_json['varianti'] = []
-                    
-                    diz_naz_json_nz = {}
-                    diz_naz_json_nz['codice'] = 'NZ'
-                    diz_naz_json_nz['nome'] = 'NZ'
-                    diz_naz_json_nz['valore_totale'] = sum_monthly_estimate_prod
-                    diz_naz_json_nz['distribuzione'] = {'regionale':[]}
-            
-                    # Riempimento campi per regione
-                    list_reg_json = []
-            
-                    for regione in df_senderlim_prod.select('REGIONE').collect():
-            
-                        regione = regione.asDict()['REGIONE']
-                        diz_reg_json = {}
-                        diz_reg_json['regione'] = regione
-                        diz_reg_json['province'] = None
-            
-                        sum_monthly_estimate_reg = 0
-                        for row in df_senderlim_prod.select('MONTHLY_ESTIMATE').filter(F.col('REGIONE')==regione).collect():
-                            sum_monthly_estimate_reg += row['MONTHLY_ESTIMATE']
-                        diz_reg_json['valore'] = sum_monthly_estimate_reg
-            
-                        list_reg_json.append(diz_reg_json)
-                    
-                    diz_naz_json_nz['distribuzione'] = {'regionale': list_reg_json}
-            
-                    diz_prod_json['varianti'].append(diz_naz_json_nz)
-                    
-                    if prodotto == 'AR':
-                        diz_naz_json_int = {}
-                        diz_naz_json_int['codice'] = 'INT'
-                        diz_naz_json_int['nome'] = 'INT'
-                        diz_naz_json_int['valore_totale'] = 0
-                        diz_naz_json_int['distribuzione'] = None
-                        
-                        diz_prod_json['varianti'].append(diz_naz_json_int)
-            
-                    list_prod_json.append(diz_prod_json)
-            
-                # Aggiunta del prodotto digitale
-                diz_digitale = {
-                        "id": "digitale",
-                        "nome": "digitale",
-                        "valore_totale": 0,
-                        "varianti": [
-                            {
-                                "codice": "PEC",
-                                "nome": "PEC",
-                                "valore_totale": 0,
-                                "distribuzione": None
-                            }
-                        ]
-                    }
-                
-                list_prod_json.append(diz_digitale)
-            
-                diz_ente_json['prodotti'] = list_prod_json
+    # Estrazione della lista di dizionari corrispondente al dataframe
+    print('Creazione dizionario ed estrazione calendario')
+    
+    row_list=df_senderlim_mock.collect()
+    dict_response_senderlim_items=[row.asDict() for row in row_list]
+    
+    # Estrazione del calendario mensile per settimana e del numero di giorni nel mese
+    anno = int(args['mese_simulazione'][:4])
+    mese = int(args['mese_simulazione'][5:7])
+    
+    print(anno+mese)
+    
+    settimane = calendar.monthcalendar(anno, mese)
+    giorni_mese=sum(len([i for i in settimana if i!=0]) for settimana in settimane)
+    
+    
+    print('Estrazione dei lunedì')
+    # Creazione della lista dei lunedì delle settimane che includono giorni del mese corrente
+    calendario=calendar.Calendar()
+    lista_lunedi=[day for day in calendario.itermonthdates(anno,mese) if day.weekday()==0]
+    
+    # Non devono essere considerati giorni fuori dal mese corrente
+    if lista_lunedi[0]!=mese:
+        lista_lunedi[0]=date(anno,mese,1)
         
-                # Scrittura del Json dell'ente all'interno del file zip
-                str_ente_json = json.dumps(diz_ente_json, indent=4, ensure_ascii=False)
-                zipf.writestr(ente+".json", str_ente_json)
-
-
-
-    # Lavorazione su SENDER_LIMIT_MOCK
-    print('Lavorazione su SENDER_LIMIT_MOCK')
-
-    # Aggiunta della regione alla tabella
-    df_cap_prov_reg_distinct = df_cap_prov_reg.select('COD_SIGLA_PROVINCIA','REGIONE').distinct()
-
-    df_senderlim_mock_reg_stg = df_senderlim_mock.join(df_cap_prov_reg_distinct, df_senderlim_mock.SUDDIVISIONE_GEOGRAFICA == df_cap_prov_reg_distinct.COD_SIGLA_PROVINCIA, 'left')\
-                                   .select(df_senderlim_mock['*'],df_cap_prov_reg_distinct['REGIONE'])
-
-    # Aggiusto per i valori che hanno già regioni
-    df_senderlim_mock_reg = df_senderlim_mock_reg_stg.withColumn('REGIONE',F.when((F.col('REGIONE').isNull()) & (F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia'), F.col('SUDDIVISIONE_GEOGRAFICA'))\
-                                                            .otherwise(F.col('REGIONE')))
-
-    # Aggiunta alla CAP_PROV_REG della proporzione nazionale per CAP
-    pop_cap_tot = df_cap_prov_reg.select(F.sum(F.col('POP_CAP'))).collect()[0].asDict()['sum(POP_CAP)']
-    df_cap_prov_prop_naz=df_cap_prov_reg.withColumn('PROP_POP_CAP_NAZ',F.col('POP_CAP')/pop_cap_tot)\
+    print('lista_lunedi:',lista_lunedi)
+    
+    print ('Calcolo postalizzazioni settimanali')
+    # Calcolo postalizzazioni
+    
+    row_list=[]
+    col_list=['SUDDIVISIONE_GEOGRAFICA','PRODUCT_TYPE','PA_ID','DELIVERY_DATE','Postalizzazioni']
+    
+    for item in dict_response_senderlim_items:
+        
+        # Calcolo postalizzazioni giornaliere
+        postalizzazioni_daily=item['MONTHLY_ESTIMATE']/giorni_mese
+        postalizzazioni_weekly_list=[]
+        
+        # Calcolo postalizzazioni settimanali
+        somma_postalizzazioni=0
+        for settimana in settimane[:-1]:
+          giorni_settimana=len([i for i in settimana if i!=0])
+          postalizzazioni_weekly=int(round(postalizzazioni_daily*giorni_settimana,0))
+          postalizzazioni_weekly_list.append(postalizzazioni_weekly)
+          somma_postalizzazioni=somma_postalizzazioni+postalizzazioni_weekly
+        
+        # Aggiunta delle postalizzazioni avanzate all'ultima settimana
+        last_week=item['MONTHLY_ESTIMATE']-somma_postalizzazioni
+        postalizzazioni_weekly_list.append(last_week)
+    
+        # Dataframe delle postalizzazioni raggruppate per settimana e provincia/regione/tutta Italia
+        for i in range(len(lista_lunedi)):
+            row=[]
+            row.append(item['SUDDIVISIONE_GEOGRAFICA'])
+            row.append(item['PRODUCT_TYPE'])
+            row.append(item['PA_ID'])
+            row.append(lista_lunedi[i])
+            row.append(postalizzazioni_weekly_list[i])
+            row_list.append(row)
+    
+    df_postalizzazioni=spark.createDataFrame(row_list,col_list).filter(F.col('Postalizzazioni')>0)   
+    
+    
+    print('Split postalizzazioni per CAP sul territorio nazionale')
+    # Lavorazione per suddivisione geografica nazionale
+    w_naz = Window.partitionBy()
+    df_cap_prov_prop_naz=df_cap_prov.withColumn('PROP_POP_CAP_NAZ',F.col('POP_CAP')/F.sum(F.col('POP_CAP')).over(w_naz))\
                                             .withColumn('SUDDIVISIONE_NAZIONALE',F.lit('Italia'))
-
-
-    # Scrittura file
-    print('Scrittura file')
-    with zipfile.ZipFile(tmp_path, "a", compression=zipfile.ZIP_DEFLATED) as zipf:
-        
-        for ente in df_senderlim_mock_reg.select("PA_ID").distinct().collect():
-            
-            ente = ente.asDict()['PA_ID']
-
-            # Se l'ente è un extra la commessa non deve essere creata
-            if 'FUORI_COMMESSA' not in ente.upper(): 
-                print('Elaborazione ente: ',ente)
-            
-                # Lavorazione a parte per le commesse a livello nazionale
-                df_senderlim_mock_ente = df_senderlim_mock_reg.filter(F.col('PA_ID')==ente)
-                
-                # Suddivisione delle postalizzazioni per CAP
-                df_senderlim_mock_naz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')=='Italia')\
-                                                            .withColumnRenamed('REGIONE','REGIONE_SENDER')
-                
-                df_postalizzazioni_cap_naz=df_senderlim_mock_naz.join(df_cap_prov_prop_naz,df_senderlim_mock_naz.SUDDIVISIONE_GEOGRAFICA==df_cap_prov_prop_naz.SUDDIVISIONE_NAZIONALE,how='left')\
-                                                                 .withColumn("quota_reale", F.col('MONTHLY_ESTIMATE') * F.col('PROP_POP_CAP_NAZ'))\
-                                                                 .withColumn("floor_val", F.floor(F.col("quota_reale")))\
-                                                                 .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
-                                                                 .select('ID_SIMULAZIONE','ATTEMPT','LAST_UPDATE_TIMESTAMP','PRODUCT_TYPE','PA_ID','DELIVERY_DATE','MONTHLY_ESTIMATE','CAP','COD_SIGLA_PROVINCIA','REGIONE','quota_reale','floor_val','resto')
-                
-                # Calcolo il numero di postalizzazioni per CAP e ridistribuisco i resti
-                column_list = ['PRODUCT_TYPE','DELIVERY_DATE']
-                win_spec = Window.partitionBy([F.col(x) for x in column_list])
-                
-                df_postalizzazioni_mancanti_naz = df_postalizzazioni_cap_naz.withColumn("somma_floor", F.sum("floor_val").over(win_spec))\
-                                                                            .withColumn("totale_gruppo", F.max('MONTHLY_ESTIMATE').over(win_spec))\
-                                                                            .withColumn("manca", F.col("totale_gruppo") - F.col("somma_floor"))
-                
-                w_group_desc_resto = Window.partitionBy([F.col(x) for x in column_list]).orderBy(F.col("resto").desc())
-                
-                df_ranking_naz = df_postalizzazioni_mancanti_naz.withColumn("rank_resti", F.row_number().over(w_group_desc_resto))
-                
-                df_postalizzazioni_cap_final_naz = df_ranking_naz.withColumn(
-                        "Postalizzazioni_cap",
-                        F.col("floor_val") +
-                        F.when(F.col("rank_resti") <= F.col("manca"), 1).otherwise(0)
-                    )\
-                    .drop('MONTHLY_ESTIMATE')
-            
-                # Unione dei dati derivati dalle commesse nazionali e dalle altre
-                df_senderlim_mock_naz = df_postalizzazioni_cap_final_naz.withColumnRenamed('Postalizzazioni_cap','MONTHLY_ESTIMATE')\
-                                                .withColumnRenamed('COD_SIGLA_PROVINCIA','SUDDIVISIONE_GEOGRAFICA')\
-                                                .select('ID_SIMULAZIONE','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
-                
-                df_senderlim_mock_subnaz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia')
-                
-                df_senderlim_mock_tot = df_senderlim_mock_naz.union(df_senderlim_mock_subnaz)
-
-                # Aggregazione per regione
-                df_senderlim_mock_tot_grouped = df_senderlim_mock_tot.groupBy('PA_ID','DELIVERY_DATE','ID_SIMULAZIONE','PRODUCT_TYPE','REGIONE')\
-                                                                     .agg(F.sum('MONTHLY_ESTIMATE').alias('MONTHLY_ESTIMATE'), F.max('LAST_UPDATE_TIMESTAMP').alias('LAST_UPDATE_TIMESTAMP'))
-                
-                # CREAZIONE JSON
-                
-                diz_ente_json = {}
-                
-                # Riempimento dei campi a livello di ente
-                diz_ente_json['idEnte'] = ente
-                diz_ente_json['contractId'] = ente
-                diz_ente_json['periodo_riferimento'] = str(df_senderlim_mock_tot_grouped.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
-                diz_ente_json['last_update'] = str(df_senderlim_mock_tot_grouped.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
-            
-                # Riempimento dei campi a livello di prodotto
-                list_prod_json = []
-                
-                for prodotto in df_senderlim_mock_tot_grouped.select("PRODUCT_TYPE").distinct().collect():
-            
-                    prodotto = prodotto.asDict()['PRODUCT_TYPE']
-                    diz_prod_json = {}
-                    diz_prod_json['id'] = prodotto
-                    diz_prod_json['nome'] = prodotto
-            
-                    df_senderlim_mock_prod = df_senderlim_mock_tot_grouped.filter(F.col('PRODUCT_TYPE')==prodotto)
-            
-                    sum_monthly_estimate_prod = 0
-                    for row in df_senderlim_mock_prod.select('MONTHLY_ESTIMATE').collect():
-                        sum_monthly_estimate_prod += row['MONTHLY_ESTIMATE']
-                    diz_prod_json['valore_totale'] = sum_monthly_estimate_prod
-            
-                    # Riempimento dei campi per nazione
-                    diz_prod_json['varianti'] = []
-                    
-                    diz_naz_json_nz = {}
-                    diz_naz_json_nz['codice'] = 'NZ'
-                    diz_naz_json_nz['nome'] = 'NZ'
-                    diz_naz_json_nz['valore_totale'] = sum_monthly_estimate_prod
-                    diz_naz_json_nz['distribuzione'] = {'regionale':[]}
-            
-                    # Riempimento campi per regione
-                    list_reg_json = []
-            
-                    for regione in df_senderlim_mock_prod.select('REGIONE').collect():
-            
-                        regione = regione.asDict()['REGIONE']
-                        diz_reg_json = {}
-                        diz_reg_json['regione'] = regione
-                        diz_reg_json['province'] = None
-            
-                        sum_monthly_estimate_reg = 0
-                        for row in df_senderlim_mock_prod.select('MONTHLY_ESTIMATE').filter(F.col('REGIONE')==regione).collect():
-                            sum_monthly_estimate_reg += row['MONTHLY_ESTIMATE']
-                        diz_reg_json['valore'] = sum_monthly_estimate_reg
-            
-                        list_reg_json.append(diz_reg_json)
-            
-                    diz_naz_json_nz['distribuzione'] = {'regionale': list_reg_json}
-            
-                    diz_prod_json['varianti'].append(diz_naz_json_nz)
-                    
-                    if prodotto == 'AR':
-                        diz_naz_json_int = {}
-                        diz_naz_json_int['codice'] = 'INT'
-                        diz_naz_json_int['nome'] = 'INT'
-                        diz_naz_json_int['valore_totale'] = 0
-                        diz_naz_json_int['distribuzione'] = None
-                        
-                        diz_prod_json['varianti'].append(diz_naz_json_int)
-            
-                    list_prod_json.append(diz_prod_json)
-            
-                # Aggiunta del prodotto digitale
-                diz_digitale = {
-                        "id": "digitale",
-                        "nome": "digitale",
-                        "valore_totale": 0,
-                        "varianti": [
-                            {
-                                "codice": "PEC",
-                                "nome": "PEC",
-                                "valore_totale": 0,
-                                "distribuzione": None
-                            }
-                        ]
-                    }
-                
-                list_prod_json.append(diz_digitale)
-            
-                diz_ente_json['prodotti'] = list_prod_json
-                
-                
-                # Scrittura del Json dell'ente all'interno del file zip
-                str_ente_json = json.dumps(diz_ente_json, indent=4, ensure_ascii=False)
-                zipf.writestr(ente+".json", str_ente_json)
-        
-
-    # Scrittura su S3
-    print('Scrittura su S3')
+    
+    # Suddivisione delle postalizzazioni settimanali per CAP
+    df_postalizzazioni_naz=df_postalizzazioni.filter(F.col('SUDDIVISIONE_GEOGRAFICA')=='Italia')
+    
+    df_postalizzazioni_cap_naz=df_postalizzazioni_naz.join(df_cap_prov_prop_naz,df_postalizzazioni.SUDDIVISIONE_GEOGRAFICA==df_cap_prov_prop_naz.SUDDIVISIONE_NAZIONALE,how='left')\
+                                                     .withColumn("quota_reale", F.col('Postalizzazioni') * F.col('PROP_POP_CAP_NAZ'))\
+                                                     .withColumn("floor_val", F.floor(F.col("quota_reale")))\
+                                                     .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
+                                                     .select('PRODUCT_TYPE','PA_ID','DELIVERY_DATE','Postalizzazioni','CAP','COD_SIGLA_PROVINCIA','quota_reale','floor_val','resto')
+    
+    df_postalizzazioni_cap_naz.show()
+    
+    # Calcolo il numero di postalizzazioni per CAP e ridistribuisco i resti
+    column_list = ['PRODUCT_TYPE','PA_ID','DELIVERY_DATE']
+    win_spec = Window.partitionBy([F.col(x) for x in column_list])
+    
+    df_postalizzazioni_mancanti_naz = df_postalizzazioni_cap_naz.withColumn("somma_floor", F.sum("floor_val").over(win_spec))\
+                                                                .withColumn("totale_gruppo", F.max('Postalizzazioni').over(win_spec))\
+                                                                .withColumn("manca", F.col("totale_gruppo") - F.col("somma_floor"))
+    
+    w_group_desc_resto = Window.partitionBy([F.col(x) for x in column_list]).orderBy(F.col("resto").desc())
+    
+    df_ranking_naz = df_postalizzazioni_mancanti_naz.withColumn("rank_resti", F.row_number().over(w_group_desc_resto))
+    
+    df_postalizzazioni_cap_final_naz = df_ranking_naz.withColumn(
+            "Postalizzazioni_cap",
+            F.col("floor_val") +
+            F.when(F.col("rank_resti") <= F.col("manca"), 1).otherwise(0)
+        )
+    
+    
+    print('Split postalizzazioni per CAP sui territori regionali')
+    # Lavorazione per suddivisione geografica regionale
+    w_reg = Window.partitionBy('REGIONE')
+    df_cap_prov_prop_reg=df_cap_prov.withColumn('PROP_POP_CAP_REG',F.col('POP_CAP')/F.sum(F.col('POP_CAP')).over(w_reg))
+    
+    # Suddivisione delle postalizzazioni settimanali per CAP
+    lista_regioni=[reg['REGIONE'] for reg in df_cap_prov.select(F.col('REGIONE')).distinct().collect()]
+    df_postalizzazioni_reg=df_postalizzazioni.filter(F.col('SUDDIVISIONE_GEOGRAFICA').isin(lista_regioni))
+    
+    df_postalizzazioni_cap_reg=df_postalizzazioni_reg.join(df_cap_prov_prop_reg,df_postalizzazioni.SUDDIVISIONE_GEOGRAFICA==df_cap_prov_prop_reg.REGIONE,how='left')\
+                                                     .withColumn("quota_reale", F.col('Postalizzazioni') * F.col('PROP_POP_CAP_REG'))\
+                                                     .withColumn("floor_val", F.floor(F.col("quota_reale")))\
+                                                     .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
+                                                     .select('PRODUCT_TYPE','PA_ID','DELIVERY_DATE','Postalizzazioni','REGIONE','CAP','quota_reale','floor_val','resto')
+    
+    # Calcolo il numero di postalizzazioni per CAP e ridistribuisco i resti
+    column_list = ['PRODUCT_TYPE','PA_ID','DELIVERY_DATE','REGIONE']
+    win_spec = Window.partitionBy([F.col(x) for x in column_list])
+    
+    df_postalizzazioni_mancanti_reg = df_postalizzazioni_cap_reg.withColumn("somma_floor", F.sum("floor_val").over(win_spec))\
+                                                                .withColumn("totale_gruppo", F.max('Postalizzazioni').over(win_spec))\
+                                                                .withColumn("manca", F.col("totale_gruppo") - F.col("somma_floor"))
+    
+    w_group_desc_resto = Window.partitionBy([F.col(x) for x in column_list]).orderBy(F.col("resto").desc())
+    
+    df_ranking_reg = df_postalizzazioni_mancanti_reg.withColumn("rank_resti", F.row_number().over(w_group_desc_resto))
+    
+    df_postalizzazioni_cap_final_reg = df_ranking_reg.withColumn(
+            "Postalizzazioni_cap",
+            F.col("floor_val") +
+            F.when(F.col("rank_resti") <= F.col("manca"), 1).otherwise(0)
+        )
+    
+    
+    print('Split postalizzazioni per CAP sui territori provinciali')
+    # Lavorazione per suddivisione geografica provinciale
+    # Suddivisione delle postalizzazioni settimanali per CAP
+    lista_province=[prov['COD_SIGLA_PROVINCIA'] for prov in df_cap_prov.select(F.col('COD_SIGLA_PROVINCIA')).distinct().collect()]
+    df_postalizzazioni_prov=df_postalizzazioni.filter(F.col('SUDDIVISIONE_GEOGRAFICA').isin(lista_province))
+    
+    df_postalizzazioni_cap_prov=df_postalizzazioni_prov.join(df_cap_prov,df_postalizzazioni.SUDDIVISIONE_GEOGRAFICA==df_cap_prov.COD_SIGLA_PROVINCIA,how='left')\
+                                                       .withColumn("quota_reale", F.col('Postalizzazioni') * F.col('PROP_POP_CAP_PROV'))\
+                                                       .withColumn("floor_val", F.floor(F.col("quota_reale")))\
+                                                       .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
+                                                       .select('PRODUCT_TYPE','PA_ID','DELIVERY_DATE','Postalizzazioni','COD_SIGLA_PROVINCIA','CAP','quota_reale','floor_val','resto')
+                                                       
+    # Calcolo il numero di postalizzazioni per CAP e ridistribuisco i resti
+    column_list = ['PRODUCT_TYPE','PA_ID','DELIVERY_DATE','COD_SIGLA_PROVINCIA']
+    win_spec = Window.partitionBy([F.col(x) for x in column_list])
+    
+    df_postalizzazioni_mancanti_prov = df_postalizzazioni_cap_prov.withColumn("somma_floor", F.sum("floor_val").over(win_spec))\
+                                                                  .withColumn("totale_gruppo", F.max('Postalizzazioni').over(win_spec))\
+                                                                  .withColumn("manca", F.col("totale_gruppo") - F.col("somma_floor"))
+    
+    w_group_desc_resto = Window.partitionBy([F.col(x) for x in column_list]).orderBy(F.col("resto").desc())
+    
+    df_ranking_prov = df_postalizzazioni_mancanti_prov.withColumn("rank_resti", F.row_number().over(w_group_desc_resto))
+    
+    df_postalizzazioni_cap_final_prov = df_ranking_prov.withColumn(
+            "Postalizzazioni_cap",
+            F.col("floor_val") +
+            F.when(F.col("rank_resti") <= F.col("manca"), 1).otherwise(0)
+        )
+    
+    
+    print('Unione datasets')
+    # Unione dei dati delle 3 fasi
+    df_postalizzazioni_cap_final_naz_v1=df_postalizzazioni_cap_final_naz.join(df_cap_prov,on=['CAP','COD_SIGLA_PROVINCIA'],how='left')\
+                                                                        .select('CAP','PRODUCT_TYPE','PA_ID',df_postalizzazioni_cap_final_naz['COD_SIGLA_PROVINCIA'],'DELIVERY_DATE','Postalizzazioni_cap')
+                                                                        
+    df_postalizzazioni_cap_final_reg_v1=df_postalizzazioni_cap_final_reg.join(df_cap_prov,on=['CAP','REGIONE'],how='left')\
+                                                                        .select('CAP','PRODUCT_TYPE','PA_ID','COD_SIGLA_PROVINCIA','DELIVERY_DATE','Postalizzazioni_cap')
+                                                                        
+    df_postalizzazioni_cap_final_prov_v1=df_postalizzazioni_cap_final_prov.select('CAP','PRODUCT_TYPE','PA_ID','COD_SIGLA_PROVINCIA','DELIVERY_DATE','Postalizzazioni_cap')
+                                                                        
+    df_postalizzazioni_cap_final_stg = df_postalizzazioni_cap_final_naz_v1.union(df_postalizzazioni_cap_final_reg_v1)\
+                                                                          .union(df_postalizzazioni_cap_final_prov_v1)
+                                                                      
+    df_postalizzazioni_cap_final = df_postalizzazioni_cap_final_stg.withColumn('Postalizzazioni_cap',(F.col('Postalizzazioni_cap')).cast(T.IntegerType()))
+    
+    df_postalizzazioni_cap_final.show()
+    
+    
+    print('Esplosione del dataframe')
+    # 'Esplosione' del dataframe in più righe quante sono le postalizzazioni
+    df_postalizzazioni_exploded=df_postalizzazioni_cap_final.withColumn('array_rep',F.array_repeat(F.lit(None),df_postalizzazioni_cap_final['Postalizzazioni_cap']))\
+                                                            .withColumn('array_rep_v1',F.explode('array_rep'))
+    
+    
+    df_postalizzazioni_final=df_postalizzazioni_exploded.withColumn('iun',F.concat((F.monotonically_increasing_id()+1000000).cast(T.StringType()),F.lit('_MOCK')))\
+                                                        .withColumn('prepareRequestDate',F.to_timestamp(F.col('DELIVERY_DATE'),"yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'"))\
+                                                        .withColumn('workflowStep',F.lit('EVALUATE_SENDER_LIMIT'))\
+                                                        .withColumn('NotificationSentAt',F.to_timestamp(F.col('DELIVERY_DATE'),"yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'"))\
+                                                        .withColumn('RequestID',F.concat((F.monotonically_increasing_id()+1000000).cast(T.StringType()),F.lit('_MOCK')))\
+                                                        .withColumn('senderPaId',F.concat(F.col('PA_ID'),F.lit('_MOCK')))\
+                                                        .withColumn('attempt',F.lit(0))\
+                                                        .withColumnRenamed('COD_SIGLA_PROVINCIA','province')\
+                                                        .withColumnRenamed('PRODUCT_TYPE','productType')\
+                                                        .withColumnRenamed('CAP','cap')\
+                                                        .select('RequestID','notificationSentAt','prepareRequestDate','productType','senderPaId','province','cap','attempt','iun')
+    
+    print('Export in S3')
+    # Export in csv a lotti di 10.000 righe
+    
+    #calcolo data parametro per import
+    if lista_lunedi[0]!=mese:
+        del lista_lunedi[0]
+    
+    lunedì_mese_successivo = lista_lunedi[-1] + timedelta(days=7)
+    lista_lunedi.append(lunedì_mese_successivo)  
+    
+    print('lista_lunedi:',lista_lunedi)
+    
+    
     id_timestamp=[["1"]]
     timestamp_df=spark.createDataFrame(id_timestamp,["id"])
-
+    
     timestamp_df = timestamp_df.withColumn("current_timestamp_string",F.date_format(F.current_timestamp(), "yyyyMMdd"))
-
+    
     anno_corrente = timestamp_df.collect()[0][1][:4]
     mese_corrente = timestamp_df.collect()[0][1][4:6]
     giorno_corrente = timestamp_df.collect()[0][1][6:8]
-
-    anno_str = mese_simulazione[:4]
-    mese_str = mese_simulazione[5:7]
-
-    path_finalpart = "input/"  + anno_corrente + "/" \
+    
+    anno_str = args['mese_simulazione'][:4]
+    mese_str = args['mese_simulazione'][5:7]
+    
+    path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
                                                               + mese_corrente + "/" \
                                                               + giorno_corrente + "/" \
                                                               + str(anno_str) + "-" + str(mese_str) + "/"\
-                                                              + "commesse_mock/"\
+                                                              + "postalizzazioni_mock/"\
                                                               + "ID_" + str(id_simulazione)
-
-
-    s3_client = boto3.client('s3')
-    s3_client.upload_file(tmp_path, s3_bucket, path_finalpart + "/" + file_zip)
-
-    # Rimozione del file temporaneo
-    os.remove(tmp_path)
+                                                              
     
-    
- 
-if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
-    
-    # Lavorazione su SENDER_LIMIT_MOCK
-    print('Lavorazione su SENDER_LIMIT_MOCK')
-
-    # Aggiunta della regione alla tabella
-    df_cap_prov_reg_distinct = df_cap_prov_reg.select('COD_SIGLA_PROVINCIA','REGIONE').distinct()
-
-    df_senderlim_mock_reg_stg = df_senderlim_mock.join(df_cap_prov_reg_distinct, df_senderlim_mock.SUDDIVISIONE_GEOGRAFICA == df_cap_prov_reg_distinct.COD_SIGLA_PROVINCIA, 'left')\
-                                   .select(df_senderlim_mock['*'],df_cap_prov_reg_distinct['REGIONE'])
-
-    # Aggiusto per i valori che hanno già regioni
-    df_senderlim_mock_reg = df_senderlim_mock_reg_stg.withColumn('REGIONE',F.when((F.col('REGIONE').isNull()) & (F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia'), F.col('SUDDIVISIONE_GEOGRAFICA'))\
-                                                            .otherwise(F.col('REGIONE')))
-
-    # Aggiunta alla CAP_PROV_REG della proporzione nazionale per CAP
-    pop_cap_tot = df_cap_prov_reg.select(F.sum(F.col('POP_CAP'))).collect()[0].asDict()['sum(POP_CAP)']
-    df_cap_prov_prop_naz=df_cap_prov_reg.withColumn('PROP_POP_CAP_NAZ',F.col('POP_CAP')/pop_cap_tot)\
-                                            .withColumn('SUDDIVISIONE_NAZIONALE',F.lit('Italia'))
-
-
-    # Scrittura file
-    print('Scrittura file')
-    with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
+    #suddivisione dataset in settimane
+    for lunedi in lista_lunedi:
+        if lunedi == lista_lunedi[0]:
+            df_split = df_postalizzazioni_final.filter(F.col('prepareRequestDate') < lunedi )
+        else:
+            df_split = df_postalizzazioni_final.filter((F.col('prepareRequestDate') < lunedi) & (F.col('prepareRequestDate') >= (lunedi + timedelta(days=-7))))
+        df_split.show(1)
+        num_rows=df_split.count()
+        part=math.ceil(num_rows/max_rows)
+        df_split.repartition(part).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','true').format('csv').save(path + "/" + str(lunedi))
         
-        for ente in df_senderlim_mock_reg.select("PA_ID").distinct().collect():
-            
-            ente = ente.asDict()['PA_ID']
-
-            # Se l'ente è un extra la commessa non deve essere creata
-            if 'FUORI_COMMESSA' not in ente.upper(): 
-                print('Elaborazione ente: ',ente)
-            
-                # Lavorazione a parte per le commesse a livello nazionale
-                df_senderlim_mock_ente = df_senderlim_mock_reg.filter(F.col('PA_ID')==ente)
-                
-                # Suddivisione delle postalizzazioni per CAP
-                df_senderlim_mock_naz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')=='Italia')\
-                                                            .withColumnRenamed('REGIONE','REGIONE_SENDER')
-                
-                df_postalizzazioni_cap_naz=df_senderlim_mock_naz.join(df_cap_prov_prop_naz,df_senderlim_mock_naz.SUDDIVISIONE_GEOGRAFICA==df_cap_prov_prop_naz.SUDDIVISIONE_NAZIONALE,how='left')\
-                                                                 .withColumn("quota_reale", F.col('MONTHLY_ESTIMATE') * F.col('PROP_POP_CAP_NAZ'))\
-                                                                 .withColumn("floor_val", F.floor(F.col("quota_reale")))\
-                                                                 .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
-                                                                 .select('ID_SIMULAZIONE','ATTEMPT','LAST_UPDATE_TIMESTAMP','PRODUCT_TYPE','PA_ID','DELIVERY_DATE','MONTHLY_ESTIMATE','CAP','COD_SIGLA_PROVINCIA','REGIONE','quota_reale','floor_val','resto')
-                
-                # Calcolo il numero di postalizzazioni per CAP e ridistribuisco i resti
-                column_list = ['PRODUCT_TYPE','DELIVERY_DATE']
-                win_spec = Window.partitionBy([F.col(x) for x in column_list])
-                
-                df_postalizzazioni_mancanti_naz = df_postalizzazioni_cap_naz.withColumn("somma_floor", F.sum("floor_val").over(win_spec))\
-                                                                            .withColumn("totale_gruppo", F.max('MONTHLY_ESTIMATE').over(win_spec))\
-                                                                            .withColumn("manca", F.col("totale_gruppo") - F.col("somma_floor"))
-                
-                w_group_desc_resto = Window.partitionBy([F.col(x) for x in column_list]).orderBy(F.col("resto").desc())
-                
-                df_ranking_naz = df_postalizzazioni_mancanti_naz.withColumn("rank_resti", F.row_number().over(w_group_desc_resto))
-                
-                df_postalizzazioni_cap_final_naz = df_ranking_naz.withColumn(
-                        "Postalizzazioni_cap",
-                        F.col("floor_val") +
-                        F.when(F.col("rank_resti") <= F.col("manca"), 1).otherwise(0)
-                    )\
-                    .drop('MONTHLY_ESTIMATE')
-            
-                # Unione dei dati derivati dalle commesse nazionali e dalle altre
-                df_senderlim_mock_naz = df_postalizzazioni_cap_final_naz.withColumnRenamed('Postalizzazioni_cap','MONTHLY_ESTIMATE')\
-                                                .withColumnRenamed('COD_SIGLA_PROVINCIA','SUDDIVISIONE_GEOGRAFICA')\
-                                                .select('ID_SIMULAZIONE','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
-                
-                df_senderlim_mock_subnaz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia')
-                
-                df_senderlim_mock_tot = df_senderlim_mock_naz.union(df_senderlim_mock_subnaz)
-
-                # Aggregazione per regione
-                df_senderlim_mock_tot_grouped = df_senderlim_mock_tot.groupBy('PA_ID','DELIVERY_DATE','ID_SIMULAZIONE','PRODUCT_TYPE','REGIONE')\
-                                                                     .agg(F.sum('MONTHLY_ESTIMATE').alias('MONTHLY_ESTIMATE'), F.max('LAST_UPDATE_TIMESTAMP').alias('LAST_UPDATE_TIMESTAMP'))
-                
-                # CREAZIONE JSON
-                
-                diz_ente_json = {}
-                
-                # Riempimento dei campi a livello di ente
-                diz_ente_json['idEnte'] = ente
-                diz_ente_json['contractId'] = ente
-                diz_ente_json['periodo_riferimento'] = str(df_senderlim_mock_tot_grouped.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
-                diz_ente_json['last_update'] = str(df_senderlim_mock_tot_grouped.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
-            
-                # Riempimento dei campi a livello di prodotto
-                list_prod_json = []
-                
-                for prodotto in df_senderlim_mock_tot_grouped.select("PRODUCT_TYPE").distinct().collect():
-            
-                    prodotto = prodotto.asDict()['PRODUCT_TYPE']
-                    diz_prod_json = {}
-                    diz_prod_json['id'] = prodotto
-                    diz_prod_json['nome'] = prodotto
-            
-                    df_senderlim_mock_prod = df_senderlim_mock_tot_grouped.filter(F.col('PRODUCT_TYPE')==prodotto)
-            
-                    sum_monthly_estimate_prod = 0
-                    for row in df_senderlim_mock_prod.select('MONTHLY_ESTIMATE').collect():
-                        sum_monthly_estimate_prod += row['MONTHLY_ESTIMATE']
-                    diz_prod_json['valore_totale'] = sum_monthly_estimate_prod
-            
-                    # Riempimento dei campi per nazione
-                    diz_prod_json['varianti'] = []
-                    
-                    diz_naz_json_nz = {}
-                    diz_naz_json_nz['codice'] = 'NZ'
-                    diz_naz_json_nz['nome'] = 'NZ'
-                    diz_naz_json_nz['valore_totale'] = sum_monthly_estimate_prod
-                    diz_naz_json_nz['distribuzione'] = {'regionale':[]}
-            
-                    # Riempimento campi per regione
-                    list_reg_json = []
-            
-                    for regione in df_senderlim_mock_prod.select('REGIONE').collect():
-            
-                        regione = regione.asDict()['REGIONE']
-                        diz_reg_json = {}
-                        diz_reg_json['regione'] = regione
-                        diz_reg_json['province'] = None
-            
-                        sum_monthly_estimate_reg = 0
-                        for row in df_senderlim_mock_prod.select('MONTHLY_ESTIMATE').filter(F.col('REGIONE')==regione).collect():
-                            sum_monthly_estimate_reg += row['MONTHLY_ESTIMATE']
-                        diz_reg_json['valore'] = sum_monthly_estimate_reg
-            
-                        list_reg_json.append(diz_reg_json)
-            
-                    diz_naz_json_nz['distribuzione'] = {'regionale': list_reg_json}
-            
-                    diz_prod_json['varianti'].append(diz_naz_json_nz)
-                    
-                    if prodotto == 'AR':
-                        diz_naz_json_int = {}
-                        diz_naz_json_int['codice'] = 'INT'
-                        diz_naz_json_int['nome'] = 'INT'
-                        diz_naz_json_int['valore_totale'] = 0
-                        diz_naz_json_int['distribuzione'] = None
-                        
-                        diz_prod_json['varianti'].append(diz_naz_json_int)
-            
-                    list_prod_json.append(diz_prod_json)
-            
-                # Aggiunta del prodotto digitale
-                diz_digitale = {
-                        "id": "digitale",
-                        "nome": "digitale",
-                        "valore_totale": 0,
-                        "varianti": [
-                            {
-                                "codice": "PEC",
-                                "nome": "PEC",
-                                "valore_totale": 0,
-                                "distribuzione": None
-                            }
-                        ]
-                    }
-                
-                list_prod_json.append(diz_digitale)
-            
-                diz_ente_json['prodotti'] = list_prod_json
-                
-                
-                # Scrittura del Json dell'ente all'interno del file zip
-                str_ente_json = json.dumps(diz_ente_json, indent=4, ensure_ascii=False)
-                zipf.writestr(ente+".json", str_ente_json)
-        
-
-    # Scrittura su S3
-    print('Scrittura su S3')
-    id_timestamp=[["1"]]
-    timestamp_df=spark.createDataFrame(id_timestamp,["id"])
-
-    timestamp_df = timestamp_df.withColumn("current_timestamp_string",F.date_format(F.current_timestamp(), "yyyyMMdd"))
-
-    anno_corrente = timestamp_df.collect()[0][1][:4]
-    mese_corrente = timestamp_df.collect()[0][1][4:6]
-    giorno_corrente = timestamp_df.collect()[0][1][6:8]
-
-    anno_str = mese_simulazione[:4]
-    mese_str = mese_simulazione[5:7]
-
-    path_finalpart = "input/"  + anno_corrente + "/" \
-                                                              + mese_corrente + "/" \
-                                                              + giorno_corrente + "/" \
-                                                              + str(anno_str) + "-" + str(mese_str) + "/"\
-                                                              + "commesse_mock/"\
-                                                              + "ID_" + str(id_simulazione)
-
-
-    s3_client = boto3.client('s3')
-    s3_client.upload_file(tmp_path, s3_bucket, path_finalpart + "/" + file_zip)
-
-    # Rimozione del file temporaneo
-    os.remove(tmp_path)
-     
-
-else:
-    print('Nessuna commessa da lavorare')
-
 
 # da lasciare come ultimo comando per indicare che il job ha terminato con SUCCESS la sua esecuzione
 job.commit()

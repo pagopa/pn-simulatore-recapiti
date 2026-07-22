@@ -31,6 +31,7 @@ import zipfile
 import os
 from botocore.config import Config
 import requests
+import io
 
 # recupero parametri d'ambiente del job
 s3_bucket = args['s3_bucket']
@@ -99,7 +100,7 @@ df_senderlim_mock = spark.read \
 
 df_senderlim_mock.show()
 
-df_senderlim_mock = df_senderlim_mock.drop('ID')
+df_senderlim_mock = df_senderlim_mock.drop('ID').withColumn('ATTEMPT',F.lit(0))
 
 ###########
 print('Lettura SIMULAZIONE')
@@ -120,7 +121,21 @@ df_simulazione.show()
 df_simulazione = df_simulazione.filter(F.col('ID')==F.lit(id_simulazione))
 
 # Decisione dell'azione in base alla pianificazione
-pianificazione_postalizzazioni = df_simulazione.select('PIANIFICAZIONE_POSTALIZZAZIONI').collect()[0]
+pianificazione_postalizzazioni = (df_simulazione.select('PIANIFICAZIONE_POSTALIZZAZIONI').collect()[0])['PIANIFICAZIONE_POSTALIZZAZIONI']
+
+# Individuazione del path di scrittura temporanea
+tmp_dir = '/tmp'
+mese_simulazione_path = mese_simulazione[:4] + '_' + mese_simulazione[5:7]
+file_zip = "Commesse_enti_"+mese_simulazione_path+"_ID"+str(id_simulazione)+".zip"
+tmp_path = tmp_dir + "/" + file_zip
+
+# Eliminazione del file zip nel caso si trovi già all'interno della cartella
+tmp_list = os.listdir(tmp_dir)
+for el in tmp_list:
+    if el==file_zip:
+        os.remove(tmp_path)
+        print('Pulizia della cartella temporanea effettuata')  
+
 
 if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le commesse di mock':
 
@@ -137,19 +152,6 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
     # Aggregazione per regione
     df_senderlim_reg_grouped = df_senderlim_reg.groupBy('PA_ID','DELIVERY_DATE','PRODUCT_TYPE','REGIONE')\
                                                .agg(F.sum('MONTHLY_ESTIMATE').alias('MONTHLY_ESTIMATE'), F.max('LAST_UPDATE_TIMESTAMP').alias('LAST_UPDATE_TIMESTAMP'))
-
-    # Scrittura file
-    tmp_dir = '/tmp'
-    mese_simulazione_path = mese_simulazione[:4] + '_' + mese_simulazione[5:7]
-    file_zip = "Commesse_enti_"+mese_simulazione_path+"_ID"+str(id_simulazione)+".zip"
-    tmp_path = tmp_dir + "/" + file_zip
-
-    # Eliminazione del file zip nel caso si trovi già all'interno della cartella
-    tmp_list = os.listdir(tmp_dir)
-    for el in tmp_list:
-        if el==file_zip:
-            os.remove(tmp_path)
-            print('Pulizia della cartella temporanea effettuata')  
 
     print('Scrittura file')
     with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
@@ -296,7 +298,7 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
                                                                  .withColumn("quota_reale", F.col('MONTHLY_ESTIMATE') * F.col('PROP_POP_CAP_NAZ'))\
                                                                  .withColumn("floor_val", F.floor(F.col("quota_reale")))\
                                                                  .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
-                                                                 .select('ID_SIMULAZIONE','ATTEMPT','LAST_UPDATE_TIMESTAMP','PRODUCT_TYPE','PA_ID','DELIVERY_DATE','MONTHLY_ESTIMATE','CAP','COD_SIGLA_PROVINCIA','REGIONE','quota_reale','floor_val','resto')
+                                                                 .select('SIMULAZIONE_ID','ATTEMPT','LAST_UPDATE_TIMESTAMP','PRODUCT_TYPE','PA_ID','DELIVERY_DATE','MONTHLY_ESTIMATE','CAP','COD_SIGLA_PROVINCIA','REGIONE','quota_reale','floor_val','resto')
                 
                 # Calcolo il numero di postalizzazioni per CAP e ridistribuisco i resti
                 column_list = ['PRODUCT_TYPE','DELIVERY_DATE']
@@ -320,14 +322,15 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
                 # Unione dei dati derivati dalle commesse nazionali e dalle altre
                 df_senderlim_mock_naz = df_postalizzazioni_cap_final_naz.withColumnRenamed('Postalizzazioni_cap','MONTHLY_ESTIMATE')\
                                                 .withColumnRenamed('COD_SIGLA_PROVINCIA','SUDDIVISIONE_GEOGRAFICA')\
-                                                .select('ID_SIMULAZIONE','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
+                                                .select('SIMULAZIONE_ID','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
                 
-                df_senderlim_mock_subnaz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia')
+                df_senderlim_mock_subnaz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia')\
+                                                               .select('SIMULAZIONE_ID','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
                 
                 df_senderlim_mock_tot = df_senderlim_mock_naz.union(df_senderlim_mock_subnaz)
 
                 # Aggregazione per regione
-                df_senderlim_mock_tot_grouped = df_senderlim_mock_tot.groupBy('PA_ID','DELIVERY_DATE','ID_SIMULAZIONE','PRODUCT_TYPE','REGIONE')\
+                df_senderlim_mock_tot_grouped = df_senderlim_mock_tot.groupBy('PA_ID','DELIVERY_DATE','SIMULAZIONE_ID','PRODUCT_TYPE','REGIONE')\
                                                                      .agg(F.sum('MONTHLY_ESTIMATE').alias('MONTHLY_ESTIMATE'), F.max('LAST_UPDATE_TIMESTAMP').alias('LAST_UPDATE_TIMESTAMP'))
                 
                 # CREAZIONE JSON
@@ -452,7 +455,7 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
     os.remove(tmp_path)
     
     
- 
+
 if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
     
     # Lavorazione su SENDER_LIMIT_MOCK
@@ -476,7 +479,8 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
 
     # Scrittura file
     print('Scrittura file')
-    with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
         
         for ente in df_senderlim_mock_reg.select("PA_ID").distinct().collect():
             
@@ -497,7 +501,7 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
                                                                  .withColumn("quota_reale", F.col('MONTHLY_ESTIMATE') * F.col('PROP_POP_CAP_NAZ'))\
                                                                  .withColumn("floor_val", F.floor(F.col("quota_reale")))\
                                                                  .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
-                                                                 .select('ID_SIMULAZIONE','ATTEMPT','LAST_UPDATE_TIMESTAMP','PRODUCT_TYPE','PA_ID','DELIVERY_DATE','MONTHLY_ESTIMATE','CAP','COD_SIGLA_PROVINCIA','REGIONE','quota_reale','floor_val','resto')
+                                                                 .select('SIMULAZIONE_ID','ATTEMPT','LAST_UPDATE_TIMESTAMP','PRODUCT_TYPE','PA_ID','DELIVERY_DATE','MONTHLY_ESTIMATE','CAP','COD_SIGLA_PROVINCIA','REGIONE','quota_reale','floor_val','resto')
                 
                 # Calcolo il numero di postalizzazioni per CAP e ridistribuisco i resti
                 column_list = ['PRODUCT_TYPE','DELIVERY_DATE']
@@ -521,14 +525,15 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
                 # Unione dei dati derivati dalle commesse nazionali e dalle altre
                 df_senderlim_mock_naz = df_postalizzazioni_cap_final_naz.withColumnRenamed('Postalizzazioni_cap','MONTHLY_ESTIMATE')\
                                                 .withColumnRenamed('COD_SIGLA_PROVINCIA','SUDDIVISIONE_GEOGRAFICA')\
-                                                .select('ID_SIMULAZIONE','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
+                                                .select('SIMULAZIONE_ID','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
                 
-                df_senderlim_mock_subnaz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia')
+                df_senderlim_mock_subnaz=df_senderlim_mock_ente.filter(F.col('SUDDIVISIONE_GEOGRAFICA')!='Italia')\
+                                                               .select('SIMULAZIONE_ID','DELIVERY_DATE','PA_ID','MONTHLY_ESTIMATE','PRODUCT_TYPE','SUDDIVISIONE_GEOGRAFICA','ATTEMPT','LAST_UPDATE_TIMESTAMP','REGIONE')
                 
                 df_senderlim_mock_tot = df_senderlim_mock_naz.union(df_senderlim_mock_subnaz)
 
                 # Aggregazione per regione
-                df_senderlim_mock_tot_grouped = df_senderlim_mock_tot.groupBy('PA_ID','DELIVERY_DATE','ID_SIMULAZIONE','PRODUCT_TYPE','REGIONE')\
+                df_senderlim_mock_tot_grouped = df_senderlim_mock_tot.groupBy('PA_ID','DELIVERY_DATE','SIMULAZIONE_ID','PRODUCT_TYPE','REGIONE')\
                                                                      .agg(F.sum('MONTHLY_ESTIMATE').alias('MONTHLY_ESTIMATE'), F.max('LAST_UPDATE_TIMESTAMP').alias('LAST_UPDATE_TIMESTAMP'))
                 
                 # CREAZIONE JSON
@@ -647,10 +652,13 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
 
 
     s3_client = boto3.client('s3')
-    s3_client.upload_file(tmp_path, s3_bucket, path_finalpart + "/" + file_zip)
+    zip_buffer.seek(0)
+    print(path_finalpart + "/" + file_zip)
+    s3_client.upload_fileobj(zip_buffer, s3_bucket, path_finalpart + "/" + file_zip)
+    # s3_client.upload_file(tmp_path, s3_bucket, path_finalpart + "/" + file_zip)
 
-    # Rimozione del file temporaneo
-    os.remove(tmp_path)
+    # # Rimozione del file temporaneo
+    # os.remove(tmp_path)
      
 
 else:
@@ -689,29 +697,10 @@ def lambda_presigned_url(lambda_delayer, source_filename):
         response_dict_body = json.loads(response_dict['body'])
         uploadUrl = response_dict_body['uploadUrl']
         key = response_dict_body['key']
+        print('GET_PRESIGNED_URL BODY: ',response_dict_body)
         print('GET_PRESIGNED_URL terminata con statuscode ',response_dict['statusCode'])
         return uploadUrl, key
     
-    
-def crea_copia_zip_s3(s3_client,bucket_s3,obj_key,source_path,destination_filename):
-    """
-    Creiamo una copia del file ZIP che successivamente importeremo tramite la INSERT_MOCK_SENDER_LIMITS con il nome indicato dalla GET_PRESIGNED_URL
-
-    Args:
-        s3_client (botocore.client.S3): connessione ad s3
-        bucket_s3 (string): bucket di interesse
-        obj_key (string): chiave dell'oggetto sorgente
-        source_path (string): chiave dell'oggetto sorgente senza nome file
-        destination_filename (string): nome del file fornito dalla GET_PRESIGNED_URL
-
-    """
-    s3_client.copy_object(
-        Bucket=bucket_s3,
-        CopySource={"Bucket": bucket_s3, "Key": obj_key},
-        Key=source_path + '/' + destination_filename
-    )
-    print('Copia zip terminata con successo')
-
 
 class S3BodyWrapper:
     """
@@ -766,8 +755,6 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     source_filename = s3_file_key.split('/')[-1]
     # GET PRESIGNED URL
     uploadUrl, destination_filename = lambda_presigned_url(lambda_delayer,source_filename)
-    # creiamo una copia dell'oggetto (che poi elimineremo) con il nome indicato dalla GET PRESIGNED URL
-    crea_copia_zip_s3(s3_client,source_bucket,s3_file_key,source_path,destination_filename)
     # otteniamo l'oggetto S3 come streaming body
     response = s3_client.get_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
     body = response["Body"]
@@ -781,16 +768,10 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     )
     if put_response.status_code not in (200, 201, 204):
         raise Exception(put_response.text)
-    try:
-        # INSERT_MOCK_SENDER_LIMITS
-        lambda_insert_mock_sender_limits(lambda_delayer,destination_filename)
-        # cancelliamo la copia dell'oggetto sul bucket di progetto
-        s3_client.delete_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
-    except:
-        # cancelliamo la copia dell'oggetto sul bucket di progetto
-        s3_client.delete_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
-        # ricreiamo l'eccezione originale triggerata nel try
-        raise
+    # INSERT_MOCK_SENDER_LIMITS
+    lambda_insert_mock_sender_limits(lambda_delayer,destination_filename)
+    
+    
 if pianificazione_postalizzazioni in ['Utilizza le commesse di default e le commesse di mock','Utilizza solo le commesse di mock']:
     s3_file_key = path_finalpart + "/" + file_zip
     print('INSERT_MOCK_SENDER_LIMITS')

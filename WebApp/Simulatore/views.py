@@ -694,13 +694,24 @@ def salvataggio_tabelle_mock(lista_tabelle_mock,istanza_simulazione,mese_da_simu
     # salvataggio nuova tabella mock sul DB
     dati_mock = json.loads(lista_tabelle_mock)
     for elements in dati_mock:
+        if elements["SUDDIVISIONE_GEOGRAFICA"] != "Italia":
+            # .exists() envia um "EXISTS" otimizado diretamente para o banco de dados
+            if table_cap_prov_reg.objects.filter(REGIONE=elements["SUDDIVISIONE_GEOGRAFICA"]).exists():
+                geo = elements["SUDDIVISIONE_GEOGRAFICA"]
+            else:
+                geo = table_cap_prov_reg.objects.filter(
+                    PROVINCIA=elements["SUDDIVISIONE_GEOGRAFICA"]
+                ).values_list('COD_SIGLA_PROVINCIA', flat=True).distinct().order_by('COD_SIGLA_PROVINCIA') 
+        else:
+            geo = elements["SUDDIVISIONE_GEOGRAFICA"]
+
         table_sender_limit_mock.objects.create(
             SIMULAZIONE_ID = istanza_simulazione,
             DELIVERY_DATE = mese_da_simulare,
             PA_ID = elements["PA_ID"],
             MONTHLY_ESTIMATE = elements["MONTHLY_ESTIMATE"],
             PRODUCT_TYPE = elements["PRODUCT_TYPE"],
-            SUDDIVISIONE_GEOGRAFICA = elements["SUDDIVISIONE_GEOGRAFICA"],
+            SUDDIVISIONE_GEOGRAFICA = geo,
             LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
         )
 
@@ -1244,8 +1255,8 @@ def costruisci_postalizzazioni_salvate(id_simulazione):
 
     tabella_cap_prov_reg = table_cap_prov_reg.objects.all()
 
-    righe = tabella_cap_prov_reg.values("PROVINCIA", "REGIONE").distinct()
-    provincia_regione_map = {r["PROVINCIA"]: r["REGIONE"] for r in righe}
+    righe = tabella_cap_prov_reg.values("COD_SIGLA_PROVINCIA","REGIONE").distinct()
+    provincia_regione_map = {r["COD_SIGLA_PROVINCIA"]: r["REGIONE"] for r in righe}
 
     raggruppati = defaultdict(list)
 
@@ -1259,7 +1270,7 @@ def costruisci_postalizzazioni_salvate(id_simulazione):
             regione = geo
             provincia = "Tutte le province"
         else:
-            provincia = geo
+            provincia = list(table_cap_prov_reg.objects.filter(COD_SIGLA_PROVINCIA=geo).values_list('PROVINCIA', flat=True).distinct().order_by('PROVINCIA') )
             regione = provincia_regione_map.get(geo, "")
 
         raggruppati[r.PA_ID].append({
