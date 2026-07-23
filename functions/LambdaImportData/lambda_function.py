@@ -154,6 +154,7 @@ def lambda_handler(event, context):
     source_bucket = os.environ['source_bucket']
     s3_file_key = event['s3_file_key']
     settimana_import = event['settimana_import']
+    id_simulazione = event['id_simulazione']
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     
@@ -163,7 +164,7 @@ def lambda_handler(event, context):
     # salviamo i nomi dei destination_file su s3
     s3_client.put_object(
         Bucket=source_bucket,
-        Key='StepFunction_ListaFileImportData/'+destination_filename
+        Key=f'StepFunction_ListaFileImportData/id_simulazione_{id_simulazione}/{destination_filename}'
     )
         
     print(f'statusCode : 200, destination_filename:{destination_filename}')

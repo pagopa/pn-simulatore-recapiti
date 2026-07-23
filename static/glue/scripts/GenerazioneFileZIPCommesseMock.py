@@ -124,18 +124,19 @@ df_simulazione = df_simulazione.filter(F.col('ID')==F.lit(id_simulazione))
 pianificazione_postalizzazioni = (df_simulazione.select('PIANIFICAZIONE_POSTALIZZAZIONI').collect()[0])['PIANIFICAZIONE_POSTALIZZAZIONI']
 
 # Individuazione del path di scrittura temporanea
-tmp_dir = '/tmp'
+# tmp_dir = '/tmp'
 mese_simulazione_path = mese_simulazione[:4] + '_' + mese_simulazione[5:7]
 file_zip = "Commesse_enti_"+mese_simulazione_path+"_ID"+str(id_simulazione)+".zip"
-tmp_path = tmp_dir + "/" + file_zip
+# tmp_path = tmp_dir + "/" + file_zip
 
-# Eliminazione del file zip nel caso si trovi già all'interno della cartella
-tmp_list = os.listdir(tmp_dir)
-for el in tmp_list:
-    if el==file_zip:
-        os.remove(tmp_path)
-        print('Pulizia della cartella temporanea effettuata')  
+# # Eliminazione del file zip nel caso si trovi già all'interno della cartella
+# tmp_list = os.listdir(tmp_dir)
+# for el in tmp_list:
+#     if el==file_zip:
+#         os.remove(tmp_path)
+#         print('Pulizia della cartella temporanea effettuata')  
 
+zip_buffer = io.BytesIO()
 
 if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le commesse di mock':
 
@@ -154,7 +155,7 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
                                                .agg(F.sum('MONTHLY_ESTIMATE').alias('MONTHLY_ESTIMATE'), F.max('LAST_UPDATE_TIMESTAMP').alias('LAST_UPDATE_TIMESTAMP'))
 
     print('Scrittura file')
-    with zipfile.ZipFile(tmp_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
         
         for ente in df_senderlim_reg_grouped.select("PA_ID").distinct().collect():
             
@@ -277,7 +278,7 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
 
     # Scrittura file
     print('Scrittura file')
-    with zipfile.ZipFile(tmp_path, "a", compression=zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(zip_buffer, "a", compression=zipfile.ZIP_DEFLATED) as zipf:
         
         for ente in df_senderlim_mock_reg.select("PA_ID").distinct().collect():
             
@@ -426,35 +427,6 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
                 zipf.writestr(ente+".json", str_ente_json)
         
 
-    # Scrittura su S3
-    print('Scrittura su S3')
-    id_timestamp=[["1"]]
-    timestamp_df=spark.createDataFrame(id_timestamp,["id"])
-
-    timestamp_df = timestamp_df.withColumn("current_timestamp_string",F.date_format(F.current_timestamp(), "yyyyMMdd"))
-
-    anno_corrente = timestamp_df.collect()[0][1][:4]
-    mese_corrente = timestamp_df.collect()[0][1][4:6]
-    giorno_corrente = timestamp_df.collect()[0][1][6:8]
-
-    anno_str = mese_simulazione[:4]
-    mese_str = mese_simulazione[5:7]
-
-    path_finalpart = "input/"  + anno_corrente + "/" \
-                                                              + mese_corrente + "/" \
-                                                              + giorno_corrente + "/" \
-                                                              + str(anno_str) + "-" + str(mese_str) + "/"\
-                                                              + "commesse_mock/"\
-                                                              + "ID_" + str(id_simulazione)
-
-
-    s3_client = boto3.client('s3')
-    s3_client.upload_file(tmp_path, s3_bucket, path_finalpart + "/" + file_zip)
-
-    # Rimozione del file temporaneo
-    os.remove(tmp_path)
-    
-    
 
 if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
     
@@ -479,7 +451,6 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
 
     # Scrittura file
     print('Scrittura file')
-    zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
         
         for ente in df_senderlim_mock_reg.select("PA_ID").distinct().collect():
@@ -629,38 +600,6 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
                 zipf.writestr(ente+".json", str_ente_json)
         
 
-    # Scrittura su S3
-    print('Scrittura su S3')
-    id_timestamp=[["1"]]
-    timestamp_df=spark.createDataFrame(id_timestamp,["id"])
-
-    timestamp_df = timestamp_df.withColumn("current_timestamp_string",F.date_format(F.current_timestamp(), "yyyyMMdd"))
-
-    anno_corrente = timestamp_df.collect()[0][1][:4]
-    mese_corrente = timestamp_df.collect()[0][1][4:6]
-    giorno_corrente = timestamp_df.collect()[0][1][6:8]
-
-    anno_str = mese_simulazione[:4]
-    mese_str = mese_simulazione[5:7]
-
-    path_finalpart = "input/"  + anno_corrente + "/" \
-                                                              + mese_corrente + "/" \
-                                                              + giorno_corrente + "/" \
-                                                              + str(anno_str) + "-" + str(mese_str) + "/"\
-                                                              + "commesse_mock/"\
-                                                              + "ID_" + str(id_simulazione)
-
-
-    s3_client = boto3.client('s3')
-    zip_buffer.seek(0)
-    print(path_finalpart + "/" + file_zip)
-    s3_client.upload_fileobj(zip_buffer, s3_bucket, path_finalpart + "/" + file_zip)
-    # s3_client.upload_file(tmp_path, s3_bucket, path_finalpart + "/" + file_zip)
-
-    # # Rimozione del file temporaneo
-    # os.remove(tmp_path)
-     
-
 else:
     print('Nessuna commessa da lavorare')
 
@@ -756,6 +695,8 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     # GET PRESIGNED URL
     uploadUrl, destination_filename = lambda_presigned_url(lambda_delayer,source_filename)
     # otteniamo l'oggetto S3 come streaming body
+    print(source_path)
+    print(destination_filename)
     response = s3_client.get_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
     body = response["Body"]
     size = response["ContentLength"]
@@ -771,10 +712,54 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket):
     # INSERT_MOCK_SENDER_LIMITS
     lambda_insert_mock_sender_limits(lambda_delayer,destination_filename)
     
-    
+
+# Scrittura su S3
 if pianificazione_postalizzazioni in ['Utilizza le commesse di default e le commesse di mock','Utilizza solo le commesse di mock']:
-    s3_file_key = path_finalpart + "/" + file_zip
+    
+    print('Scrittura su S3')
+    
+    output_prefix = None
+    s3_client = boto3.client('s3')
+    target_date = date.today()
+    
+    for _ in range(120):  # limite di sicurezza a 30 gg
+        input_prefix = target_date.strftime("%Y/%m/%d/")
+        response = s3_client.list_objects_v2(
+            Bucket=s3_bucket,
+            Prefix='input/'+input_prefix+mese_simulazione[:7]+'/',
+            MaxKeys=1
+        )
+        # se la cartella esiste, esco dal ciclo
+        if 'Contents' in response:
+            output_prefix = 'input/'+input_prefix+args['mese_simulazione'][:7]+'/'
+            break
+        # altrimenti vado al giorno precedente
+        target_date -= timedelta(days=1)
+    
+    
+    anno_str = args['mese_simulazione'][:4]
+    mese_str = args['mese_simulazione'][5:7]
+    
+    if output_prefix == None:
+        # se non viene trovata alcuna cartella corrispondente
+        raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+        
+    else:
+        s3_key = output_prefix + "commesse_mock/" + "ID_" + str(id_simulazione)
+        path_finalpart = "s3://" + s3_bucket+"/" + s3_key
+
+
+    zip_buffer.seek(0)
+    print(path_finalpart + "/" + file_zip)
+    s3_client.upload_fileobj(zip_buffer, s3_bucket, s3_key + "/" + file_zip)
+    # s3_client.upload_file(tmp_path, s3_bucket, path_finalpart + "/" + file_zip)
+
+    # Rimozione del file temporaneo
+    # os.remove(tmp_path)
+    
+    
     print('INSERT_MOCK_SENDER_LIMITS')
+    s3_file_key = s3_key + "/" + file_zip
     carica_oggetto(s3_client, s3_file_key, s3_bucket)
 
 

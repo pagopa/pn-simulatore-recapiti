@@ -1154,9 +1154,9 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
     for _ in range(30):  # limite di sicurezza a 30 gg
         prefix = timestamp_esecuzione_simulazione.strftime("%Y/%m/%d/")
         if recupero_capacita_modificate == 'true':
-            full_prefix = f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/modified/'
+            full_prefix = f'input/{prefix}{mese_simulazione}/dati_extra/cap_capacities/id_{id_simulazione}/unified/modified/'
         else:
-            full_prefix = f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/all/'
+            full_prefix = f'input/{prefix}{mese_simulazione}/dati_extra/cap_capacities/id_{id_simulazione}/unified/all/'
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
             Prefix=full_prefix,

@@ -223,7 +223,7 @@ if df_senderlim_mock.count()>0:
     df_postalizzazioni_prov=df_postalizzazioni.filter(F.col('SUDDIVISIONE_GEOGRAFICA').isin(lista_province))
     
     df_postalizzazioni_cap_prov=df_postalizzazioni_prov.join(df_cap_prov,df_postalizzazioni.SUDDIVISIONE_GEOGRAFICA==df_cap_prov.COD_SIGLA_PROVINCIA,how='left')\
-                                                       .withColumn("quota_reale", F.col('Postalizzazioni') * F.col('PROP_POP_CAP_PROV'))\
+                                                       .withColumn("quota_reale", F.col('Postalizzazioni') * F.col('PERCENTUALE_POP_CAP'))\
                                                        .withColumn("floor_val", F.floor(F.col("quota_reale")))\
                                                        .withColumn("resto", F.col("quota_reale") - F.col("floor_val"))\
                                                        .select('PRODUCT_TYPE','PA_ID','DELIVERY_DATE','Postalizzazioni','COD_SIGLA_PROVINCIA','CAP','quota_reale','floor_val','resto')
@@ -296,36 +296,49 @@ if df_senderlim_mock.count()>0:
     print('lista_lunedi:',lista_lunedi)
     
     
-    id_timestamp=[["1"]]
-    timestamp_df=spark.createDataFrame(id_timestamp,["id"])
+    output_prefix = None
+    s3_client = boto3.client('s3')
+    target_date = date.today()
     
-    timestamp_df = timestamp_df.withColumn("current_timestamp_string",F.date_format(F.current_timestamp(), "yyyyMMdd"))
+    for _ in range(120):  # limite di sicurezza a 30 gg
+        input_prefix = target_date.strftime("%Y/%m/%d/")
+        response = s3_client.list_objects_v2(
+            Bucket=s3_bucket,
+            Prefix='input/'+input_prefix+args['mese_simulazione'][:7]+'/',
+            MaxKeys=1
+        )
+        # se la cartella esiste, esco dal ciclo
+        if 'Contents' in response:
+            output_prefix = 'input/'+input_prefix+args['mese_simulazione'][:7]+'/'
+            break
+        # altrimenti vado al giorno precedente
+        target_date -= timedelta(days=1)
     
-    anno_corrente = timestamp_df.collect()[0][1][:4]
-    mese_corrente = timestamp_df.collect()[0][1][4:6]
-    giorno_corrente = timestamp_df.collect()[0][1][6:8]
     
     anno_str = args['mese_simulazione'][:4]
     mese_str = args['mese_simulazione'][5:7]
     
-    path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
-                                                              + mese_corrente + "/" \
-                                                              + giorno_corrente + "/" \
-                                                              + str(anno_str) + "-" + str(mese_str) + "/"\
-                                                              + "postalizzazioni_mock/"\
-                                                              + "ID_" + str(id_simulazione)
-                                                              
     
-    #suddivisione dataset in settimane
-    for lunedi in lista_lunedi:
-        if lunedi == lista_lunedi[0]:
-            df_split = df_postalizzazioni_final.filter(F.col('prepareRequestDate') < lunedi )
-        else:
-            df_split = df_postalizzazioni_final.filter((F.col('prepareRequestDate') < lunedi) & (F.col('prepareRequestDate') >= (lunedi + timedelta(days=-7))))
-        df_split.show(1)
-        num_rows=df_split.count()
-        part=math.ceil(num_rows/max_rows)
-        df_split.repartition(part).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','true').format('csv').save(path + "/" + str(lunedi))
+    if output_prefix == None:
+        # se non viene trovata alcuna cartella corrispondente
+        raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+        
+    else:
+        path = "s3://" + s3_bucket+"/" + output_prefix + "postalizzazioni_mock/" + "ID_" + str(id_simulazione)
+                                                                  
+        
+        #suddivisione dataset in settimane
+        for lunedi in lista_lunedi:
+            if lunedi == lista_lunedi[0]:
+                df_split = df_postalizzazioni_final.filter(F.col('prepareRequestDate') < lunedi )
+            else:
+                df_split = df_postalizzazioni_final.filter((F.col('prepareRequestDate') < lunedi) & (F.col('prepareRequestDate') >= (lunedi + timedelta(days=-7))))
+            df_split.show(1)
+            num_rows=df_split.count()
+            part=math.ceil(num_rows/max_rows)
+            if part>0:
+                df_split.repartition(part).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','true').format('csv').save(path + "/" + str(lunedi))
+
         
 
 # da lasciare come ultimo comando per indicare che il job ha terminato con SUCCESS la sua esecuzione

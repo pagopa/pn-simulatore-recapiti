@@ -162,7 +162,7 @@ path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
                                                           + mese_corrente + "/" \
                                                           + giorno_corrente + "/" \
                                                           + str(anno_str) + "-" + str(mese_str) + "/" \
-                                                          + 'cap_capacities/original'
+                                                          + 'dati_extra/cap_capacities/original'
 
 
 num_rows=df_capacity_tot.count()

@@ -64,7 +64,7 @@ def recupero_ultima_data_estrazione(bucket_name, mese_simulazione, start_timesta
     target_date = datetime.strptime(start_timestamp_simulazione, '%Y-%m-%d %H:%M:%S').date()
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
-    for _ in range(30):  # limite di sicurezza a 30 gg
+    for _ in range(120):  # limite di sicurezza a 120 gg
         prefix = target_date.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
@@ -77,7 +77,7 @@ def recupero_ultima_data_estrazione(bucket_name, mese_simulazione, start_timesta
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 120 gg")
 
 def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simulazione_string):
     """
@@ -139,7 +139,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
         for index in range(num_chunks):
             # ad ogni iterazione prendiamo un chunk da 9900 righe e carichiamo il csv su s3
             chunk = list(itertools.islice(file_content, max_rows))
-            s3_file_key = f'{prefix_s3}residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
+            s3_file_key = f'{prefix_s3}dati_extra/residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
             # componiamo il file csv
             buffer = io.StringIO()
             writer = csv.writer(buffer, delimiter=';', quoting=csv.QUOTE_ALL)
@@ -155,7 +155,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
                 Body=csv_file,
                 ContentType='text/csv'
             )
-            lista_csv_da_importare.append({'settimana_import':prima_settimana_simulazione_string,'s3_file_key':s3_file_key})
+            lista_csv_da_importare.append({'settimana_import':prima_settimana_simulazione_string,'s3_file_key':s3_file_key,'id_simulazione':id_simulazione})
         return lista_csv_da_importare
     else:
         return []
@@ -204,12 +204,12 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         print(f'La delivery date per il recupero dei residui è: {delivery_date_residui}')
         lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione,prima_settimana_simulazione_string)
         if len(lista_file_residui) != 0:
-            print("Ci sono residui!")
+            print("Per questa simulazione ci sono residui!")
         else:
-            print("Non ci sono residui!")
+            print("Per questa simulazione non sono stati trovati residui da recuperare!")
         return lista_file_residui
     else:
-        print("Non recuperiamo residui!")
+        print("Per questa simulazione non verranno recuperati residui!")
         return []
 
 
@@ -231,14 +231,14 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
     objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3, Delimiter="/")
     lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
     # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere le capacità dei CAP o i residui            
-    lista_settimane = [x for x in lista_settimane if '/cap_capacities/' not in x and '/residui/' not in x]
+    lista_settimane = [x for x in lista_settimane if '/dati_extra/' not in x]
     lista_file_csv = []
     for singola_settimana in lista_settimane:
         objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=singola_settimana)
         for obj in objects.get("Contents", []):
             if obj["Key"][-4:] == '.csv':
                 # nota: singola_settimana ha il formato 'input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione/yyyy-MM-dd_settimana_esecuzione/', dunque, settimana_import avrà il formato 'yyyy-MM-dd_settimana_esecuzione'
-                lista_file_csv.append({'settimana_import':singola_settimana.split('/')[-2],'s3_file_key':obj["Key"]})
+                lista_file_csv.append({'settimana_import':singola_settimana.split('/')[-2],'s3_file_key':obj["Key"],'id_simulazione':id_simulazione})
     # recupero residui
     lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione))
     return lista_file_csv
