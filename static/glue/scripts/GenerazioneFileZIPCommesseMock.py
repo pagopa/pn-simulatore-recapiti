@@ -65,6 +65,7 @@ df_cap_prov_reg = spark.read \
     .option("driver", "org.postgresql.Driver") \
     .load()
 
+df_cap_prov_reg = df_cap_prov_reg.withColumn('REGIONE',F.when(F.col('REGIONE')=="Valle d'Aosta","Valle d'Aosta/Vallée d'Aoste").otherwise(F.col('REGIONE')))
 
 ###########
 print('Lettura SENDER_LIMIT')
@@ -100,7 +101,9 @@ df_senderlim_mock = spark.read \
 
 df_senderlim_mock.show()
 
-df_senderlim_mock = df_senderlim_mock.drop('ID').withColumn('ATTEMPT',F.lit(0))
+df_senderlim_mock = df_senderlim_mock.drop('ID')\
+                                     .withColumn('ATTEMPT',F.lit(0))\
+                                     .filter(F.col('SIMULAZIONE_ID')==id_simulazione)
 
 ###########
 print('Lettura SIMULAZIONE')
@@ -171,9 +174,11 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
                 # Riempimento dei campi a livello di ente
                 diz_ente_json['idEnte'] = ente
                 diz_ente_json['contractId'] = ente
-                diz_ente_json['periodo_riferimento'] = str(df_senderlim_reg.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
-                diz_ente_json['last_update'] = str(df_senderlim_ente.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
-            
+                df_senderlim_ente_modified = df_senderlim_ente.withColumn('DELIVERY_DATE',F.date_format('DELIVERY_DATE',"M-yyyy"))\
+                                                              .withColumn('LAST_UPDATE_TIMESTAMP',F.date_format('LAST_UPDATE_TIMESTAMP',"yyyy-MM-dd'T'HH:mm:ss"))  
+                diz_ente_json['periodo_riferimento'] = str(df_senderlim_ente_modified.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
+                diz_ente_json['last_update'] = str(df_senderlim_ente_modified.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
+
                 # Riempimento dei campi a livello di prodotto
                 list_prod_json = []
                 
@@ -341,8 +346,10 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
                 # Riempimento dei campi a livello di ente
                 diz_ente_json['idEnte'] = ente
                 diz_ente_json['contractId'] = ente
-                diz_ente_json['periodo_riferimento'] = str(df_senderlim_mock_tot_grouped.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
-                diz_ente_json['last_update'] = str(df_senderlim_mock_tot_grouped.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
+                df_senderlim_mock_tot_grouped_modified = df_senderlim_mock_tot_grouped.withColumn('DELIVERY_DATE',F.date_format('DELIVERY_DATE',"M-yyyy"))\
+                                                            .withColumn('LAST_UPDATE_TIMESTAMP',F.date_format('LAST_UPDATE_TIMESTAMP',"yyyy-MM-dd'T'HH:mm:ss"))  
+                diz_ente_json['periodo_riferimento'] = str(df_senderlim_mock_tot_grouped_modified.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
+                diz_ente_json['last_update'] = str(df_senderlim_mock_tot_grouped_modified.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
             
                 # Riempimento dei campi a livello di prodotto
                 list_prod_json = []
@@ -514,8 +521,10 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
                 # Riempimento dei campi a livello di ente
                 diz_ente_json['idEnte'] = ente
                 diz_ente_json['contractId'] = ente
-                diz_ente_json['periodo_riferimento'] = str(df_senderlim_mock_tot_grouped.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
-                diz_ente_json['last_update'] = str(df_senderlim_mock_tot_grouped.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
+                df_senderlim_mock_tot_grouped_modified = df_senderlim_mock_tot_grouped.withColumn('DELIVERY_DATE',F.date_format('DELIVERY_DATE',"M-yyyy"))\
+                                                              .withColumn('LAST_UPDATE_TIMESTAMP',F.date_format('LAST_UPDATE_TIMESTAMP',"yyyy-MM-dd'T'HH:mm:ss"))  
+                diz_ente_json['periodo_riferimento'] = str(df_senderlim_mock_tot_grouped_modified.select("DELIVERY_DATE").collect()[0].asDict()['DELIVERY_DATE'])
+                diz_ente_json['last_update'] = str(df_senderlim_mock_tot_grouped_modified.select("LAST_UPDATE_TIMESTAMP").collect()[0].asDict()['LAST_UPDATE_TIMESTAMP'])
             
                 # Riempimento dei campi a livello di prodotto
                 list_prod_json = []
@@ -745,7 +754,7 @@ if pianificazione_postalizzazioni in ['Utilizza le commesse di default e le comm
         raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
         
     else:
-        s3_key = output_prefix + "commesse_mock/" + "ID_" + str(id_simulazione)
+        s3_key = output_prefix + "dati_extra/commesse_mock/" + "ID_" + str(id_simulazione)
         path_finalpart = "s3://" + s3_bucket+"/" + s3_key
 
 

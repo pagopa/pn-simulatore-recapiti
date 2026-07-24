@@ -324,7 +324,7 @@ if df_senderlim_mock.count()>0:
         raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
         
     else:
-        path = "s3://" + s3_bucket+"/" + output_prefix + "postalizzazioni_mock/" + "ID_" + str(id_simulazione)
+        path = "s3://" + s3_bucket+"/" + output_prefix + "dati_extra/postalizzazioni_mock/" + "ID_" + str(id_simulazione)
                                                                   
         
         #suddivisione dataset in settimane
