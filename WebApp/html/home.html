@@ -18,8 +18,11 @@
     <tbody>
         {% for simulazione in lista_simulazioni %}
             <tr>
-                <td style="text-align:center;">{{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</td>
-                <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}🟢{% elif simulazione.STATO == 'In lavorazione' %}🕛{% elif simulazione.STATO == 'Schedulata' %}📅{% elif simulazione.STATO == 'Non completata' %}🔴{% endif %}</td>
+                <td style="text-align:center;">{{simulazione.START_TIMESTAMP|date:"d/m/Y H:i"}}</td>
+                <td style="text-align:center;">{% if simulazione.STATO == 'Lavorata' %}<i class="fa-solid fa-calendar-check" style="color: rgb(2, 153, 108);"></i>
+                    {% elif simulazione.STATO == 'In lavorazione' %}<i class="fa-solid fa-arrows-rotate" style="color: rgb(56, 142, 223);"></i>
+                    {% elif simulazione.STATO == 'Schedulata' %}<i class="fa-solid fa-calendar-days" style="color: rgb(130, 130, 130);"></i>
+                    {% elif simulazione.STATO == 'Fallita' %}<i class="fa-solid fa-circle-xmark" style="color: #f88981;"></i>{% endif %}</td>
                 <td style="text-align:center;">{{simulazione.NOME}}</td>
                 <td style="text-align:center;">{{simulazione.DESCRIZIONE|default_if_none:''}}</td>
                 <td style="text-align:left;">
@@ -53,12 +56,15 @@
                                                 <p><b>Id simulazione</b>: {{simulazione.ID}}</p>
                                                 <p><b>Nome simulazione</b>: {{simulazione.NOME}}</p>
                                                 <p><b>Descrizione</b>: {{simulazione.DESCRIZIONE|default_if_none:'-'}}</p>
-                                                <p><b>Timestamp esecuzione</b>: {{simulazione.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}</p>
+                                                <p><b>Timestamp esecuzione</b>: {{simulazione.START_TIMESTAMP|date:"d/m/Y H:i"}}</p>
                                             </div>
                                             <div class="col">
                                                 <p><b>Mese di simulazione</b>: {{simulazione.MESE_SIMULAZIONE}}</p>
                                                 <p><b>Tipo capacità</b>: {{simulazione.TIPO_CAPACITA}}</p>
-                                                <p><b>Stato</b>: {% if simulazione.STATO == 'Lavorata' %}Lavorata 🟢{% elif simulazione.STATO == 'In lavorazione' %}In lavorazione 🕛{% elif simulazione.STATO == 'Schedulata' %}Schedulata 📅{% elif simulazione.STATO == 'Non completata' %}Non completata 🔴{% endif %}</p>
+                                                <p><b>Stato</b>: {% if simulazione.STATO == 'Lavorata' %}Lavorata <i class="fa-solid fa-calendar-check" style="color: rgb(2, 153, 108);"></i>
+                                                    {% elif simulazione.STATO == 'In lavorazione' %}In lavorazione <i class="fa-solid fa-arrows-rotate" style="color: rgb(56, 142, 223);"></i>
+                                                    {% elif simulazione.STATO == 'Schedulata' %}Schedulata <i class="fa-solid fa-calendar-days" style="color: rgb(130, 130, 130);"></i>
+                                                    {% elif simulazione.STATO == 'Fallita' %}Fallita <i class="fa-solid fa-circle-xmark" style="color: #f88981;"></i>{% endif %}</p>
                                             </div>
                                         </div>
                                         <br>
@@ -121,13 +127,13 @@
                                     </div>
                                     <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Indietro</button>
-                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}?next={% url 'home' %}">Rimuovi</a>
+                                    <a class="btn btn-danger" href="{% url 'rimuovi_simulazione' simulazione.ID %}?next={% url 'home' %}" onclick="spinner_loading();">Rimuovi</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                    {% elif simulazione.STATO == 'Non completata' or simulazione.STATO == 'In lavorazione' %}
+                    {% elif simulazione.STATO == 'Fallita' or simulazione.STATO == 'In lavorazione' %}
 
 
 
@@ -189,16 +195,16 @@
 			<div class="container">
 				<div class="row">
 					<div class="col">
-					    🟢 Lavorata
+					    <i class="fa-solid fa-calendar-check" style="color: rgb(2, 153, 108);"></i> Completata
 					</div>
 					<div class="col">
-					    🕛 In lavorazione
+					    <i class="fa-solid fa-arrows-rotate" style="color: rgb(56, 142, 223);"></i> In lavorazione
 					</div>
 					<div class="col">
-					    📅 Schedulata
+					    <i class="fa-solid fa-calendar-days" style="color: rgb(130, 130, 130);"></i> Schedulata
 					</div>
 					<div class="col">
-					    🔴 Non completata
+					    <i class="fa-solid fa-circle-xmark" style="color: #f88981;"></i> Fallita
 					</div>
 				</div>
 			</div>
@@ -206,12 +212,20 @@
 	</div>
 </div>
 
-<!--spinner che parte quando l'utente clicca sul tasto "download csv"-->
+<!-- SPINNER DI CARICAMENTO -->
 <div id="spinner_loading"></div>
 {% endblock content %}
 
 
 {% block scripts %}
+<script>
+    // SPINNER DI CARICAMENTO
+    function spinner_loading() {
+        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.9; background-color: #fff; z-index: 1060;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+    }
+</script>
+
+
 <!-- script per la tabella datatables -->
 <script>
     var fullDate = new Date();
@@ -380,7 +394,7 @@
                 `;
                 resp.context.forEach(function(simulazione) {
                     content_simulazioni += `
-                        <option value="${simulazione.ID}">${simulazione.NOME} (${simulazione.TIMESTAMP_ESECUZIONE})</option>
+                        <option value="${simulazione.ID}">${simulazione.NOME} (${simulazione.START_TIMESTAMP})</option>
                     `;
                 });
                 content_simulazioni += `</select>`;
@@ -421,7 +435,7 @@
             recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per provincia o solamente di quelle modificate
         */
         // start spinner
-        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        spinner_loading();
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_provincia/${id_simulazione}/${recupero_capacita_modificate}`);
@@ -463,7 +477,7 @@
             recupero_capacita_modificate (boolean): [true/false] che permette di discriminare se fornire all'utente un csv di tutte le capacità per CAP o solamente di quelle modificate
         */
         // start spinner
-        document.getElementById("spinner_loading").innerHTML = '<div style="position: fixed; display: block; width: 100%; height: 100%; top: 0; left: 0; text-align: center; opacity: 0.5; background-color: #fff; z-index: 1900;"><div class="spinner-border text-primary" role="status" style="position: absolute; top: 50%; left: 50%; width: 3rem; height: 3rem;"><span class="sr-only"></span></div></div>';
+        spinner_loading();
         try {
             // richiesta backend
             const response = await fetch(`/download_capacita_per_cap/${id_simulazione}/${recupero_capacita_modificate}`);

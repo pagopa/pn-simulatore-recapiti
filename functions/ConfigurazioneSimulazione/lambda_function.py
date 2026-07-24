@@ -76,7 +76,7 @@ def lambda_handler(event, context):
         # query
         cur.execute(    
         f'''
-        INSERT INTO public."SIMULAZIONE" ("NOME","DESCRIZIONE","STATO","TIMESTAMP_ESECUZIONE","MESE_SIMULAZIONE","TIPO_CAPACITA","TIPO_SIMULAZIONE") 
+        INSERT INTO public."SIMULAZIONE" ("NOME","DESCRIZIONE","STATO","START_TIMESTAMP","MESE_SIMULAZIONE","TIPO_CAPACITA","TIPO_SIMULAZIONE") 
         VALUES ('Automatizzata {settimana_simulazione}','Pianificazione settimanale automatizzata {settimana_simulazione}','In lavorazione','{start_timestamp_simulazione}','{settimana_simulazione}','Produzione','Automatizzata') 
         RETURNING "ID";
         '''

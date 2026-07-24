@@ -4,7 +4,7 @@ from PagoPA.settings import *
 from datetime import date, datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from .models import *
-from django.db.models import Q
+from django.db.models import Q, F, Avg
 from django.http import JsonResponse
 from django.db import connection
 from zoneinfo import ZoneInfo
@@ -22,29 +22,29 @@ def homepage(request):
     """
     Homepage che coincide con la pagina di riepilogo delle simulazioni effettuate
     """
-    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
+    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-START_TIMESTAMP')
     # recupero la lista degli id simulazione che hanno capacità simulate per CAP -> serve per capire su quali simulazioni mostrare il button download capacità per CAP 
     lista_idsimulazione_capacita_cap_disponibili = table_capacita_simulate_cap.objects.all().values_list('SIMULAZIONE_ID', flat=True).distinct()
     
     for singola_simulazione in lista_simulazioni:
-        # cambio stato su 'Non completata' se siamo sullo stato 'In lavorazione' da più di 2gg
-        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.TIMESTAMP_ESECUZIONE < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
-            singola_simulazione.STATO = 'Non completata'
-        # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
+        # cambio stato su 'Fallita' se siamo sullo stato 'In lavorazione' da più di 2gg
+        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.START_TIMESTAMP < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
+            singola_simulazione.STATO = 'Fallita'
+        # cambio stato su 'In lavorazione' per schedulata con start_timestamp <= now()
+        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.START_TIMESTAMP <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
             singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
-        monday_current_week = singola_simulazione.TIMESTAMP_ESECUZIONE.date() - timedelta(days=singola_simulazione.TIMESTAMP_ESECUZIONE.weekday())
+        monday_current_week = singola_simulazione.START_TIMESTAMP.date() - timedelta(days=singola_simulazione.START_TIMESTAMP.weekday())
         if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
             previous_week_monday = monday_current_week - timedelta(days=7)
             if previous_week_monday.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday).first()
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',START_TIMESTAMP__date=previous_week_monday).first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
         elif singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
-            if singola_simulazione.TIMESTAMP_ESECUZIONE.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__year=monday_current_week.year,TIMESTAMP_ESECUZIONE__month=monday_current_week.month).order_by("-TIMESTAMP_ESECUZIONE").first()
+            if singola_simulazione.START_TIMESTAMP.month == monday_current_week.month:
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',START_TIMESTAMP__year=monday_current_week.year,START_TIMESTAMP__month=monday_current_week.month).order_by("-START_TIMESTAMP").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
 
@@ -78,7 +78,7 @@ def bozze(request):
     """
     Pagina che mostra le simulazioni in uno stato di bozza
     """
-    lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
+    lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-START_TIMESTAMP')
     context = {
         'lista_bozze': lista_bozze
     }
@@ -599,7 +599,7 @@ def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,st
         DESCRIZIONE = descrizione_simulazione,
         STATO = stato,
         TRIGGER = tipo_trigger,
-        TIMESTAMP_ESECUZIONE = timestamp_esecuzione,
+        START_TIMESTAMP = timestamp_esecuzione,
         MESE_SIMULAZIONE = mese_da_simulare,
         TIPO_CAPACITA = tipo_capacita_da_modificare,
         TIPO_SIMULAZIONE = tipo_simulazione
@@ -642,7 +642,7 @@ def aggiornamento_db_simulazione_esistente(id_simulazione,nome_simulazione,descr
     simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
     simulazione_da_modificare.STATO = stato
     simulazione_da_modificare.TRIGGER = tipo_trigger
-    simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+    simulazione_da_modificare.START_TIMESTAMP = timestamp_esecuzione
     simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
     simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
     simulazione_da_modificare.TIPO_SIMULAZIONE = tipo_simulazione
@@ -1015,7 +1015,7 @@ def download_capacita_per_cap(request, id_simulazione, recupero_capacita_modific
     # recupero simulazione dal db a partire dall'id_simulazione
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
     # recuperiamo dal bucket s3 la key del file csv target
-    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE, recupero_capacita_modificate)
+    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.START_TIMESTAMP, simulazione_selezionata.MESE_SIMULAZIONE, recupero_capacita_modificate)
     if recupero_capacita_modificate == 'true':
         filename = f"CapacitaModificatePerCAP_id{id_simulazione}.csv"
     else:
@@ -1146,6 +1146,64 @@ def download_vista_fornitore(request, selectedData):
         ])
     return response
 
+
+def get_calendar_data(request):
+ 
+    '''Questa funzione riceve i datti disponibili nella tabella simulazione e li formatta per essere visualizzati nel calendario'''
+ 
+    NUMBER_EVENTS = 5 # parametro per calcolo del tempo medio di simulazione --> default ultimi 5 giorni
+ 
+    events_list = list(table_simulazione.objects.values('ID', 'NOME', 'STATO', 'START_TIMESTAMP','MESE_SIMULAZIONE','END_TIMESTAMP',
+                                                        'DESCRIZIONE','MESE_SIMULAZIONE','TIPO_CAPACITA').order_by('-START_TIMESTAMP'))
+   
+    last_ids = table_simulazione.objects.filter(END_TIMESTAMP__isnull=False).order_by('-END_TIMESTAMP').values_list('ID', flat=True)[:NUMBER_EVENTS]
+ 
+    media_end_timestamp = table_simulazione.objects.filter(ID__in=list(last_ids)).aggregate(tempo_medio=Avg(F('END_TIMESTAMP') - F('START_TIMESTAMP')))['tempo_medio']
+   
+    # Inizio blocco per formattazione eventi da mostrare nel fullcalendar
+    event_formated = []
+    for event in events_list:
+ 
+        # Eliminazione eventi in bozza e senza data di fine
+        if event['STATO'] in ['Lavorata', 'Fallita'] and event['END_TIMESTAMP'] is None:
+            continue
+        elif event['STATO'] == 'Bozza':
+            continue
+ 
+        # Ancora dentro il loop impostazione colore e tempo di previsione per gli eventi
+        elif event['STATO'] in ['Schedulata', 'In lavorazione']:
+            data_fine = media_end_timestamp + event['START_TIMESTAMP']
+            if event['STATO'] == 'Schedulata':
+                background_color = 'rgb(130, 130, 130)'
+            else:
+                background_color = '#3586bd'
+        elif event['STATO'] == 'Fallita':
+            data_fine = event['END_TIMESTAMP']
+            background_color = "#f88981"
+        else:
+            data_fine = event['END_TIMESTAMP']
+            background_color = 'rgb(2, 153, 108)'
+ 
+        data_inizio = event['START_TIMESTAMP']
+ 
+       
+        # Questo format è richiesto da FullCalendar per la visualizzazione degli eventi
+        event_formated.append({
+            'title': event['NOME'],
+            'start': data_inizio,
+            'end': data_fine,
+            'color': background_color,
+            'extendedProps': {
+                'id': event['ID'],
+                'stato': event['STATO'],
+                'descrizione': event['DESCRIZIONE'],
+                'mese_simulazione': event['MESE_SIMULAZIONE'],
+                'tipo_capacita': event['TIPO_CAPACITA'],
+                'tempoMedio': str(media_end_timestamp).split('.')[0],
+            }
+        })
+ 
+    return JsonResponse({'event_list': event_formated})
 
 
 # ERROR PAGES
