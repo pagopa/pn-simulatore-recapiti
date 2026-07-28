@@ -59,10 +59,10 @@ def connessione_db(db_host, db_name, db_port, creds):
     return conn
 
 def lambda_handler(event, context):    
+    # calcoliamo il datetime now
+    start_timestamp_simulazione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
     if event['tipo_simulazione'] == 'Automatizzata':
         settimana_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-MM-dd ma a noi interessa solamente yyyy-MM
-        # calcoliamo il datetime now
-        start_timestamp_simulazione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
         # recupero variabili d'ambiente
         secretsManager_SecretId = os.environ['secretsManager_SecretId']
         db_host = os.environ['DB_HOST']
