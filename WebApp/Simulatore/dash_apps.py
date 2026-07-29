@@ -700,7 +700,7 @@ def update_chart_regioni_recap(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
     df_recap = pd.DataFrame(recap)
-    df_recap = df_recap.groupby(["SIMULAZIONE_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
+    df_recap = df_recap.groupby(["SIMULAZIONE_ID_id","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
     # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
     fig_reg_recap = px.area(
         df_recap,
@@ -2225,7 +2225,7 @@ def update_chart_recap_1(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-2])
     recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
     df_recap = pd.DataFrame(recap)
-    df_recap = df_recap.groupby(["SIMULAZIONE_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
+    df_recap = df_recap.groupby(["SIMULAZIONE_ID_id","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
     # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
     fig_reg_recap = px.area(
         df_recap,
@@ -2279,7 +2279,7 @@ def update_chart_recap_2(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
     df_recap = pd.DataFrame(recap)
-    df_recap = df_recap.groupby(["SIMULAZIONE_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
+    df_recap = df_recap.groupby(["SIMULAZIONE_ID_id","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
     # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
     fig_reg_recap = px.area(
         df_recap,
