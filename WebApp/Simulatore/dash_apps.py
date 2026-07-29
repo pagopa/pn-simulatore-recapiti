@@ -490,7 +490,7 @@ def update_table_ente_ag(pathname, value):
         else:
             tab_sintesi_ente = view_tabella_sintesi_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).order_by(F('SUM_COUNT_RESIDUI').asc(nulls_last=True)).values()
     df_tab_sintesi_ente = pd.DataFrame(tab_sintesi_ente)
-    df_tab_sintesi_ente.drop(columns=["id","SIMULAZIONE_ID_id"], axis=1, inplace=True)
+    df_tab_sintesi_ente.drop(columns=["id","SIMULAZIONE_ID"], axis=1, inplace=True)
     df_tab_sintesi_ente = df_tab_sintesi_ente.rename(columns={"SENDER_PA_ID": "ID Ente", "SUM_COUNT_REQUEST": "Volumi Totali", "AVG_COUNT_REQUEST": "Volumi Medi Settimanali", "SUM_COUNT_RESIDUI": "Volumi Residui"})
     rowData = df_tab_sintesi_ente.to_dict("records")
     columnDefs = []
@@ -663,7 +663,7 @@ def update_table_reg_recap_ag(regioni_sel, recap_sel, pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     tab_sintesi_reg_recap = view_tabella_sintesi_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).order_by(F('SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC').desc(nulls_last=True)).values()
     df_tab_sintesi_reg_recap = pd.DataFrame(tab_sintesi_reg_recap)
-    df_tab_sintesi_reg_recap.drop(columns=["id","SIMULAZIONE_ID_id","PROVINCE","UNIFIED_DELIVERY_DRIVER"], axis=1, inplace=True)
+    df_tab_sintesi_reg_recap.drop(columns=["id","SIMULAZIONE_ID","PROVINCE","UNIFIED_DELIVERY_DRIVER"], axis=1, inplace=True)
     colonne_ordinate = ['REGIONE', 'PROVINCIA_RECAPITISTA', 'SUM_COUNT_REQUEST', 'AVG_COUNT_REQUEST', 'SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC', 'SUM_COUNT_RESIDUI']
     df_tab_sintesi_reg_recap = df_tab_sintesi_reg_recap[colonne_ordinate]
     df_tab_sintesi_reg_recap = df_tab_sintesi_reg_recap.rename(columns={"REGIONE": "Regione","PROVINCIA_RECAPITISTA": "Provincia - Recapitista" , "SUM_COUNT_REQUEST": "Volumi Totali", "AVG_COUNT_REQUEST": "Volumi Medi Settimanali", "SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC": "Volumi Oltre la 5° Settimana", "SUM_COUNT_RESIDUI": "Volumi Residui"})
@@ -700,7 +700,7 @@ def update_chart_regioni_recap(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
     df_recap = pd.DataFrame(recap)
-    df_recap = df_recap.groupby(["SIMULAZIONE_ID_id","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
+    df_recap = df_recap.groupby(["SIMULAZIONE_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
     # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
     fig_reg_recap = px.area(
         df_recap,
@@ -1782,7 +1782,7 @@ def update_table_ente_ag(pathname, value):
         else:
             tab_sintesi_ente = view_tabella_sintesi_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).order_by(F('SUM_COUNT_RESIDUI').asc(nulls_last=True)).values()
     df_tab_sintesi_ente = pd.DataFrame(tab_sintesi_ente)
-    df_tab_sintesi_ente.drop(columns=["id","SIMULAZIONE_ID_id"], axis=1, inplace=True)
+    df_tab_sintesi_ente.drop(columns=["id","SIMULAZIONE_ID"], axis=1, inplace=True)
     df_tab_sintesi_ente = df_tab_sintesi_ente.rename(columns={"SENDER_PA_ID": "ID Ente", "SUM_COUNT_REQUEST": "Volumi Totali", "AVG_COUNT_REQUEST": "Volumi Medi Settimanali", "SUM_COUNT_RESIDUI": "Volumi Residui"})
     rowData = df_tab_sintesi_ente.to_dict("records")
     columnDefs = []
@@ -1828,7 +1828,7 @@ def update_table_ente_ag(pathname, value):
         else:
             tab_sintesi_ente = view_tabella_sintesi_ente.objects.filter(SIMULAZIONE_ID = id_simulazione).order_by(F('SUM_COUNT_RESIDUI').asc(nulls_last=True)).values()
     df_tab_sintesi_ente = pd.DataFrame(tab_sintesi_ente)
-    df_tab_sintesi_ente.drop(columns=["id","SIMULAZIONE_ID_id"], axis=1, inplace=True)
+    df_tab_sintesi_ente.drop(columns=["id","SIMULAZIONE_ID"], axis=1, inplace=True)
     df_tab_sintesi_ente = df_tab_sintesi_ente.rename(columns={"SENDER_PA_ID": "ID Ente", "SUM_COUNT_REQUEST": "Volumi Totali", "AVG_COUNT_REQUEST": "Volumi Medi Settimanali", "SUM_COUNT_RESIDUI": "Volumi Residui"})
     rowData = df_tab_sintesi_ente.to_dict("records")
     columnDefs = []
@@ -2149,7 +2149,7 @@ def update_table_reg_recap_ag_1(regioni_sel, recap_sel, pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-2])
     tab_sintesi_reg_recap = view_tabella_sintesi_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).order_by(F('SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC').desc(nulls_last=True)).values()
     df_tab_sintesi_reg_recap = pd.DataFrame(tab_sintesi_reg_recap)
-    df_tab_sintesi_reg_recap.drop(columns=["id","SIMULAZIONE_ID_id","PROVINCE","UNIFIED_DELIVERY_DRIVER"], axis=1, inplace=True)
+    df_tab_sintesi_reg_recap.drop(columns=["id","SIMULAZIONE_ID","PROVINCE","UNIFIED_DELIVERY_DRIVER"], axis=1, inplace=True)
     colonne_ordinate = ['REGIONE', 'PROVINCIA_RECAPITISTA', 'SUM_COUNT_REQUEST', 'AVG_COUNT_REQUEST', 'SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC', 'SUM_COUNT_RESIDUI']
     df_tab_sintesi_reg_recap = df_tab_sintesi_reg_recap[colonne_ordinate]
     df_tab_sintesi_reg_recap = df_tab_sintesi_reg_recap.rename(columns={"REGIONE": "Regione","PROVINCIA_RECAPITISTA": "Provincia - Recapitista" , "SUM_COUNT_REQUEST": "Volumi Totali", "AVG_COUNT_REQUEST": "Volumi Medi Settimanali", "SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC": "Volumi Oltre la 5° Settimana", "SUM_COUNT_RESIDUI": "Volumi Residui"})
@@ -2187,7 +2187,7 @@ def update_table_reg_recap_ag_2(regioni_sel, recap_sel, pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     tab_sintesi_reg_recap = view_tabella_sintesi_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione, REGIONE__in = regioni_sel, UNIFIED_DELIVERY_DRIVER__in = recap_sel).order_by(F('SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC').desc(nulls_last=True)).values()
     df_tab_sintesi_reg_recap = pd.DataFrame(tab_sintesi_reg_recap)
-    df_tab_sintesi_reg_recap.drop(columns=["id","SIMULAZIONE_ID_id","PROVINCE","UNIFIED_DELIVERY_DRIVER"], axis=1, inplace=True)
+    df_tab_sintesi_reg_recap.drop(columns=["id","SIMULAZIONE_ID","PROVINCE","UNIFIED_DELIVERY_DRIVER"], axis=1, inplace=True)
     colonne_ordinate = ['REGIONE', 'PROVINCIA_RECAPITISTA', 'SUM_COUNT_REQUEST', 'AVG_COUNT_REQUEST', 'SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC', 'SUM_COUNT_RESIDUI']
     df_tab_sintesi_reg_recap = df_tab_sintesi_reg_recap[colonne_ordinate]
     df_tab_sintesi_reg_recap = df_tab_sintesi_reg_recap.rename(columns={"REGIONE": "Regione","PROVINCIA_RECAPITISTA": "Provincia - Recapitista" , "SUM_COUNT_REQUEST": "Volumi Totali", "AVG_COUNT_REQUEST": "Volumi Medi Settimanali", "SUM_COUNT_REQUEST_PRIMA_SETT_MESE_SUCC": "Volumi Oltre la 5° Settimana", "SUM_COUNT_RESIDUI": "Volumi Residui"})
@@ -2225,7 +2225,7 @@ def update_chart_recap_1(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-2])
     recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
     df_recap = pd.DataFrame(recap)
-    df_recap = df_recap.groupby(["SIMULAZIONE_ID_id","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
+    df_recap = df_recap.groupby(["SIMULAZIONE_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
     # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
     fig_reg_recap = px.area(
         df_recap,
@@ -2279,7 +2279,7 @@ def update_chart_recap_2(pathname):
     id_simulazione = int(pathname.strip("/").split("/")[-1])
     recap = table_output_grafico_reg_recap.objects.filter(SIMULAZIONE_ID = id_simulazione).values()
     df_recap = pd.DataFrame(recap)
-    df_recap = df_recap.groupby(["SIMULAZIONE_ID_id","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
+    df_recap = df_recap.groupby(["SIMULAZIONE_ID","UNIFIED_DELIVERY_DRIVER","SETTIMANA_DELIVERY"])['COUNT_REQUEST'].sum().reset_index()
     # df_regioni_recap["Provincia_Recapitista"] = df_regioni_recap["PROVINCE"] + " - " + df_regioni_recap["UNIFIED_DELIVERY_DRIVER"]
     fig_reg_recap = px.area(
         df_recap,
