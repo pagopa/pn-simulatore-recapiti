@@ -275,13 +275,13 @@ if df_senderlim_mock.count()>0:
                                                         .withColumn('prepareRequestDate',F.to_timestamp(F.col('DELIVERY_DATE'),"yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'"))\
                                                         .withColumn('workflowStep',F.lit('EVALUATE_SENDER_LIMIT'))\
                                                         .withColumn('NotificationSentAt',F.to_timestamp(F.col('DELIVERY_DATE'),"yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'"))\
-                                                        .withColumn('RequestID',F.concat((F.monotonically_increasing_id()+1000000).cast(T.StringType()),F.lit('_MOCK')))\
+                                                        .withColumn('requestId',F.concat((F.monotonically_increasing_id()+1000000).cast(T.StringType()),F.lit('_MOCK')))\
                                                         .withColumn('senderPaId',F.concat(F.col('PA_ID'),F.lit('_MOCK')))\
                                                         .withColumn('attempt',F.lit(0))\
                                                         .withColumnRenamed('COD_SIGLA_PROVINCIA','province')\
                                                         .withColumnRenamed('PRODUCT_TYPE','productType')\
                                                         .withColumnRenamed('CAP','cap')\
-                                                        .select('RequestID','notificationSentAt','prepareRequestDate','productType','senderPaId','province','cap','attempt','iun')
+                                                        .select('requestId','notificationSentAt','prepareRequestDate','productType','senderPaId','province','cap','attempt','iun')
     
     print('Export in S3')
     # Export in csv a lotti di 10.000 righe

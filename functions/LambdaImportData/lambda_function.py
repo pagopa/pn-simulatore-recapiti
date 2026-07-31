@@ -99,7 +99,7 @@ def lambda_import_data(lambda_delayer,filename,date_per_import_data):
     string_response = read_response.decode('utf-8')
     response_dict = json.loads(string_response)
     if response_dict['statusCode'] not in (200, 201, 204):
-        raise Exception(response_dict['body'])
+        raise Exception(f"Errore {response_dict['statusCode']} - {response_dict['body']} sul file {filename}")
 
 def carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import):
     """

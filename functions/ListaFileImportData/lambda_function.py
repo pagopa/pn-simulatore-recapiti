@@ -8,6 +8,9 @@ Input:
     settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato yyyy-MM-dd, utile per calcolare la successiva settimana da processare
     mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-MM-dd
     tipo_simulazione: 'Automatizzata' o 'Manuale'
+    start_timestamp_simulazione: timestamp di starting della simulazione
+        pianificazione_postalizzazioni: scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
+        postalizzazioni_fuori_commessa: scelta dell'utente che, tramite la webapp, ha selezionato o meno la checkbox delle postalizzazioni fuori commessa
 
 Output:
     lista_file_csv: fornisce alla LambdaInsertMockCapacities la lista dei file assegnati all'IMPORT_DATA per il caricamento
@@ -213,7 +216,30 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         return []
 
 
-def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione,start_timestamp_simulazione):
+def popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione):
+    """
+        Popoliamo la lista dei file csv postalizzazioni (default o mock) sui quali effettuare l'operazione di IMPORT_DATA
+    
+        Args:
+            s3_client (botocore.client.S3): connessione ad s3
+            source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di IMPORT_DATA
+            lista_settimane (list): lista settimane di simulazione contenenti postalizzazioni (default o mock), formato "yyyy-MM-dd"
+            id_simulazione (string): identificativo univoco della simulazione sul db
+    
+        Returns:
+            list: lista dei file csv postalizzazioni (default o mock) sui quali effettuare l'operazione di IMPORT_DATA
+    """
+    lista_file_da_appendere = []
+    for singola_settimana in lista_settimane:
+        objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=singola_settimana)
+        for obj in objects.get("Contents", []):
+            if obj["Key"][-4:] == '.csv':
+                # nota: singola_settimana ha il formato settimana_import avrà il formato avrà il formato 'yyyy-MM-dd_settimana_esecuzione'
+                lista_file_da_appendere.append({'settimana_import':singola_settimana.split('/')[-2],'s3_file_key':obj["Key"],'id_simulazione':id_simulazione})
+    return lista_file_da_appendere
+
+
+def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione,start_timestamp_simulazione,pianificazione_postalizzazioni,postalizzazioni_fuori_commessa):
     """
     Recuperiamo la lista dei file csv sui quali effettuare l'operazione di IMPORT_DATA
 
@@ -222,23 +248,29 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
         prefix_s3 (string): prefisso del bucket fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA 
         id_simulazione (string): identificativo univoco della simulazione sul db
         prima_settimana_simulazione (string): prima settimana di simulazione, formato "yyyy-MM-dd"
+        pianificazione_postalizzazioni (string): scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
+        postalizzazioni_fuori_commessa: scelta dell'utente che, tramite la webapp, ha selezionato o meno la checkbox delle postalizzazioni fuori commessa
 
     Returns:
         list: lista dei file csv sui quali effettuare l'operazione di IMPORT_DATA
     """
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
-    objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3, Delimiter="/")
-    lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
-    # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere le capacità dei CAP o i residui            
-    lista_settimane = [x for x in lista_settimane if '/dati_extra/' not in x]
     lista_file_csv = []
-    for singola_settimana in lista_settimane:
-        objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=singola_settimana)
-        for obj in objects.get("Contents", []):
-            if obj["Key"][-4:] == '.csv':
-                # nota: singola_settimana ha il formato 'input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione/yyyy-MM-dd_settimana_esecuzione/', dunque, settimana_import avrà il formato 'yyyy-MM-dd_settimana_esecuzione'
-                lista_file_csv.append({'settimana_import':singola_settimana.split('/')[-2],'s3_file_key':obj["Key"],'id_simulazione':id_simulazione})
+    # RECUPERO POSTALIZZAZIONI DEFAULT
+    if (pianificazione_postalizzazioni != 'Utilizza solo le commesse di mock'):
+        # recuperiamo la lista delle cartelle di interesse sulla cartella di destinazione s3
+        objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3, Delimiter="/")
+        lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
+        # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere dati_extra       
+        lista_settimane = [x for x in lista_settimane if '/dati_extra/' not in x]
+        lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione))
+    # RECUPERO POSTALIZZAZIONI MOCK
+    if (pianificazione_postalizzazioni == 'Utilizza le commesse di default e le commesse di mock' or pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock' or postalizzazioni_fuori_commessa=='True'):
+        # recuperiamo la lista delle cartelle di interesse sulla cartella di destinazione s3
+        objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3+f'dati_extra/postalizzazioni_mock/ID_{id_simulazione}/', Delimiter="/")
+        lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
+        lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione))  
     # recupero residui
     lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione))
     return lista_file_csv
@@ -252,6 +284,8 @@ def lambda_handler(event, context):
     mese_simulazione = prima_settimana_simulazione[:7] # mese_simulazione che recuperiamo dalla step function è nel formato yyyy-MM-dd ma a noi interessa solamente yyyy-MM
     tipo_simulazione = event["tipo_simulazione"]
     start_timestamp_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['start_timestamp_simulazione']
+    pianificazione_postalizzazioni = event["output_lambda_ConfigurazioneSimulazione"]['Payload']["pianificazione_postalizzazioni"]
+    postalizzazioni_fuori_commessa = event["output_lambda_ConfigurazioneSimulazione"]['Payload']["postalizzazioni_fuori_commessa"]
     if tipo_simulazione == 'Automatizzata':
         # recupero parametro id_simulazione
         id_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['id_simulazione_automatizzata']
@@ -263,8 +297,8 @@ def lambda_handler(event, context):
     # recuperiamo il path s3 per prendere i csv delle postalizzazioni
     full_prefix = recupero_ultima_data_estrazione(source_bucket, mese_simulazione, start_timestamp_simulazione)
     # recuperiamo la lista dei csv delle postalizzazioni
-    lista_file_csv = recupero_lista_csv_sorgenti(source_bucket,full_prefix,id_simulazione,prima_settimana_simulazione,start_timestamp_simulazione)
-    
+    lista_file_csv = recupero_lista_csv_sorgenti(source_bucket,full_prefix,id_simulazione,prima_settimana_simulazione,start_timestamp_simulazione,pianificazione_postalizzazioni,postalizzazioni_fuori_commessa)
+    # generiamo un'eccezione se la lista_file_csv è vuota
     if len(lista_file_csv) != 0:
         return {'statusCode': 200, 'lista_file_csv': lista_file_csv}
     else:
