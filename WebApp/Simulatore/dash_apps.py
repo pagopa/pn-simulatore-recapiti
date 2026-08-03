@@ -456,7 +456,7 @@ def update_chart_ente(ente_sel, pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             )
         ),
         yaxis=dict(
@@ -594,7 +594,7 @@ def update_linechart_regioni_recap(regioni_sel, recap_sel, pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             )
         ),
         yaxis=dict(
@@ -733,7 +733,7 @@ def update_chart_regioni_recap(pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             )
         ),
         yaxis=dict(
@@ -1687,7 +1687,7 @@ def update_chart_ente_1(ente_sel, pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             ),
             side="top"
         ),
@@ -1747,7 +1747,7 @@ def update_chart_ente_2(ente_sel, pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             ),
             side="top"
         ),
@@ -1964,7 +1964,7 @@ def update_linechart_regioni_recap_1(regioni_sel, recap_sel, pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             ),
             side="top"
         ),
@@ -2078,7 +2078,7 @@ def update_linechart_regioni_recap_2(regioni_sel, recap_sel, pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             ),
             side="top"
         ),
@@ -2258,7 +2258,7 @@ def update_chart_recap_1(pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             )
         ),
         yaxis=dict(
@@ -2312,7 +2312,7 @@ def update_chart_recap_2(pathname):
         ),
         xaxis=dict(
             title=dict(
-                text="Settima di Delivery"
+                text="Settimana di Delivery"
             )
         ),
         yaxis=dict(

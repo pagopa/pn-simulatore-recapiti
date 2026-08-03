@@ -956,8 +956,8 @@ Resources:
       FunctionName: !Sub '${ProjectName}-${MicroServiceUniqueName}-Lambda-ListaFileImportData'
       Runtime: python3.13
       Handler: lambda_function.lambda_handler
-      Timeout: 300
-      MemorySize: 128
+      Timeout: 900
+      MemorySize: 256
       Role: !GetAtt ListaFileImportDataLambdaRole.Arn
       Code:
         S3Bucket: !Ref MicroserviceBucketName
