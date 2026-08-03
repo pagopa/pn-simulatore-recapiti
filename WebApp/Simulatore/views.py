@@ -39,7 +39,7 @@ def homepage(request):
         if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
             previous_week_monday = monday_current_week - timedelta(days=7)
             if previous_week_monday.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',MESE_SIMULAZIONE=str(previous_week_monday)[:7]).first()
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday).first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
         elif singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
