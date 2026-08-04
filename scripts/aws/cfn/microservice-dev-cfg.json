@@ -13,6 +13,7 @@
     "TablePaperDeliveryMock": "pn-DelayerPaperDeliveryMock",
     "TableDriverUsedCapacitiesMock": "pn-PaperDeliveryDriverUsedCapacitiesMock",
     "TableSenderLimit": "pn-PaperDeliverySenderLimit",
+    "TableSenderLimitMock": "pn-PaperDeliverySenderLimitMock",
     "TableUsedSenderLimitMock": "pn-PaperDeliveryUsedSenderLimitMock",
     "TableCountersMock": "pn-PaperDeliveryCountersMock",
     "TableDriverCapacities": "pn-PaperDeliveryDriverCapacities",

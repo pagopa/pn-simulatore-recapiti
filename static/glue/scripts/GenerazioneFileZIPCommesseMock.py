@@ -163,9 +163,10 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
         for ente in df_senderlim_reg_grouped.select("PA_ID").distinct().collect():
             
             ente = ente.asDict()['PA_ID']
+            commesse_ente = df_senderlim_reg_grouped.filter(F.col('PA_ID')==ente).agg(F.sum('MONTHLY_ESTIMATE')).collect()[0].asDict()['sum(MONTHLY_ESTIMATE)']
 
-            # Se l'ente è un extra la commessa non deve essere creata
-            if 'FUORI_COMMESSA' not in ente.upper(): 
+            # Se l'ente è un extra o se non ci sono commesse il file non deve essere creato
+            if 'FUORI_COMMESSA' not in ente.upper() and commesse_ente > 0: 
                 print('Elaborazione ente: ',ente)
                 
                 diz_ente_json = {}
@@ -288,9 +289,10 @@ if pianificazione_postalizzazioni == 'Utilizza le commesse di default e le comme
         for ente in df_senderlim_mock_reg.select("PA_ID").distinct().collect():
             
             ente = ente.asDict()['PA_ID']
+            commesse_ente = df_senderlim_mock_reg.filter(F.col('PA_ID')==ente).agg(F.sum('MONTHLY_ESTIMATE')).collect()[0].asDict()['sum(MONTHLY_ESTIMATE)']
 
-            # Se l'ente è un extra la commessa non deve essere creata
-            if 'FUORI_COMMESSA' not in ente.upper(): 
+            # Se l'ente è un extra o se non ci sono commesse il file non deve essere creato
+            if 'FUORI_COMMESSA' not in ente.upper() and commesse_ente > 0: 
                 print('Elaborazione ente: ',ente)
             
                 # Lavorazione a parte per le commesse a livello nazionale
@@ -463,9 +465,10 @@ if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
         for ente in df_senderlim_mock_reg.select("PA_ID").distinct().collect():
             
             ente = ente.asDict()['PA_ID']
+            commesse_ente = df_senderlim_mock_reg.filter(F.col('PA_ID')==ente).agg(F.sum('MONTHLY_ESTIMATE')).collect()[0].asDict()['sum(MONTHLY_ESTIMATE)']
 
-            # Se l'ente è un extra la commessa non deve essere creata
-            if 'FUORI_COMMESSA' not in ente.upper(): 
+            # Se l'ente è un extra o se non ci sono commesse il file non deve essere creato
+            if 'FUORI_COMMESSA' not in ente.upper() and commesse_ente > 0:
                 print('Elaborazione ente: ',ente)
             
                 # Lavorazione a parte per le commesse a livello nazionale

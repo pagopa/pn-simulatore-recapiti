@@ -222,6 +222,10 @@ Parameters:
   TableSenderLimit:
     Type: String
     Description: 'Name of the DynamoDB table for sender limit'
+  
+  TableSenderLimitMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for sender limit mock'
 
   TableUsedSenderLimitMock:
     Type: String
@@ -918,6 +922,7 @@ Resources:
           TABLE_PAPER_DELIVERY_MOCK: !Ref TablePaperDeliveryMock
           TABLE_DRIVER_USED_CAPACITIES_MOCK: !Ref TableDriverUsedCapacitiesMock
           TABLE_SENDER_LIMIT: !Ref TableSenderLimit
+          TABLE_SENDER_LIMIT_MOCK: !Ref TableSenderLimitMock
           TABLE_USED_SENDER_LIMIT_MOCK: !Ref TableUsedSenderLimitMock
           TABLE_COUNTERS_MOCK: !Ref TableCountersMock
           TABLE_DRIVER_CAPACITIES: !Ref TableDriverCapacities

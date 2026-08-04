@@ -9,8 +9,8 @@ Input:
     mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-MM-dd
     tipo_simulazione: 'Automatizzata' o 'Manuale'
     start_timestamp_simulazione: timestamp di starting della simulazione
-        pianificazione_postalizzazioni: scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
-        postalizzazioni_fuori_commessa: scelta dell'utente che, tramite la webapp, ha selezionato o meno la checkbox delle postalizzazioni fuori commessa
+    pianificazione_postalizzazioni: scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
+    postalizzazioni_fuori_commessa: scelta dell'utente che, tramite la webapp, ha selezionato o meno la checkbox delle postalizzazioni fuori commessa
 
 Output:
     lista_file_csv: fornisce alla LambdaInsertMockCapacities la lista dei file assegnati all'IMPORT_DATA per il caricamento

@@ -76,8 +76,13 @@
           "--mese_simulazione.$": "$.mese_simulazione"
         }
       },
-      "Next": "RECUPERO FILE CSV PER IMPORT DATA",
+      "Next": "WAIT PER INSERT_MOCK_SENDER_LIMITS",
       "ResultPath": null
+    },
+    "WAIT PER INSERT_MOCK_SENDER_LIMITS": {
+      "Type": "Wait",
+      "Seconds": 5,
+      "Next": "RECUPERO FILE CSV PER IMPORT DATA"
     },
     "RECUPERO FILE CSV PER IMPORT DATA": {
       "Type": "Task",
