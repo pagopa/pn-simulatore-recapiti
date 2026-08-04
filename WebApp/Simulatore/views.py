@@ -39,12 +39,12 @@ def homepage(request):
         if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
             previous_week_monday = monday_current_week - timedelta(days=7)
             if previous_week_monday.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday).first()
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday,MESE_SIMULAZIONE=singola_simulazione.MESE_SIMULAZIONE).order_by("-TIMESTAMP_ESECUZIONE").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
         elif singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
             if singola_simulazione.TIMESTAMP_ESECUZIONE.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',MESE_SIMULAZIONE=str(monday_current_week)[:7]).order_by("-TIMESTAMP_ESECUZIONE").first()
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',MESE_SIMULAZIONE=singola_simulazione.MESE_SIMULAZIONE).order_by("-TIMESTAMP_ESECUZIONE").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
 
