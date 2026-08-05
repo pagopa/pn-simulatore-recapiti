@@ -1293,8 +1293,8 @@ def get_calendar_data(request):
                                                       data_fine = DATA_FINE_RICORRENTI,
                                                       giorno_settimana=0,# Giorno della settimana [0==Lunedi, 1=Martedi....6=Domenica]
                                                       simul_mean_time = media_end_timestamp,
-                                                      cutoff = CUTOFF,
-                                                      mesi_avanti = MESI_IN_AVANTI)
+                                                      cutoff = int(CUTOFF),
+                                                      mesi_avanti = int(MESI_IN_AVANTI))
     eventi_ricorrente = cambio_status_ricorrenti(eventi_ricorrente)
     eventi_ricorrente = del_ricorrenti_passati(eventi_ricorrente)
     event_formated = regular_event + eventi_ricorrente
