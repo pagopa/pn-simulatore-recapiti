@@ -27,12 +27,6 @@ def homepage(request):
     lista_idsimulazione_capacita_cap_disponibili = table_capacita_simulate_cap.objects.all().values_list('SIMULAZIONE_ID', flat=True).distinct()
     
     for singola_simulazione in lista_simulazioni:
-        # cambio stato su 'Fallita' se siamo sullo stato 'In lavorazione' da più di 2gg
-        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.START_TIMESTAMP < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
-            singola_simulazione.STATO = 'Fallita'
-        # cambio stato su 'In lavorazione' per schedulata con start_timestamp <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.START_TIMESTAMP <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
-            singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
         monday_current_week = singola_simulazione.START_TIMESTAMP.date() - timedelta(days=singola_simulazione.START_TIMESTAMP.weekday())
@@ -1209,8 +1203,10 @@ def generazione_eventi_ricorrente(data_inizio,data_fine,giorno_settimana,simul_m
     return eventi_ricorrenti
  
 def cambio_status_ricorrenti(lista_ricorrenti):
-    '''Questa funzione modifica lo stato degli eventi ricorrenti in base alla data di fine simulazione.
-       Cambia di stato schedulata per In lavorazione se la simulazione è in esecuzione'''
+    '''
+    Questa funzione modifica lo stato degli eventi ricorrenti in base alla data di fine simulazione.
+    Cambia di stato schedulata per In lavorazione se la simulazione è in esecuzione
+    '''
     lista_aux = lista_ricorrenti.copy()
     for evento in lista_aux:
         event_day = evento['start'].day
@@ -1220,18 +1216,22 @@ def cambio_status_ricorrenti(lista_ricorrenti):
     return lista_aux
  
 def del_ricorrenti_passati(lista_ricorrenti):
-    '''Questa funzione elimina gli eventi ricorrenti che sono già passati'''
+    '''
+    Questa funzione elimina gli eventi ricorrenti che sono già passati
+    '''
     oggi = datetime.now()
     return [evento for evento in lista_ricorrenti if evento['end'] > oggi]
  
 def get_calendar_data(request):
- 
-    '''Questa funzione riceve i datti disponibili nella tabella simulazione e li formatta per essere visualizzati nel calendario'''
+    '''
+    Questa funzione riceve i dati disponibili nella tabella simulazione e li formatta per essere visualizzati nel calendario
+    '''
  
     NUMBER_EVENTS = 5 # parametro per calcolo del tempo medio di simulazione --> default ultimi 5 giorni
     STATUS_FALLITA = 'Fallita' # Parametro creato per futuramente sostituire il valore 'Fallita' con un valore di "Fallita"
     ORA_INIZIO_RICORRENTI = '01:00:00'
     ORA_FINE_RICORRENTI = '23:00:00'
+    DEFAULT_TEMPO_MEDIO = timedelta(hours=15, minutes=0, seconds=0)
     DATA_INIZIO_RICORRENTI = datetime.strptime(f'2026-06-30 {ORA_INIZIO_RICORRENTI}',  '%Y-%m-%d %H:%M:%S') #inizio della finestra degli eventi ricorrenti
     DATA_FINE_RICORRENTI = datetime.strptime(f'2026-12-31 {ORA_FINE_RICORRENTI}', '%Y-%m-%d %H:%M:%S') #fine della finestra degli eventi ricorrenti
  
@@ -1242,7 +1242,9 @@ def get_calendar_data(request):
     last_ids = table_simulazione.objects.filter(END_TIMESTAMP__isnull=False).order_by('-END_TIMESTAMP').values_list('ID', flat=True)[:NUMBER_EVENTS]
  
     media_end_timestamp = table_simulazione.objects.filter(ID__in=list(last_ids)).aggregate(tempo_medio=Avg(F('END_TIMESTAMP') - F('START_TIMESTAMP')))['tempo_medio']
-   
+    if media_end_timestamp is None:
+        media_end_timestamp = DEFAULT_TEMPO_MEDIO
+
     # Inizio blocco per formattazione eventi da mostrare nel fullcalendar
     regular_event = []
     for event in events_list:

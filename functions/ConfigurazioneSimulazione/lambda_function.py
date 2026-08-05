@@ -59,20 +59,20 @@ def connessione_db(db_host, db_name, db_port, creds):
     return conn
 
 def lambda_handler(event, context):    
+    # calcoliamo il datetime now
+    start_timestamp_simulazione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
+    # recupero variabili d'ambiente
+    secretsManager_SecretId = os.environ['secretsManager_SecretId']
+    db_host = os.environ['DB_HOST']
+    db_name = os.environ['DB_NAME']
+    db_port = os.environ['DB_PORT']
+    # recupero credenziali da SecretsManager
+    creds = recupero_credenziali_db(secretsManager_SecretId)
+    # connessione db
+    conn = connessione_db(db_host, db_name, db_port, creds)
+    cur = conn.cursor()
     if event['tipo_simulazione'] == 'Automatizzata':
         settimana_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-MM-dd ma a noi interessa solamente yyyy-MM
-        # calcoliamo il datetime now
-        start_timestamp_simulazione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
-        # recupero variabili d'ambiente
-        secretsManager_SecretId = os.environ['secretsManager_SecretId']
-        db_host = os.environ['DB_HOST']
-        db_name = os.environ['DB_NAME']
-        db_port = os.environ['DB_PORT']
-        # recupero credenziali da SecretsManager
-        creds = recupero_credenziali_db(secretsManager_SecretId)
-        # connessione db
-        conn = connessione_db(db_host, db_name, db_port, creds)
-        cur = conn.cursor()
         # query
         cur.execute(    
         f'''
@@ -83,14 +83,24 @@ def lambda_handler(event, context):
         )
         id_simulazione_automatizzata = str(cur.fetchone()[0])
         conn.commit()
-        # chiusura connessione
-        cur.close()
-        conn.close()
     
     elif event['tipo_simulazione'] == 'Manuale':
+        id_simulazione = event['id_simulazione_manuale']
         id_simulazione_automatizzata = '-'
+        # modifica dello stato della simulazione sul db su "In lavorazione" e aggiorna correttamente il timestamp
+        cur = conn.cursor()    
+        cur.execute(f'''
+            UPDATE public."SIMULAZIONE" 
+            SET "STATO"='In lavorazione', "START_TIMESTAMP"='{start_timestamp_simulazione}'
+            WHERE "ID"={id_simulazione};
+        ''')
+        conn.commit()
 
     else:
         raise Exception('tipo_simulazione non conforme')
+
+    # chiusura connessione
+    cur.close()
+    conn.close()
 
     return {'statusCode': 200, 'id_simulazione_automatizzata':id_simulazione_automatizzata, 'start_timestamp_simulazione': start_timestamp_simulazione}
