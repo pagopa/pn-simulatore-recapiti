@@ -87,8 +87,7 @@ def lambda_handler(event, context):
     elif event['tipo_simulazione'] == 'Manuale':
         id_simulazione = event['id_simulazione_manuale']
         id_simulazione_automatizzata = '-'
-        # modifica dello stato della simulazione sul db su "In lavorazione" e aggiorna correttamente il timestamp
-        cur = conn.cursor()    
+        # modifica dello stato della simulazione sul db su "In lavorazione" e aggiornamento START_TIMESTAMP
         cur.execute(f'''
             UPDATE public."SIMULAZIONE" 
             SET "STATO"='In lavorazione', "START_TIMESTAMP"='{start_timestamp_simulazione}'
