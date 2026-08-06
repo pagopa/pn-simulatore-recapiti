@@ -248,6 +248,11 @@ Parameters:
     Type: Number 
     Description: 'MesiInAvanti for the CalcoloPrimaSettimana Lambda function'
     Default: 0
+  
+  LambdaCalcoloPrimaSettimanaRecuperoMesiIntermedi:
+    Type: String 
+    Description: 'RecuperoMesiIntermedi for the CalcoloPrimaSettimana Lambda function'
+    Default: 0
 
   RecuperoRisultatiPaperDeliveryGlueJobWorkerType:
     Type: String
@@ -442,6 +447,7 @@ Resources:
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           cutoff: !Ref LambdaCalcoloPrimaSettimanaCutOffDay
           mesi_in_avanti: !Ref LambdaCalcoloPrimaSettimanaMesiInAvanti
+          recupero_mesi_intermedi: !Ref LambdaCalcoloPrimaSettimanaRecuperoMesiIntermedi
 
   CalcoloPrimaSettimanaLambdaRole:
     Type: AWS::IAM::Role

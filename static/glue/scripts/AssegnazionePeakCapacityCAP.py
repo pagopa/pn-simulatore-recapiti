@@ -74,7 +74,7 @@ output_prefix = None
 # inizializzazione connessione verso s3
 s3_client = boto3.client('s3')
     
-for _ in range(30):  # limite di sicurezza a 30 gg
+for _ in range(120):  # limite di sicurezza a 120 gg
     input_prefix = target_date.strftime("%Y/%m/%d/")
     response = s3_client.list_objects_v2(
         Bucket=s3_bucket,

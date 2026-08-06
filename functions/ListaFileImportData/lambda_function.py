@@ -38,7 +38,7 @@ def recupero_ultima_data_estrazione(bucket_name, mese_simulazione):
     target_date = date.today()
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
-    for _ in range(30):  # limite di sicurezza a 30 gg
+    for _ in range(120):  # limite di sicurezza a 120 gg
         prefix = target_date.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
@@ -51,7 +51,7 @@ def recupero_ultima_data_estrazione(bucket_name, mese_simulazione):
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 120 gg")
 
 
 def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_settimana_simulazione):

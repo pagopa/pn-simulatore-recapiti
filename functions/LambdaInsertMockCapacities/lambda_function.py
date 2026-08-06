@@ -118,7 +118,7 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client, mese_simulazione):
     """
     target_date = date.today()
 
-    for _ in range(30):  # limite di sicurezza a 30 gg
+    for _ in range(120):  # limite di sicurezza a 120 gg
         prefix = target_date.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
@@ -131,7 +131,7 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client, mese_simulazione):
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 120 gg")
 
 def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_path,destination_filename):
     """
