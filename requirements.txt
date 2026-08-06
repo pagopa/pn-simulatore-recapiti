@@ -15,7 +15,7 @@ click==8.3.0
 colorama==0.4.6
 constantly==23.10.4
 cryptography==46.0.7
-daphne==4.2.1
+daphne==4.2.2
 dash==4.1.0
 dash-bootstrap-components==1.6.0
 dash-core-components==2.0.0
