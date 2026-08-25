@@ -1,0 +1,151 @@
+{% extends "main.html" %}
+{% block content %}
+{% load static %}
+
+
+
+<br><br>
+<div class="container">
+        <a class="btn btn-primary fw-bold" role="button" href={% url 'nuova_simulazione' 'new' %}><i class="fa-solid fa-circle-plus"></i> Nuova simulazione</a>
+</div>
+<br>
+<!-- CALENDARIO -->
+<div class="container">
+    <div id="calendar"></div>
+    <body data-color-scheme="forma"></body>
+</div>
+<br>
+<!--Modal-->
+<div class="modal fade" id="myModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettaglio Evento</h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                </button>
+            </div>
+
+            <div class="modal-body" id="modalbody">
+
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+
+
+<script>
+ 
+    document.addEventListener("DOMContentLoaded", function () {
+        const url = 'get_calendar_data';
+        const myModal = new bootstrap.Modal(document.getElementById('myModal'));
+        const modalbody = document.getElementById("modalbody");
+        const calendarEl = document.getElementById("calendar");
+
+       
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error('Request error');
+                return response.json();
+            })
+            .then(data => {
+                const lista_eventi_calendar = data.event_list;
+                const tempoMedio = lista_eventi_calendar[0].extendedProps.tempoMedio;
+
+                const calendar = new FullCalendar.Calendar(calendarEl, {
+                    headerToolbar: {
+                        left: "dayGridMonth,timeGridWeek,listMonth",
+                        center: "title",
+                        right: "prev today next"
+                    },
+                    toolbarElements: {
+                        legenda: () => (
+                        {html:'<span style="font-size: 14px; font-weight:bold;">Legenda:</span>'}
+                        ),
+                        legendFallita: () => (
+                        {html:'<i class="fa-solid fa-circle-xmark" style="color: #f88981;"></i> \
+                        <span style="font-size: 14px; font-weight:normal;">Fallita</span>'}
+                        ),
+                        legendLavorata: () => (
+                        {html:'<i class="fa-solid fa-calendar-check" style="color: rgb(2, 153, 108);"></i> \
+                        <span style="font-size: 14px; font-weight:normal;">Completata</span>'}
+                        ),
+                        legendInLavorazione: () => (
+                        {html:'<i class="fa-solid fa-arrows-rotate" style="color: #3586bd;"></i> \
+                        <span style="font-size: 14px; font-weight:normal;">In lavorazione</span>'}
+                        ),
+                        legendSchedulata: () => (
+                        {html:'<i class="fa-solid fa-calendar-days" style="color: rgb(130, 130, 130);"></i> \
+                        <span style="font-size: 14px; font-weight:normal;">Schedulata</span>'}
+                        ),
+                        tempoMedioIcona: () => (
+                        {html:'<i class="fa-regular fa-clock " style="color: rgb(0, 0, 255);"></i> \
+                        <span style="font-size: 14px; font-weight:normal;">Tempo medio di simulazione (ore): </span>'}
+                        ),
+                        tempoMedioValore: () => (
+                        `${tempoMedio}`
+                        ),
+
+
+                    },
+                    //height: 650,
+                    aspectRatio: 2.0,
+                    locale: 'it',
+                    buttonDisplay: "text",
+                    initialView: "dayGridMonth",
+                    nowIndicator: true,
+                    footerToolbar: {
+                        
+                        center: 'legenda legendLavorata legendInLavorazione legendSchedulata legendFallita',
+                        right: 'tempoMedioIcona tempoMedioValore',
+                        
+                    },
+
+                    eventClick: function(info) {
+                        const stato = info.event.extendedProps.stato;
+                        const descrizione = info.event.extendedProps.descrizione;
+                        modalbody.innerHTML = `
+                            <div class="container">
+                                <div class="row justify-content-center">
+                                    <div class="col offset-md-2">
+                                        <p><b>Id simulazione</b>: ${info.event.extendedProps.id}</p>
+                                        <p><b>Nome simulazione</b>: ${info.event.title}</p>
+                                        <p><b>Descrizione</b>: ${descrizione === null ? '-' : descrizione}</p>
+                                        <p><b>Timestamp esecuzione</b>: ${info.event.start ? info.event.start.toLocaleString('it-IT') : ''}</p>
+                                        <p><b>Previsione esecuzione</b>: ${info.event.end ? info.event.end.toLocaleString('it-IT') : ''}</p>
+                                    </div>
+                                    <div class="col">
+                                        <p><b>Mese di simulazione</b>: ${info.event.extendedProps.mese_simulazione}</p>
+                                        <p><b>Tipo capacità</b>: ${info.event.extendedProps.tipo_capacita}</p>
+                                        <p><b>Stato</b>: ${stato === 'Lavorata' ? '<i class="fa-solid fa-calendar-check" style="color: rgb(2, 153, 108);"></i> Completata' : 
+                                            stato === 'In lavorazione' ? '<i class="fa-solid fa-arrows-rotate" style="color: #3586bd;"></i> In lavorazione' : 
+                                            stato === 'Schedulata' ? '<i class="fa-solid fa-calendar-days" style="color: rgb(130, 130, 130);"></i> Schedulata' :
+                                                stato === 'Fallita' ? '<i class="fa-solid fa-circle-xmark" style="color: #f88981;"></i> Fallita' : ''}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        `;
+                        myModal.show();
+                    },
+
+                    events: lista_eventi_calendar, 
+                });
+
+                calendar.render(); 
+            })
+            .catch(error => {
+                console.error("Error rendering calendar events:", error);
+            });
+    });
+</script>
+
+
+{% endblock content %}
