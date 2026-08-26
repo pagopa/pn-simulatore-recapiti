@@ -336,18 +336,6 @@ def lambda_insert_mock_capacities(lambda_delayer,lista_filename_insertMockCapaci
             return 1
     return 0
 
-class S3BodyWrapper:
-    """
-    Wrap dello stream originale leggendo i dati tramite la read() e recuperando la lunghezza del file tramite la __len__()    
-    """
-    def __init__(self, body, length):
-        self.body = body
-        self.length = length
-    def read(self, amt=None):
-        return self.body.read(amt)
-    def __len__(self):
-        return self.length
-
 
 def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale, lambda_delayer, s3_client, source_bucket, mese_simulazione, start_timestamp_simulazione):
     """
