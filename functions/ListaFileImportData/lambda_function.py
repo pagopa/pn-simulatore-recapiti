@@ -22,6 +22,7 @@ import urllib3
 import io
 import csv
 import itertools
+import codecs
 
 
 def calcolo_numero_settimana_attuale_nel_mese(start_timestamp_simulazione):
@@ -79,6 +80,38 @@ def recupero_ultima_data_estrazione(bucket_name, mese_simulazione, start_timesta
     # se non viene trovata alcuna cartella corrispondente
     raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
 
+def upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk):
+    """
+    Carichiamo il chunk del csv dei residui su s3
+
+    Args:
+        prefix_s3 (string): prefisso del bucket fino alla cartella dove andremo a depositare la cartella che conterrà il csv dei residui
+        id_simulazione (string): identificativo univoco della simulazione sul db
+        key (string): nome del file csv originale dei residui
+        index (int): indice incrementale per distinguere le partizioni
+        header (string): intestazione del file csv
+        chunk (list): lista di righe da inserire nel csv
+
+    Returns:
+        string: file_key del file caricato su s3
+    """
+    s3_file_key = f'{prefix_s3}residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
+    # componiamo il file csv
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=';', quoting=csv.QUOTE_ALL)
+    writer.writerow(header)
+    writer.writerows(chunk)
+    # carichiamo il csv su S3
+    s3_client = boto3.client('s3')
+    s3_client.put_object(
+        Bucket=os.environ['source_bucket'],
+        Key=s3_file_key,
+        Body=buffer.getvalue().encode('utf-8'), # codifica file csv
+        ContentType='text/csv'
+    )
+    return s3_file_key
+
+
 def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simulazione_string):
     """
     Funzione che recupera i residui attraverso la lambda 'GET_RESIDUAL_PAPERS', salva il/i csv dei residui su s3 (split se vi sono più di 10k righe) e ritorna la lista del/dei csv caricato/i su s3
@@ -101,7 +134,6 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
         "operationType": "GET_RESIDUAL_PAPERS",
         "parameters": ["pn_delayer_paper_delivery_json_view", deliveryDate]
     }
-    
     # gestione risposta GET_RESIDUAL_PAPERS
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
@@ -109,56 +141,44 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
     response_dict = json.loads(string_response)
     if response_dict['statusCode'] != 200:
         raise Exception(f"Errore durante la GET_RESIDUAL_PAPERS: {response_dict}")
-    # dalla resposta alla GET_RESIDUAL_PAPERS recuperiamo link (per il download contenente il csv dei residui) e nome del file generato
     downloadUrl = json.loads(response_dict['body'])['downloadUrl']
-    key = json.loads(response_dict['body'])['key'].split('/')[-1][:-4] # rimuoviamo il .csv dal nome del file
+    key = json.loads(response_dict['body'])['key'].split('/')[-1][:-4]
     # download file dal presigned url
     response = http.request('GET', downloadUrl, preload_content=False)
     # check stato risposta
     if response.status != 200:
         raise Exception(f"Errore durante il download dei residui, statusCode: {response.status}")
-    # leggiamo il contenuto del file
-    file_content = response.data
+    # il numero massimo di righe per ogni file csv è 10000, ma per essere sicuri mettiamo impostiamo il numero massimo a 9900
+    max_rows = 9900
+    lista_csv_da_importare = []
+    # decodifica in streaming, senza portarsi tutto il file in memoria
+    reader = csv.reader(codecs.iterdecode(response, 'utf-8'), delimiter=';')
+    # controlliamo che il csv non sia vuoto
+    try:
+        # recuperiamo l'header
+        header = next(reader)
+    except StopIteration:
+        # il csv è completamente vuoto ed è senza header
+        header = None
+    if header is not None:
+        index = 0
+        chunk = []
+        for row in reader:
+            # ad ogni iterazione prendiamo un chunk da 9900 righe e carichiamo il csv su s3
+            chunk.append(row)
+            if len(chunk) >= max_rows:
+                s3_file_key = upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk)
+                lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key})
+                chunk = []
+                index += 1
+        # ultimo chunk
+        if chunk:
+            s3_file_key = upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk)
+            lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key})                            
     # chiudiamo la connessione
     response.release_conn()
-    # controlliamo che il file csv non sia vuoto
-    if len(file_content) != 0:
-        lista_csv_da_importare = []
-        # decodifica file csv
-        decoded_content = file_content.decode('utf-8')
-        # contiamo il numero totale delle righe del csv
-        n_rows = decoded_content.count('\n')
-        # estraiamo il contenuto del csv
-        file_content = csv.reader(io.StringIO(decoded_content), delimiter=';')
-        # recuperiamo l'header
-        header = next(file_content)
-        # il numero massimo di righe per ogni file csv è 10000, ma per essere sicuri mettiamo impostiamo il numero massimo a 9900
-        max_rows = 9900
-        # dividiamo il csv per far sì che ogni chunk abbia max 9900 righe
-        num_chunks=math.ceil(n_rows/max_rows)
-        for index in range(num_chunks):
-            # ad ogni iterazione prendiamo un chunk da 9900 righe e carichiamo il csv su s3
-            chunk = list(itertools.islice(file_content, max_rows))
-            s3_file_key = f'{prefix_s3}residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
-            # componiamo il file csv
-            buffer = io.StringIO()
-            writer = csv.writer(buffer, delimiter=';', quoting=csv.QUOTE_ALL)
-            writer.writerow(header)
-            writer.writerows(chunk)
-            # codifica file csv
-            csv_file = buffer.getvalue().encode("utf-8")
-            # carichiamo il csv su S3
-            s3_client = boto3.client('s3') # inizializzazione connessione verso s3
-            s3_client.put_object(
-                Bucket=os.environ['source_bucket'],
-                Key=s3_file_key,
-                Body=csv_file,
-                ContentType='text/csv'
-            )
-            lista_csv_da_importare.append({'settimana_import':prima_settimana_simulazione_string,'s3_file_key':s3_file_key})
-        return lista_csv_da_importare
-    else:
-        return []
+
+    return lista_csv_da_importare
 
 
 def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string, start_timestamp_simulazione):
