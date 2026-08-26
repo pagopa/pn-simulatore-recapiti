@@ -65,6 +65,17 @@
 	<link rel="stylesheet" type="text/css" href="{% static 'css/flatpickr.min.css' %}"/>
 	<script src="{% static 'js/flatpickr.js' %}"></script>
 
+	<!-- FULLCALENDAR JS -->
+    <script src="{% static 'js/all.global.js' %}"></script>
+ 
+    <!-- THEME JS -->
+    <script src="{% static 'js/themes.forma.global.js' %}"></script>
+ 
+    <!-- STYLESHEETS -->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/skeleton.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/themes.forma.theme.css' %}"/>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/themes.forma.palettes.blue.css' %}"/>
+    <script src="{% static 'js/locales.all.global.js' %}"></script>
 
 </head>
 
@@ -88,7 +99,7 @@
 						<a class="nav-link navbar-brand mb-0 h1" aria-current="page" href={% url 'ente_fornitore' %}><i class="fa-solid fa-database"></i> Vista Ente/Fornitore</a>
 					</li>
 					<li class="nav-item">
-						<a class="nav-link navbar-brand mb-0 h1 disabled" aria-current="page" href={% url 'calendario' %}><i class="fa-solid fa-calendar-days"></i> Calendario</a>
+						<a class="nav-link navbar-brand mb-0 h1" aria-current="page" href={% url 'calendario' %}><i class="fa-solid fa-calendar-days"></i> Calendario</a>
 					</li>
 					<li class="nav-item zoom-in">
 						<a class="nav-link active navbar-brand mb-0 h1" aria-current="page" href={% url 'bozze' %}><i class="fa-solid fa-file-signature"></i> Bozze</a>

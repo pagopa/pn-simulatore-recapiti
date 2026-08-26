@@ -78,7 +78,7 @@ def lambda_handler(event, context):
         # query
         cur.execute(    
         f'''
-        INSERT INTO public."SIMULAZIONE" ("NOME","DESCRIZIONE","STATO","TIMESTAMP_ESECUZIONE","MESE_SIMULAZIONE","TIPO_CAPACITA","TIPO_SIMULAZIONE") 
+        INSERT INTO public."SIMULAZIONE" ("NOME","DESCRIZIONE","STATO","START_TIMESTAMP","MESE_SIMULAZIONE","TIPO_CAPACITA","TIPO_SIMULAZIONE") 
         VALUES ('Automatizzata {settimana_simulazione}','Pianificazione settimanale automatizzata {settimana_simulazione}','In lavorazione','{start_timestamp_simulazione}','{settimana_simulazione}','Produzione','Automatizzata') 
         RETURNING "ID";
         '''
@@ -90,7 +90,7 @@ def lambda_handler(event, context):
         postalizzazioni_fuori_commessa = '-'
     
     elif event['tipo_simulazione'] == 'Manuale':
-        id_simulazione_manuale = event['id_simulazione_manuale']
+        id_simulazione = event['id_simulazione_manuale']
         id_simulazione_automatizzata = '-'
         # recuperiamo dal db pianificazione_postalizzazioni e postalizzazioni_fuori_commessa
         # query
@@ -100,6 +100,14 @@ def lambda_handler(event, context):
         '''
         )
         pianificazione_postalizzazioni,postalizzazioni_fuori_commessa = cur.fetchone()
+        # modifica dello stato della simulazione sul db su "In lavorazione" e aggiornamento START_TIMESTAMP
+        cur.execute(f'''
+            UPDATE public."SIMULAZIONE" 
+            SET "STATO"='In lavorazione', "START_TIMESTAMP"='{start_timestamp_simulazione}'
+            WHERE "ID"={id_simulazione};
+        ''')
+        conn.commit()
+
     else:
         raise Exception('tipo_simulazione non conforme')
 

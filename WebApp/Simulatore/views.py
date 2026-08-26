@@ -4,7 +4,7 @@ from PagoPA.settings import *
 from datetime import date, datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from .models import *
-from django.db.models import Q, F, Sum
+from django.db.models import Q, F, Sum, Avg
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.db import connection
@@ -23,29 +23,23 @@ def homepage(request):
     """
     Homepage che coincide con la pagina di riepilogo delle simulazioni effettuate
     """
-    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
+    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-START_TIMESTAMP')
     # recupero la lista degli id simulazione che hanno capacità simulate per CAP -> serve per capire su quali simulazioni mostrare il button download capacità per CAP 
     lista_idsimulazione_capacita_cap_disponibili = table_capacita_simulate_cap.objects.all().values_list('SIMULAZIONE_ID', flat=True).distinct()
     
     for singola_simulazione in lista_simulazioni:
-        # cambio stato su 'Non completata' se siamo sullo stato 'In lavorazione' da più di 2gg
-        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.TIMESTAMP_ESECUZIONE < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
-            singola_simulazione.STATO = 'Non completata'
-        # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
-            singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
-        monday_current_week = singola_simulazione.TIMESTAMP_ESECUZIONE.date() - timedelta(days=singola_simulazione.TIMESTAMP_ESECUZIONE.weekday())
+        monday_current_week = singola_simulazione.START_TIMESTAMP.date() - timedelta(days=singola_simulazione.START_TIMESTAMP.weekday())
         if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
             previous_week_monday = monday_current_week - timedelta(days=7)
             if previous_week_monday.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday).first()
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',START_TIMESTAMP__date=previous_week_monday).order_by("-START_TIMESTAMP").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
         elif singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
-            if singola_simulazione.TIMESTAMP_ESECUZIONE.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__year=monday_current_week.year,TIMESTAMP_ESECUZIONE__month=monday_current_week.month).order_by("-TIMESTAMP_ESECUZIONE").first()
+            if singola_simulazione.START_TIMESTAMP.month == monday_current_week.month:
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',MESE_SIMULAZIONE=singola_simulazione.MESE_SIMULAZIONE).order_by("-START_TIMESTAMP").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
 
@@ -79,7 +73,7 @@ def bozze(request):
     """
     Pagina che mostra le simulazioni in uno stato di bozza
     """
-    lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
+    lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-START_TIMESTAMP')
     context = {
         'lista_bozze': lista_bozze
     }
@@ -662,7 +656,7 @@ def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,st
         DESCRIZIONE = descrizione_simulazione,
         STATO = stato,
         TRIGGER = tipo_trigger,
-        TIMESTAMP_ESECUZIONE = timestamp_esecuzione,
+        START_TIMESTAMP = timestamp_esecuzione,
         MESE_SIMULAZIONE = mese_da_simulare,
         TIPO_CAPACITA = tipo_capacita_da_modificare,
         TIPO_SIMULAZIONE = tipo_simulazione
@@ -741,7 +735,7 @@ def aggiornamento_db_simulazione_esistente(id_simulazione,nome_simulazione,descr
     simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
     simulazione_da_modificare.STATO = stato
     simulazione_da_modificare.TRIGGER = tipo_trigger
-    simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+    simulazione_da_modificare.START_TIMESTAMP = timestamp_esecuzione
     simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
     simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
     simulazione_da_modificare.TIPO_SIMULAZIONE = tipo_simulazione
@@ -1114,7 +1108,7 @@ def download_capacita_per_cap(request, id_simulazione, recupero_capacita_modific
     # recupero simulazione dal db a partire dall'id_simulazione
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
     # recuperiamo dal bucket s3 la key del file csv target
-    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE, recupero_capacita_modificate)
+    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.START_TIMESTAMP, simulazione_selezionata.MESE_SIMULAZIONE, recupero_capacita_modificate)
     if recupero_capacita_modificate == 'true':
         filename = f"CapacitaModificatePerCAP_id{id_simulazione}.csv"
     else:
@@ -1245,6 +1239,166 @@ def download_vista_fornitore(request, selectedData):
         ])
     return response
 
+
+def calcolo_mese_automatizzata(mesi_in_avanti,cutoff,data_auto):
+    # dalle variabili d'ambiente recuperiamo il valore relativo a quanti mesi in avanti vogliamo simulare
+    # mesi_in_avanti = int(os.environ["mesi_in_avanti"])
+    # datetime now
+    #datetime_now = datetime.now(ZoneInfo("Europe/Rome")) + relativedelta(months=mesi_in_avanti)
+    datetime_now = data_auto + relativedelta(months=mesi_in_avanti)
+    giorno = datetime_now.day
+    mese = datetime_now.month
+    anno = datetime_now.year
+ 
+    # REQUISITO: dopo il cut-off (impostato tramite parametro modificabile) del mese corrente bisogna processare il mese successivo
+ 
+    if giorno > int(cutoff):
+        # aumentiamo il mese di 1
+        if mese == 12:
+            anno = anno + 1
+            mese = 1
+        else:
+            mese = mese + 1
+    # primo giorno del mese
+    first = datetime(anno, mese, 1) #2026/08/01
+    # giorno della settimana (lunedì=0, ... domenica=6)
+    weekday = first.weekday() #sabato
+    # calcoliamo quanto manca al primo lunedì
+    giorni_fino_lunedi = (7 - weekday) % 7 # 7-5 % 7
+    # recuperiamo il primo lunedì
+    prima_settimana_da_processare = first + timedelta(days=giorni_fino_lunedi)
+    # se il primo lunedì del mese è 1, prendiamo l'8 come prima settimana da processare
+    if prima_settimana_da_processare.day == 1:
+        prima_settimana_da_processare = prima_settimana_da_processare + timedelta(days=7)
+ 
+    return prima_settimana_da_processare.date()
+ 
+def generazione_eventi_ricorrente(data_inizio,data_fine,giorno_settimana,simul_mean_time,cutoff,mesi_avanti):
+    """ Genera eventi ricorrenti per il calendario.
+         data_inizio: Data inizio del periodo dei eventi ricorrenti
+         data_fine: Data fine del periodo dei eventi ricorrenti
+         giorno_settimana: giorno della settimana in cui si vuole generare l'evento ricorrente
+         simul_mean_time: durata media della simulazione utilizzata come previsione di durata dell'evento ricorrente"""
+   
+    eventi_ricorrenti = []
+    n_giorni = data_fine - data_inizio
+    for giorni in range(0,n_giorni.days):
+        data = data_inizio + timedelta(days=giorni)
+        mese_automatizzata =  calcolo_mese_automatizzata(mesi_avanti,cutoff,data).strftime('%Y-%m')
+        if data.weekday() == giorno_settimana:
+            eventi_ricorrenti.append({
+                'title': 'Automatizzata ' + str(mese_automatizzata) ,
+                'start': data,
+                'end': data + simul_mean_time,
+                'color': 'rgb(130, 130, 130)',
+                'extendedProps': {
+                    'id': '-',
+                    'stato': 'Schedulata',
+                    'descrizione': 'Pianificazione settimanale automatizzata '+str(mese_automatizzata),
+                    'mese_simulazione': str(mese_automatizzata),
+                    'tipo_capacita': 'Produzione'
+                }
+            })
+    return eventi_ricorrenti
+ 
+def cambio_status_ricorrenti(lista_ricorrenti):
+    '''
+    Questa funzione modifica lo stato degli eventi ricorrenti in base alla data di fine simulazione.
+    Cambia di stato schedulata per In lavorazione se la simulazione è in esecuzione
+    '''
+    lista_aux = lista_ricorrenti.copy()
+    for evento in lista_aux:
+        event_day = evento['start'].day
+        if event_day == datetime.now().day and (datetime.now() < evento['end'] and datetime.now() > evento['start']) :
+            evento['extendedProps']['stato'] = 'In lavorazione'
+ 
+    return lista_aux
+ 
+def del_ricorrenti_passati(lista_ricorrenti):
+    '''
+    Questa funzione elimina gli eventi ricorrenti che sono già passati
+    '''
+    oggi = datetime.now()
+    return [evento for evento in lista_ricorrenti if evento['end'] > oggi]
+ 
+def get_calendar_data(request):
+    '''
+    Questa funzione riceve i dati disponibili nella tabella simulazione e li formatta per essere visualizzati nel calendario
+    '''
+ 
+    NUMBER_EVENTS = 5 # parametro per calcolo del tempo medio di simulazione --> default ultimi 5 giorni
+    STATUS_FALLITA = 'Fallita' # Parametro creato per futuramente sostituire il valore 'Fallita' con un valore di "Fallita"
+    ORA_INIZIO_RICORRENTI = '01:00:00'
+    ORA_FINE_RICORRENTI = '23:00:00'
+    DEFAULT_TEMPO_MEDIO = timedelta(hours=15, minutes=0, seconds=0)
+    DATA_INIZIO_RICORRENTI = datetime.strptime(f'2026-06-30 {ORA_INIZIO_RICORRENTI}',  '%Y-%m-%d %H:%M:%S') #inizio della finestra degli eventi ricorrenti
+    DATA_FINE_RICORRENTI = datetime.strptime(f'2026-12-31 {ORA_FINE_RICORRENTI}', '%Y-%m-%d %H:%M:%S') #fine della finestra degli eventi ricorrenti
+ 
+ 
+    events_list = list(table_simulazione.objects.values('ID', 'NOME', 'STATO', 'START_TIMESTAMP','MESE_SIMULAZIONE','END_TIMESTAMP',
+                                                        'DESCRIZIONE','TIPO_CAPACITA').order_by('-START_TIMESTAMP'))
+   
+    last_ids = table_simulazione.objects.filter(END_TIMESTAMP__isnull=False).order_by('-END_TIMESTAMP').values_list('ID', flat=True)[:NUMBER_EVENTS]
+ 
+    media_end_timestamp = table_simulazione.objects.filter(ID__in=list(last_ids)).aggregate(tempo_medio=Avg(F('END_TIMESTAMP') - F('START_TIMESTAMP')))['tempo_medio']
+    if media_end_timestamp is None:
+        media_end_timestamp = DEFAULT_TEMPO_MEDIO
+
+    # Inizio blocco per formattazione eventi da mostrare nel fullcalendar
+    regular_event = []
+    for event in events_list:
+ 
+        # Eliminazione eventi in bozza e senza data di fine
+        if event['STATO'] in ['Lavorata', STATUS_FALLITA] and event['END_TIMESTAMP'] is None:
+            continue
+        elif event['STATO'] == 'Bozza':
+            continue
+ 
+        # Ancora dentro il loop impostazione colore e tempo di previsione per gli eventi
+        elif event['STATO'] in ['Schedulata', 'In lavorazione']:
+            data_fine = media_end_timestamp + event['START_TIMESTAMP']
+            if event['STATO'] == 'Schedulata':
+                background_color = 'rgb(130, 130, 130)'
+            else:
+                background_color = '#3586bd'
+        elif event['STATO'] == STATUS_FALLITA:
+            data_fine = event['END_TIMESTAMP']
+            background_color = "#f88981"
+        else:
+            data_fine = event['END_TIMESTAMP']
+            background_color = 'rgb(2, 153, 108)'
+ 
+        data_inizio = event['START_TIMESTAMP']
+ 
+ 
+        # Questo format è richiesto da FullCalendar per la visualizzazione degli eventi
+        regular_event.append({
+            'title': event['NOME'],
+            'start': data_inizio,
+            'end': data_fine,
+            'color': background_color,
+            'extendedProps': {
+                'id': event['ID'],
+                'stato': event['STATO'],
+                'descrizione': event['DESCRIZIONE'],
+                'mese_simulazione': event['MESE_SIMULAZIONE'],
+                'tipo_capacita': event['TIPO_CAPACITA'],
+                'tempoMedio': str(media_end_timestamp).split('.')[0],
+            }
+        })
+ 
+    # Attenzione qui la seguenza è importante: 1) Generazione eventi ricorrenti 2) cambio stato 3) del eventi ricorrent passati 4)
+    eventi_ricorrente = generazione_eventi_ricorrente(data_inizio = DATA_INIZIO_RICORRENTI,
+                                                      data_fine = DATA_FINE_RICORRENTI,
+                                                      giorno_settimana=0,# Giorno della settimana [0==Lunedi, 1=Martedi....6=Domenica]
+                                                      simul_mean_time = media_end_timestamp,
+                                                      cutoff = int(CUTOFF),
+                                                      mesi_avanti = int(MESI_IN_AVANTI))
+    eventi_ricorrente = cambio_status_ricorrenti(eventi_ricorrente)
+    eventi_ricorrente = del_ricorrenti_passati(eventi_ricorrente)
+    event_formated = regular_event + eventi_ricorrente
+   
+    return JsonResponse({'event_list': event_formated})
 
 
 def costruisci_postalizzazioni_salvate(id_simulazione):

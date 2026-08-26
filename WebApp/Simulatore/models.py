@@ -11,10 +11,11 @@ class table_simulazione(models.Model):
     ID = models.AutoField(primary_key=True, unique=True)
     NOME = models.CharField(max_length=50, null=True)
     DESCRIZIONE = models.TextField(null=True)
-    STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Non completata, Bozza]
+    STATO = models.CharField(max_length=20, null=True) # [Lavorata, In lavorazione, Schedulata, Fallita, Bozza]
     TRIGGER = models.CharField(max_length=10, null=True) # [Schedule, Now]
-    TIMESTAMP_ESECUZIONE = NaiveDateTimeField(null=True) # formato yyyy-MM-dd HH:mm:ss
-    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True) # formato yyyy-MM
+    START_TIMESTAMP = NaiveDateTimeField(null=True) # formato yyyy-MM-dd HH:mm:ss
+    END_TIMESTAMP = NaiveDateTimeField(null=True) # formato yyyy-MM-dd HH:mm:ss
+    MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato yyyy-MM
     TIPO_CAPACITA = models.CharField(max_length=25, null=True)  # [BAU, Picco, Combinata, Produzione] -> Per le automatizzate settiamo "Produzione"
     TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
     PIANIFICAZIONE_POSTALIZZAZIONI = models.CharField(max_length=60, null=True) # ['Utilizza le commesse di default', 'Utilizza le commesse di default e le commesse di mock', 'Utilizza solo le commesse di mock']
@@ -23,7 +24,7 @@ class table_simulazione(models.Model):
         db_table = 'SIMULAZIONE'
         indexes = [
             models.Index(fields=['MESE_SIMULAZIONE'], name='indice_mese_simulazione'),
-            models.Index(fields=['TIMESTAMP_ESECUZIONE'], name='indice_timestamp_esecuzione'),
+            models.Index(fields=['START_TIMESTAMP'], name='indice_start_timestamp'),
         ]
 
 class table_capacita_simulate(models.Model):
