@@ -80,7 +80,7 @@ class S3BodyWrapper:
         return self.length
 
 
-def lambda_import_data(lambda_delayer,filename,date_per_import_data):
+def lambda_import_data(lambda_delayer,filename,date_per_import_data, nome_tabella_sender_limit, nome_tabella_used_sender_limit):
     """
     Effettuiamo l'operazione di IMPORT_DATA specificando il nome del file da importare e la data della settimana per l'IMPORT_DATA
 
@@ -88,11 +88,13 @@ def lambda_import_data(lambda_delayer,filename,date_per_import_data):
     lambda_delayer (botocore.client.Lambda): connessione alla lambda
     filename (string): nome del file da importare da dare in input all'operazione di IMPORT_DATA
     date_per_import_data (string): settimana, nel formato yyyy-MM-dd, da dare in input all'operazione di IMPORT_DATA
+    nome_tabella_sender_limit (string): nome tabella sender limit sulla base della scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
+    nome_tabella_used_sender_limit (string): nome tabella used sender limit sulla base della scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
     """
     # IMPORT DATA - testDelayerLambda
     payload_lambda={
         "operationType": "IMPORT_DATA",
-        "parameters": ["pn-DelayerPaperDeliveryMock", "pn-PaperDeliveryCountersMock", filename, date_per_import_data]
+        "parameters": ["pn-DelayerPaperDeliveryMock", "pn-PaperDeliveryCountersMock", nome_tabella_sender_limit, nome_tabella_used_sender_limit, filename, date_per_import_data]
     }
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
@@ -101,7 +103,7 @@ def lambda_import_data(lambda_delayer,filename,date_per_import_data):
     if response_dict['statusCode'] not in (200, 201, 204):
         raise Exception(f"Errore {response_dict['statusCode']} - {response_dict['body']} sul file {filename}")
 
-def carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import):
+def carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import, nome_tabella_sender_limit, nome_tabella_used_sender_limit):
     """
     Questa funzione gestisce le operazioni di GET_PRESIGNED_URL e IMPORT_DATA, con le relative operazioni a corredo
 
@@ -109,7 +111,9 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import):
         s3_client (botocore.client.S3): connessione ad s3
         s3_file_key (string): chiave dell'oggetto sorgente da caricare nel presigned URL e conseguentemente importare tramite l'operazione di IMPORT_DATA
         source_bucket (string): bucket di origine dell'oggetto sorgente
-        settimana_import (string): settimana di riferimento per l'operazione di IMPORT_DATA 
+        settimana_import (string): settimana di riferimento per l'operazione di IMPORT_DATA
+        nome_tabella_sender_limit (string): nome tabella sender limit sulla base della scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
+        nome_tabella_used_sender_limit (string): nome tabella used sender limit sulla base della scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
 
     Returns:
         string: nome del file oggetto della IMPORT_DATA 
@@ -137,7 +141,7 @@ def carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import):
         raise Exception(put_response.text)
     try:
         # IMPORT DATA
-        lambda_import_data(lambda_delayer,destination_filename, settimana_import)
+        lambda_import_data(lambda_delayer,destination_filename, settimana_import, nome_tabella_sender_limit, nome_tabella_used_sender_limit)
         # cancelliamo la copia dell'oggetto sul bucket di progetto
         s3_client.delete_object(Bucket=source_bucket, Key=source_path+'/'+destination_filename)
     except:
@@ -157,9 +161,16 @@ def lambda_handler(event, context):
     id_simulazione = event['id_simulazione']
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
+    pianificazione_postalizzazioni = event["pianificazione_postalizzazioni"]
+    if pianificazione_postalizzazioni == 'Utilizza le commesse di default' or pianificazione_postalizzazioni == '-': # per identificare il caso di automatizzata abbiamo scelto di utilizzare "pianificazione_postalizzazioni == '-'"
+        nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT']
+        nome_tabella_used_sender_limit = os.environ['TABLE_USED_SENDER_LIMIT']
+    else:
+        nome_tabella_sender_limit = "pn-PaperDeliverySenderLimitMock"
+        nome_tabella_used_sender_limit = "pn-PaperDeliveryUsedSenderLimitMock"
     
     # carichiamo i csv nella destinazione recuperata attraverso la GET_PRESIGNED_URL ed effettuiamo l'operazione di IMPORT_DATA
-    destination_filename = carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import)
+    destination_filename = carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import, nome_tabella_sender_limit, nome_tabella_used_sender_limit)
     
     # salviamo i nomi dei destination_file su s3
     s3_client.put_object(

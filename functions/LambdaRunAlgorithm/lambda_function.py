@@ -67,7 +67,7 @@ def lambda_handler(event, context):
     elif event["tipo_simulazione"] == 'Manuale':
         nome_tabella_capacity = os.environ['TABLE_DRIVER_CAPACITIES_MOCK']
         pianificazione_postalizzazioni = event["output_lambda_ConfigurazioneSimulazione"]['Payload']["pianificazione_postalizzazioni"]
-        if pianificazione_postalizzazioni != 'Utilizza le commesse di default':
+        if pianificazione_postalizzazioni == 'Utilizza le commesse di default':
             nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT']
         else:
             nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT_MOCK']
