@@ -172,56 +172,20 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
             chunk.append(row)
             if len(chunk) >= max_rows:
                 s3_file_key = upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk)
-                lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key, 'id_simulazione':id_simulazione, 'pianificazione_postalizzazioni':pianificazione_postalizzazioni})
+                lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key})
                 chunk = []
                 index += 1
         # ultimo chunk
         if chunk:
             s3_file_key = upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk)
-            lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key, 'id_simulazione':id_simulazione, 'pianificazione_postalizzazioni':pianificazione_postalizzazioni})                            
+            lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key})                            
     # chiudiamo la connessione
     response.release_conn()
-    # controlliamo che il file csv non sia vuoto
-    if len(file_content) != 0:
-        lista_csv_da_importare = []
-        # decodifica file csv
-        decoded_content = file_content.decode('utf-8')
-        # contiamo il numero totale delle righe del csv
-        n_rows = decoded_content.count('\n')
-        # estraiamo il contenuto del csv
-        file_content = csv.reader(io.StringIO(decoded_content), delimiter=';')
-        # recuperiamo l'header
-        header = next(file_content)
-        # il numero massimo di righe per ogni file csv è 10000, ma per essere sicuri mettiamo impostiamo il numero massimo a 9900
-        max_rows = 9900
-        # dividiamo il csv per far sì che ogni chunk abbia max 9900 righe
-        num_chunks=math.ceil(n_rows/max_rows)
-        for index in range(num_chunks):
-            # ad ogni iterazione prendiamo un chunk da 9900 righe e carichiamo il csv su s3
-            chunk = list(itertools.islice(file_content, max_rows))
-            s3_file_key = f'{prefix_s3}dati_extra/residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
-            # componiamo il file csv
-            buffer = io.StringIO()
-            writer = csv.writer(buffer, delimiter=';', quoting=csv.QUOTE_ALL)
-            writer.writerow(header)
-            writer.writerows(chunk)
-            # codifica file csv
-            csv_file = buffer.getvalue().encode("utf-8")
-            # carichiamo il csv su S3
-            s3_client = boto3.client('s3') # inizializzazione connessione verso s3
-            s3_client.put_object(
-                Bucket=os.environ['source_bucket'],
-                Key=s3_file_key,
-                Body=csv_file,
-                ContentType='text/csv'
-            )
-            lista_csv_da_importare.append({'settimana_import':prima_settimana_simulazione_string,'s3_file_key':s3_file_key,'id_simulazione':id_simulazione})
-        return lista_csv_da_importare
-    else:
-        return []
+
+    return lista_csv_da_importare
 
 
-def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string, start_timestamp_simulazione,pianificazione_postalizzazioni):
+def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string, start_timestamp_simulazione, pianificazione_postalizzazioni):
     """
     Funzione che gestisce la logica dei residui e ritorna la lista dei file da importare nella prima settimana di run
 
@@ -331,7 +295,7 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
         lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
         lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione,pianificazione_postalizzazioni))  
     # recupero residui
-    lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione,pianificazione_postalizzazioni))
+    lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione, pianificazione_postalizzazioni))
     return lista_file_csv
 
 

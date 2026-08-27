@@ -96,7 +96,7 @@ def lambda_handler(event, context):
         # query
         cur.execute(    
         f'''
-            SELECT "PIANIFICAZIONE_POSTALIZZAZIONI","POSTALIZZAZIONI_FUORI_COMMESSA" FROM public."SIMULAZIONE" WHERE "ID"='{id_simulazione_manuale}'
+            SELECT "PIANIFICAZIONE_POSTALIZZAZIONI","POSTALIZZAZIONI_FUORI_COMMESSA" FROM public."SIMULAZIONE" WHERE "ID"='{id_simulazione}'
         '''
         )
         pianificazione_postalizzazioni,postalizzazioni_fuori_commessa = cur.fetchone()
