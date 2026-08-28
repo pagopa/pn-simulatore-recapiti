@@ -293,6 +293,8 @@ Resources:
         ContainerEnvEntry6: !Sub 'ROLE_EVENTBRIDGE_STARTEXECUTIONSF_ARN=${EventBridgeSchedulerRole.Arn}'
         ContainerEnvEntry7: !Sub 'STEP_FUNCTION_ARN=arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:${ProjectName}-${MicroServiceUniqueName}-sf-GestioneSimulazione'
         ContainerEnvEntry8: !Sub 'BUCKET_NAME=${SimulatoreDataBucketName}'
+        ContainerEnvEntry9: !Sub 'CUTOFF=${LambdaCalcoloPrimaSettimanaCutOffDay}'
+        ContainerEnvEntry10: !Sub 'MESI_IN_AVANTI=${LambdaCalcoloPrimaSettimanaMesiInAvanti}'
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri

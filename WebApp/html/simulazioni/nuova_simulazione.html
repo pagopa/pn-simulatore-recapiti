@@ -28,7 +28,7 @@
                     <label class="form-label"><b>Nome simulazione</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
+                    <input type="text" class="form-control" autocomplete="off" maxlength="50" name="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
                 </div>
             </div>
             <br>
@@ -446,7 +446,7 @@
                 return (date.getDay() === 1);
             }
         ],
-        defaultDate: '{{simulazione_selezionata.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
+        defaultDate: '{{simulazione_selezionata.START_TIMESTAMP|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
 

@@ -39,6 +39,9 @@ urlpatterns = [
     path('ente_fornitore', vista_ente_fornitore, name='ente_fornitore'),
     path('download_vista_fornitore/<selectedData>', download_vista_fornitore, name='download_vista_fornitore'),
 
+    #VISTA_CALENDAR
+    path('get_calendar_data', get_calendar_data, name="get_calendar_data"),
+
 ]
 
 
