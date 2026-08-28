@@ -63,6 +63,16 @@ lambda_delayer=boto3.client('lambda')
 # Funzione per creare la lista delle righe a partire dal richiamo della lambda
 
 def lambda_to_dict(prov,operationType,list_parameters):
+  # AMBIENTE DI DEV
+  payload={
+        "operationType": operationType,
+        "parameters": {
+            "table": "pn-PaperDeliverySenderLimit",
+            "deliveryDate": list_parameters[0],
+            "province": list_parameters[1]
+        }
+    } 
+  # AMBIENTE DI PROD
   payload={
         "operationType": operationType,
         "parameters": {
