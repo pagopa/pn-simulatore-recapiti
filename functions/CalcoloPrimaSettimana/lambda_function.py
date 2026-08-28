@@ -100,20 +100,22 @@ def lambda_handler(event, context):
     conn.commit()
     cur.close()
     conn.close()
-
+    # datetime now
+    datetime_now = datetime.now(ZoneInfo("Europe/Rome"))
+    anno_partenza = datetime_now.year
+    mese_partenza = datetime_now.month
+    giorno_partenza = datetime_now.day
     # CALCOLO MESE SIMULAZIONE + MESI RECUPERO DATI
     try:
-        # se al lancio della step function è stata specificata almeno una data nella lista mesi_recupero_dati prendiamo queste date, altrimenti calcoliamo la prima settimana del mese dal quale partire per il recupero settimanale dei dati
+        # se al lancio della step function è stata specificato il mese_simulazione consideriamo questo mese, altrimenti calcoliamo la prima settimana del mese dal quale partire per il recupero settimanale dei dati
         mese_simulazione = event["mese_simulazione"]
         mesi_recupero_dati = [{"mese_recupero_dati": mese_simulazione}]
+        datetime_mese_simulazione = datetime.strptime(mese_simulazione, '%Y-%m-%d')
+        if datetime_mese_simulazione > datetime_now and anno_partenza != datetime_mese_simulazione.year and mese_partenza != datetime_mese_simulazione.month and os.environ["recupero_mesi_intermedi"]=='True':
+            
     except:
         # dalle variabili d'ambiente recuperiamo il valore relativo a quanti mesi in avanti vogliamo simulare
         mesi_in_avanti = int(os.environ["mesi_in_avanti"])
-        # datetime now
-        datetime_now = datetime.now(ZoneInfo("Europe/Rome"))
-        anno_partenza = datetime_now.year
-        mese_partenza = datetime_now.month
-        giorno_partenza = datetime_now.day
         # REQUISITO: se siamo dopo il cut-off (impostato tramite parametro modificabile) del mese corrente, bisogna processare il mese successivo
         if giorno_partenza > int(os.environ['cutoff']):
             # aumentiamo il mese di 1
