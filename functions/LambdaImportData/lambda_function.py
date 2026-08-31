@@ -162,7 +162,7 @@ def lambda_handler(event, context):
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     pianificazione_postalizzazioni = event["pianificazione_postalizzazioni"]
-    if pianificazione_postalizzazioni == 'Utilizza le commesse di default' or pianificazione_postalizzazioni == '-': # per identificare il caso di automatizzata abbiamo scelto di utilizzare "pianificazione_postalizzazioni == '-'"
+    if pianificazione_postalizzazioni == 'Utilizza le commesse di default' or pianificazione_postalizzazioni == '-': # per identificare il caso di automatizzata utilizziamo "pianificazione_postalizzazioni == '-'"
         nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT']
         nome_tabella_used_sender_limit = os.environ['TABLE_USED_SENDER_LIMIT']
     else:
