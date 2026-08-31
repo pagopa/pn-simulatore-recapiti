@@ -82,7 +82,7 @@ df_senderlim_tot = df_senderlim_tot.drop('ID')\
 
 # Check sulla LAST_UPDATE_TIMESTAMP: le operazioni vengono effettuate solo se la data è quella odierna
 last_update_timestamp = max([el.asDict()['LAST_UPDATE_TIMESTAMP'] for el in df_senderlim_tot.select('LAST_UPDATE_TIMESTAMP').collect()])
-if last_update_timestamp == datetime.now().date():
+if last_update_timestamp.date() == datetime.now().date():
     
     # Lista delle province
     df_province=df_cap_prov.select('COD_SIGLA_PROVINCIA').distinct()
