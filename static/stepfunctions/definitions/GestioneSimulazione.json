@@ -147,7 +147,7 @@
         }
       },
       "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv",
-      "MaxConcurrency": 10,
+      "MaxConcurrency": 5,
       "Next": "ADD ANY MOCK CAPACITIES",
       "ResultPath": null
     },
