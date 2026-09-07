@@ -739,6 +739,7 @@
         /*
         Funzione che gestisce il submit "Salva come bozza"
         */
+        spinner_loading(); // start spinner
         multiStepForm = document.getElementById("multiStepForm");
         $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
         $('<input>').attr({type:'hidden',name:'id_simulazione',value:id_simulazione}).appendTo('#multiStepForm');
@@ -757,6 +758,7 @@
         /*
         Funzione che gestisce il submit "Avvia scheduling"
         */
+        spinner_loading(); // start spinner
         multiStepForm = document.getElementById("multiStepForm");
         $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
         $('<input>').attr({type:'hidden',name:'id_simulazione',value:id_simulazione}).appendTo('#multiStepForm');
