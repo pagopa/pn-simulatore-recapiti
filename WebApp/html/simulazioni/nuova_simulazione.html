@@ -46,7 +46,7 @@
                     <label class="form-label"><b>Nome simulazione</b></label>
                 </div>
                 <div class="col-auto w-50">
-                    <input type="text" class="form-control" autocomplete="off" name="nome_simulazione" id="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
+                    <input type="text" class="form-control" autocomplete="off" maxlength="50" name="nome_simulazione" id="nome_simulazione" value="{{simulazione_selezionata.NOME}}" required>
                 </div>
             </div>
             <br>
@@ -694,7 +694,7 @@
                 return (date.getDay() === 1);
             }
         ],
-        defaultDate: '{{simulazione_selezionata.TIMESTAMP_ESECUZIONE|date:"d/m/Y H:i"}}' // inizializzazione data
+        defaultDate: '{{simulazione_selezionata.START_TIMESTAMP|date:"d/m/Y H:i"}}' // inizializzazione data
     });
 </script>
 
@@ -739,6 +739,7 @@
         /*
         Funzione che gestisce il submit "Salva come bozza"
         */
+        spinner_loading(); // start spinner
         multiStepForm = document.getElementById("multiStepForm");
         $('<input>').attr({type:'hidden',name:'stato',value:'Bozza'}).appendTo('#multiStepForm');
         $('<input>').attr({type:'hidden',name:'id_simulazione',value:id_simulazione}).appendTo('#multiStepForm');
@@ -757,6 +758,7 @@
         /*
         Funzione che gestisce il submit "Avvia scheduling"
         */
+        spinner_loading(); // start spinner
         multiStepForm = document.getElementById("multiStepForm");
         $('<input>').attr({type:'hidden',name:'stato',value:'Schedulata-Inlavorazione'}).appendTo('#multiStepForm');
         $('<input>').attr({type:'hidden',name:'id_simulazione',value:id_simulazione}).appendTo('#multiStepForm');

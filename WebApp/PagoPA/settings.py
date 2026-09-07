@@ -175,3 +175,21 @@ STEP_FUNCTION_ARN = os.getenv('STEP_FUNCTION_ARN', 'arn:aws:states:eu-south-1:83
 
 # variabile d'ambiente per bucket S3
 BUCKET_NAME = os.getenv('BUCKET_NAME', 'pn-simulatore-recapiti-eu-south-1-830192246553')
+
+# variabili d'ambiente "CUTOFF" e "MESI_IN_AVANTI" per funzionalità calendario
+CUTOFF = os.environ.get('CUTOFF','22') # impostiamo '22' come default
+MESI_IN_AVANTI = os.environ.get('MESI_IN_AVANTI','0') # impostiamo il '0' come default
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+}
