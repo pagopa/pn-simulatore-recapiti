@@ -15,7 +15,6 @@ import boto3
 import os
 import pg8000
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 
 def recupero_credenziali_db(secretsManager_SecretId):
     """
@@ -94,7 +93,7 @@ def recupero_used_capacity(lista_settimane_processate, lista_province, lista_rec
             for provincia in lista_province:
                 payload_lambda={
                     "operationType": "GET_USED_CAPACITY",
-                    "parameters": ["pn-PaperDeliveryDriverUsedCapacitiesMock",list(recapitista)[0], provincia[0], settimana]
+                    "parameters": [os.environ['TABLE_DRIVER_USED_CAPACITIES_MOCK'],list(recapitista)[0], provincia[0], settimana]
                 }
                 response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
                 read_response = response_lambda['Payload'].read()

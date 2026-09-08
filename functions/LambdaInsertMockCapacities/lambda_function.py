@@ -21,7 +21,6 @@ import pg8000
 import io
 import csv
 from datetime import datetime, timezone, timedelta
-from botocore.config import Config
 import math
 
 def recupero_credenziali_db(secretsManager_SecretId):
@@ -325,7 +324,7 @@ def lambda_insert_mock_capacities(lambda_delayer,lista_filename_insertMockCapaci
         # INSERT MOCK CAPACITIES - testDelayerLambda
         payload_lambda={
             "operationType": "INSERT_MOCK_CAPACITIES",
-            "parameters": ["pn-PaperDeliveryDriverCapacitiesMock", filename]
+            "parameters": [os.environ['TABLE_DRIVER_CAPACITIES_MOCK'], filename]
         }
         response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
         read_response = response_lambda['Payload'].read()

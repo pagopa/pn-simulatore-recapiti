@@ -20,11 +20,9 @@ import boto3
 from botocore.config import Config
 import os
 from datetime import datetime, date, timedelta
-import math
 import urllib3
 import io
 import csv
-import itertools
 import codecs
 
 

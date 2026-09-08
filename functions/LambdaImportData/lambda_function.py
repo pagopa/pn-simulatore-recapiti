@@ -94,7 +94,7 @@ def lambda_import_data(lambda_delayer,filename,date_per_import_data, nome_tabell
     # IMPORT DATA - testDelayerLambda
     payload_lambda={
         "operationType": "IMPORT_DATA",
-        "parameters": ["pn-DelayerPaperDeliveryMock", "pn-PaperDeliveryCountersMock", nome_tabella_sender_limit, nome_tabella_used_sender_limit, filename, date_per_import_data]
+        "parameters": [os.environ['TABLE_PAPER_DELIVERY_MOCK'], os.environ['TABLE_COUNTERS_MOCK'], nome_tabella_sender_limit, nome_tabella_used_sender_limit, filename, date_per_import_data]
     }
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
@@ -166,8 +166,8 @@ def lambda_handler(event, context):
         nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT']
         nome_tabella_used_sender_limit = os.environ['TABLE_USED_SENDER_LIMIT']
     else:
-        nome_tabella_sender_limit = "pn-PaperDeliverySenderLimitMock"
-        nome_tabella_used_sender_limit = "pn-PaperDeliveryUsedSenderLimitMock"
+        nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT_MOCK']
+        nome_tabella_used_sender_limit = os.environ['TABLE_USED_SENDER_LIMIT_MOCK']
     
     # carichiamo i csv nella destinazione recuperata attraverso la GET_PRESIGNED_URL ed effettuiamo l'operazione di IMPORT_DATA
     destination_filename = carica_oggetto(s3_client, s3_file_key, source_bucket, settimana_import, nome_tabella_sender_limit, nome_tabella_used_sender_limit)

@@ -12,6 +12,7 @@ import boto3
 from botocore.config import Config
 import time
 import random
+import os
 
 
 def lambda_handler(event, context):
@@ -26,10 +27,10 @@ def lambda_handler(event, context):
     payload_lambda={
         "operationType": "DELETE_DATA",
         "parameters": [
-            "pn-DelayerPaperDeliveryMock",
-            "pn-PaperDeliveryDriverUsedCapacitiesMock",
-            "pn-PaperDeliveryUsedSenderLimitMock",
-            "pn-PaperDeliveryCountersMock",
+            os.environ['TABLE_PAPER_DELIVERY_MOCK'],
+            os.environ['TABLE_DRIVER_USED_CAPACITIES_MOCK'],
+            os.environ['TABLE_USED_SENDER_LIMIT_MOCK'],
+            os.environ['TABLE_COUNTERS_MOCK'],
             filename_DELETEDATA
         ]
     }
