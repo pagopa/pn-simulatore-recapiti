@@ -465,7 +465,7 @@ def recupero_lista_mesi_simulazione_univoci(pagina_target):
             cursor.execute("""
                 SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'yyyy-MM') as anno_mese
                 FROM public."SENDER_LIMIT"
-                WHERE EXTRACT(MONTH FROM "DELIVERY_DATE") >= EXTRACT(MONTH FROM now())
+                WHERE EXTRACT(MONTH FROM "DELIVERY_DATE") >= EXTRACT(MONTH FROM now()) and EXTRACT(YEAR FROM "DELIVERY_DATE") >= EXTRACT(YEAR FROM now())
                 ORDER BY anno_mese
             """)
         else:
