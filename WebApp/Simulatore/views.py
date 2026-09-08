@@ -84,7 +84,7 @@ def nuova_simulazione(request, id_simulazione):
     Pagina che permette all'utente di inserire una nuova simulazione
     """
     # Mese da simulare
-    lista_mesi = recupero_lista_mesi_simulazione_univoci()
+    lista_mesi = recupero_lista_mesi_simulazione_univoci('nuova_simulazione')
 
     lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
 
@@ -450,19 +450,30 @@ def gestione_residui(data_simulazione, prima_settimana_simulazione_string):
     return delivery_date_residui
 
 
-def recupero_lista_mesi_simulazione_univoci():
+def recupero_lista_mesi_simulazione_univoci(pagina_target):
     """
-    Questa funzione recupera la lista dei mesi univoci che l'utente può scegliere per creare una nuova simulazione
+    Questa funzione recupera la lista dei mesi univoci che l'utente può scegliere per creare una nuova simulazione o per la filtrare la vista ente/fornitore
+
+    Args:
+    pagina_target (string): indica se i mesi univoci da recuperare servono per creare una nuova simulazione o per la filtrare la vista ente/fornitore
 
     Returns:
         list of tuple: mesi univoci dove il primo elmento della tupla è nel formato yyyy-MM mentre il secondo elemento della tupla contiene il mese scritto per esteso e l'anno in formato yyyy
     """
     with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'yyyy-MM') as anno_mese
-            FROM public."SENDER_LIMIT"
-            ORDER BY anno_mese
-        """)
+        if pagina_target == 'nuova_simulazione':
+            cursor.execute("""
+                SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'yyyy-MM') as anno_mese
+                FROM public."SENDER_LIMIT"
+                WHERE EXTRACT(MONTH FROM "DELIVERY_DATE") >= EXTRACT(MONTH FROM now())
+                ORDER BY anno_mese
+            """)
+        else:
+            cursor.execute("""
+                SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'yyyy-MM') as anno_mese
+                FROM public."SENDER_LIMIT"
+                ORDER BY anno_mese
+            """)
         lista_mesi = []
         for row in cursor.fetchall():
             data_formattata = datetime.strptime(row[0], '%Y-%m').date().strftime("%B %Y").capitalize()
@@ -1145,7 +1156,7 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
         string: key del file csv recuperato dal bucket; se non trovato ritorna 'None'
     """
 
-    for _ in range(30):  # limite di sicurezza a 30 gg
+    for _ in range(120):  # limite di sicurezza a 120 gg
         prefix = timestamp_esecuzione_simulazione.strftime("%Y/%m/%d/")
         if recupero_capacita_modificate == 'true':
             full_prefix = f'input/{prefix}{mese_simulazione}/dati_extra/cap_capacities/id_{id_simulazione}/unified/modified/'
@@ -1170,7 +1181,7 @@ def vista_ente_fornitore(request):
     Le tabelle sono diverse e vengono selezionate in base al valore del campo Ente/Fornitore.  
 
     """
-    lista_mesi = recupero_lista_mesi_simulazione_univoci()
+    lista_mesi = recupero_lista_mesi_simulazione_univoci('vista_ente_fornitore')
     context = {"table_flag":"0",
                "lista_mesi": lista_mesi,
                }
