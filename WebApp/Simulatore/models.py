@@ -18,6 +18,8 @@ class table_simulazione(models.Model):
     MESE_SIMULAZIONE = models.CharField(max_length=20, null=True)# formato yyyy-MM
     TIPO_CAPACITA = models.CharField(max_length=25, null=True)  # [BAU, Picco, Combinata, Produzione] -> Per le automatizzate settiamo "Produzione"
     TIPO_SIMULAZIONE = models.CharField(max_length=25, null=True) # [Manuale, Automatizzata]
+    PIANIFICAZIONE_POSTALIZZAZIONI = models.CharField(max_length=60, null=True) # ['Utilizza le commesse di default', 'Utilizza le commesse di default e le commesse di mock', 'Utilizza solo le commesse di mock']
+    POSTALIZZAZIONI_FUORI_COMMESSA = models.BooleanField(null=True) # flag "Aggiungi postalizzazioni fuori commessa" selezionabile nello STEP 2 
     class Meta:
         db_table = 'SIMULAZIONE'
         indexes = [
@@ -252,6 +254,280 @@ class table_capacita_simulate_cap(models.Model):
         ]
 
 
+class table_sender_limit_mock(models.Model):
+    ID = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.ForeignKey(table_simulazione, db_column='SIMULAZIONE_ID', on_delete=models.CASCADE, null=True)
+    DELIVERY_DATE = models.CharField(null=True) # formato yyyy-MM
+    PA_ID = models.CharField(max_length=80, null=True)
+    MONTHLY_ESTIMATE = models.IntegerField(null=True)
+    PRODUCT_TYPE = models.CharField(max_length=80, null=True)
+    SUDDIVISIONE_GEOGRAFICA = models.CharField(max_length=80, null=True)
+    LAST_UPDATE_TIMESTAMP = NaiveDateTimeField(null=True)
+    class Meta:
+        db_table = 'SENDER_LIMIT_MOCK'
+        indexes = [
+            models.Index(fields=['SIMULAZIONE_ID'], name='indice_simulazione_id_7'),
+            models.Index(fields=['DELIVERY_DATE'], name='indice_delivery_date_2'),
+            models.Index(fields=['SUDDIVISIONE_GEOGRAFICA'], name='indice_suddivisione_geografica'),
+            models.Index(fields=['LAST_UPDATE_TIMESTAMP'], name='indice_last_update_timestamp_5')
+        ]
+
+
+# VISTA view_output_capacity_setting_mock
+class view_output_capacity_setting_mock(pg.View):
+    id = models.AutoField(primary_key=True)
+    SIMULAZIONE_ID = models.IntegerField(null=True)
+    UNIFIED_DELIVERY_DRIVER = models.CharField(max_length=80, null=True)
+    ACTIVATION_DATE_FROM = NaiveDateTimeField(null=True)
+    ACTIVATION_DATE_TO = NaiveDateTimeField(null=True)
+    CAPACITY = models.IntegerField(null=True)
+    PEAK_CAPACITY = models.IntegerField(null=True)
+    PRODUCTION_CAPACITY = models.IntegerField(null=True)
+    SUM_WEEKLY_ESTIMATE_DEFAULT = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE_DEFAULT = models.IntegerField(null=True)
+    SUM_MONTHLY_ESTIMATE_MOCK = models.IntegerField(null=True)
+    REGIONE = models.CharField(max_length=50, null=True)
+    PROVINCIA = models.CharField(max_length=50, null=True)
+    COD_SIGLA_PROVINCIA = models.CharField(max_length=5, null=True)
+    PRODUCT_890 = models.BooleanField(null=True)
+    PRODUCT_AR = models.BooleanField(null=True)
+    MONTH_DELIVERY = models.SmallIntegerField(null=True)
+
+    sql = """
+        WITH "MOCK_PROV" AS (
+        SELECT "SENDER_LIMIT_MOCK"."SIMULAZIONE_ID", "SENDER_LIMIT_MOCK"."DELIVERY_DATE","SENDER_LIMIT_MOCK"."PRODUCT_TYPE", "SENDER_LIMIT_MOCK"."PA_ID","COD_SIGLA_PROVINCIA", "SENDER_LIMIT_MOCK"."MONTHLY_ESTIMATE"
+        FROM public."SENDER_LIMIT_MOCK" 
+		INNER JOIN (SELECT DISTINCT "PROVINCIA", "COD_SIGLA_PROVINCIA" FROM public."CAP_PROV_REG") AS "PROV"
+  		ON "PROV"."PROVINCIA" = public."SENDER_LIMIT_MOCK"."SUDDIVISIONE_GEOGRAFICA"
+        WHERE "SUDDIVISIONE_GEOGRAFICA" IN (
+        SELECT DISTINCT "PROVINCIA" 
+        FROM public."CAP_PROV_REG"
+        )
+        ),
+        "MOCK_REG" AS (
+        SELECT * 
+        FROM public."SENDER_LIMIT_MOCK" 
+        WHERE "SUDDIVISIONE_GEOGRAFICA" IN (
+        SELECT DISTINCT "REGIONE" 
+        FROM public."CAP_PROV_REG"
+        )
+        ),
+        "MOCK_ITA" AS (
+        SELECT * 
+        FROM public."SENDER_LIMIT_MOCK" 
+        WHERE "SUDDIVISIONE_GEOGRAFICA" ='Italia'
+        ),
+        "PROV_POP" AS (
+        SELECT "REGIONE", "COD_SIGLA_PROVINCIA",
+        SUM("POP_CAP") AS "POP_PROV" 
+        FROM public."CAP_PROV_REG" 
+        GROUP BY ("REGIONE","COD_SIGLA_PROVINCIA")
+        ),
+        "REG_POP" AS (
+        SELECT "REGIONE",
+        SUM("POP_CAP") AS "POP_REG" 
+        FROM public."CAP_PROV_REG" 
+        GROUP BY ("REGIONE")
+        )
+        ,
+        "PERC_REG_POP" AS (
+        SELECT 'Italia' AS "SUDDIVISIONE_GEOGRAFICA", "REG_POP"."REGIONE",
+        "POP_REG"/(SELECT SUM("POP_CAP")FROM public."CAP_PROV_REG" )::NUMERIC AS "PERC_POP_REG" 
+        FROM "REG_POP" 
+        )
+        ,
+        "PERC_REG_PROV_POP" AS (
+        SELECT "PROV_POP"."REGIONE", "COD_SIGLA_PROVINCIA",
+        "POP_PROV"/"POP_REG"::NUMERIC AS "PERC_POP_PROV" 
+        FROM "PROV_POP" 
+        LEFT JOIN "REG_POP" 
+        ON "PROV_POP"."REGIONE" = "REG_POP"."REGIONE"
+        ),
+        "MONTHLY_MOCK_REG" AS (
+        SELECT "SIMULAZIONE_ID", "DELIVERY_DATE", "PRODUCT_TYPE","PA_ID",
+            "PERC_REG_PROV_POP"."COD_SIGLA_PROVINCIA",
+            ROUND("MONTHLY_ESTIMATE" * "PERC_POP_PROV") AS "MONTHLY_ESTIMATE"
+        FROM "MOCK_REG"
+        LEFT JOIN "PERC_REG_PROV_POP"
+        ON "PERC_REG_PROV_POP"."REGIONE" = "MOCK_REG"."SUDDIVISIONE_GEOGRAFICA"
+        ),
+        "MONTHLY_MOCK_ITA" AS (
+        SELECT "SIMULAZIONE_ID", "DELIVERY_DATE", "PRODUCT_TYPE","PA_ID",
+            "PERC_REG_POP"."REGIONE",
+            ROUND("MONTHLY_ESTIMATE" * "PERC_POP_REG") AS "MONTHLY_ESTIMATE"
+        FROM "MOCK_ITA"
+        LEFT JOIN "PERC_REG_POP"
+        ON "PERC_REG_POP"."SUDDIVISIONE_GEOGRAFICA" = "MOCK_ITA"."SUDDIVISIONE_GEOGRAFICA"
+        ),
+        "MONTHLY_MOCK_ITA_PROV" AS (
+        SELECT "SIMULAZIONE_ID", "DELIVERY_DATE", "PRODUCT_TYPE","PA_ID",
+            "PERC_REG_PROV_POP"."COD_SIGLA_PROVINCIA",
+            ROUND("MONTHLY_ESTIMATE" * "PERC_POP_PROV") AS "MONTHLY_ESTIMATE"
+        FROM "MONTHLY_MOCK_ITA"
+        LEFT JOIN "PERC_REG_PROV_POP"
+        ON "PERC_REG_PROV_POP"."REGIONE" = "MONTHLY_MOCK_ITA"."REGIONE"
+        ),
+        "UNION_ALL" AS (
+        SELECT * 
+        FROM "MOCK_PROV"
+        UNION 
+        SELECT * 
+        FROM "MONTHLY_MOCK_REG"
+        UNION 
+        SELECT * 
+        FROM "MONTHLY_MOCK_ITA_PROV"
+        ),
+        "SUM_SENDERLIMIT_MOCK_BY_MONTH" AS (
+        SELECT "SIMULAZIONE_ID", "DELIVERY_DATE", "PRODUCT_TYPE",
+            "COD_SIGLA_PROVINCIA", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE"
+        FROM "UNION_ALL"
+        GROUP BY ("SIMULAZIONE_ID", "DELIVERY_DATE", "PRODUCT_TYPE","COD_SIGLA_PROVINCIA")
+        ),
+        "SENDERLIMIT_BY_MONTH" AS (
+        SELECT DISTINCT ON ("PA_ID","PRODUCT_TYPE", "DELIVERY_DATE","PROVINCE")
+        "DELIVERY_DATE","WEEKLY_ESTIMATE", "MONTHLY_ESTIMATE", "PA_ID", "PRODUCT_TYPE", "PROVINCE"
+        FROM public."SENDER_LIMIT"
+        ),
+        "SUM_SENDERLIMIT_BY_MONTH" AS (
+        SELECT "DELIVERY_DATE", "PRODUCT_TYPE", "PROVINCE", SUM("WEEKLY_ESTIMATE") AS "SUM_WEEKLY_ESTIMATE", SUM("MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE"
+        FROM "SENDERLIMIT_BY_MONTH"
+        GROUP BY "DELIVERY_DATE", "PRODUCT_TYPE", "PROVINCE"
+        )
+        ,
+        "PROV_REG" AS (
+        SELECT DISTINCT ON ("COD_SIGLA_PROVINCIA") "PROVINCIA","REGIONE","COD_SIGLA_PROVINCIA"
+        FROM public."CAP_PROV_REG"
+        ),
+        "FILTERED_CAPACITY_BY_PRODUCT" AS (
+        SELECT
+        public."DECLARED_CAPACITY"."UNIFIED_DELIVERY_DRIVER",
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM",
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_TO",
+        public."DECLARED_CAPACITY"."CAPACITY",
+        public."DECLARED_CAPACITY"."PEAK_CAPACITY",
+        public."DECLARED_CAPACITY"."PRODUCTION_CAPACITY",
+        "SUM_SENDERLIMIT_BY_MONTH"."SUM_WEEKLY_ESTIMATE",
+        "SUM_SENDERLIMIT_BY_MONTH"."SUM_MONTHLY_ESTIMATE",
+        "PROV_REG"."REGIONE",
+        "PROV_REG"."COD_SIGLA_PROVINCIA",
+        "PROV_REG"."PROVINCIA",
+        "SUM_SENDERLIMIT_BY_MONTH"."PRODUCT_TYPE",
+        public."DECLARED_CAPACITY"."PRODUCT_890",
+        public."DECLARED_CAPACITY"."PRODUCT_AR",
+        EXTRACT(MONTH FROM "SUM_SENDERLIMIT_BY_MONTH"."DELIVERY_DATE") AS "MONTH_DELIVERY"
+        FROM public."DECLARED_CAPACITY"
+        LEFT JOIN "PROV_REG"
+        ON "PROV_REG"."COD_SIGLA_PROVINCIA" = public."DECLARED_CAPACITY"."GEOKEY"
+        INNER JOIN "SUM_SENDERLIMIT_BY_MONTH"
+        ON "PROV_REG"."COD_SIGLA_PROVINCIA" = "SUM_SENDERLIMIT_BY_MONTH"."PROVINCE"
+        AND (
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM" >= 
+        ("SUM_SENDERLIMIT_BY_MONTH"."DELIVERY_DATE" + ((1 - EXTRACT(DOW FROM  "SUM_SENDERLIMIT_BY_MONTH"."DELIVERY_DATE")::int + 7) % 7) * INTERVAL '1 day')
+        AND 
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM" <= 
+        (("SUM_SENDERLIMIT_BY_MONTH"."DELIVERY_DATE" + INTERVAL '1 month') + ((1 - EXTRACT(DOW FROM "SUM_SENDERLIMIT_BY_MONTH"."DELIVERY_DATE" + INTERVAL '1 month')::int + 7) % 7) * INTERVAL '1 day')
+        )
+            AND (("SUM_SENDERLIMIT_BY_MONTH"."PRODUCT_TYPE"='890' AND public."DECLARED_CAPACITY"."PRODUCT_890"=true)
+            OR ("SUM_SENDERLIMIT_BY_MONTH"."PRODUCT_TYPE"='AR' AND public."DECLARED_CAPACITY"."PRODUCT_AR"=true))
+        )
+        ,
+        "FILTERED_CAPACITY_BY_PRODUCT_MOCK" AS (
+        SELECT
+        public."DECLARED_CAPACITY"."UNIFIED_DELIVERY_DRIVER",
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM",
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_TO",
+        public."DECLARED_CAPACITY"."CAPACITY",
+        public."DECLARED_CAPACITY"."PEAK_CAPACITY",
+        public."DECLARED_CAPACITY"."PRODUCTION_CAPACITY",
+        "SUM_SENDERLIMIT_MOCK_BY_MONTH"."SUM_MONTHLY_ESTIMATE" AS "SUM_MONTHLY_ESTIMATE_MOCK",
+        "SUM_SENDERLIMIT_MOCK_BY_MONTH"."SIMULAZIONE_ID",
+        "PROV_REG"."REGIONE",
+        "PROV_REG"."COD_SIGLA_PROVINCIA",
+        "PROV_REG"."PROVINCIA",
+        "SUM_SENDERLIMIT_MOCK_BY_MONTH"."PRODUCT_TYPE",
+        public."DECLARED_CAPACITY"."PRODUCT_890",
+        public."DECLARED_CAPACITY"."PRODUCT_AR",
+        EXTRACT(MONTH FROM TO_DATE(CONCAT("SUM_SENDERLIMIT_MOCK_BY_MONTH"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD')) AS "MONTH_DELIVERY"
+        FROM public."DECLARED_CAPACITY"
+        LEFT JOIN "PROV_REG"
+        ON "PROV_REG"."COD_SIGLA_PROVINCIA" = public."DECLARED_CAPACITY"."GEOKEY"
+        INNER JOIN "SUM_SENDERLIMIT_MOCK_BY_MONTH"
+        ON "PROV_REG"."COD_SIGLA_PROVINCIA" = "SUM_SENDERLIMIT_MOCK_BY_MONTH"."COD_SIGLA_PROVINCIA"
+        WHERE (
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM" >= 
+        (TO_DATE(CONCAT("SUM_SENDERLIMIT_MOCK_BY_MONTH"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD') + 
+            ((1 - EXTRACT(DOW FROM  TO_DATE(CONCAT("SUM_SENDERLIMIT_MOCK_BY_MONTH"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD'))::int + 7) % 7) 
+            * INTERVAL '1 day')
+        AND 
+        public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM" <= 
+        ((TO_DATE(CONCAT("SUM_SENDERLIMIT_MOCK_BY_MONTH"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD') + INTERVAL '1 month') + ((1 - EXTRACT(DOW FROM TO_DATE(CONCAT("SUM_SENDERLIMIT_MOCK_BY_MONTH"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD')+ INTERVAL '1 month')::int + 7) % 7) * INTERVAL '1 day')
+        )
+            AND (("SUM_SENDERLIMIT_MOCK_BY_MONTH"."PRODUCT_TYPE"='890' AND public."DECLARED_CAPACITY"."PRODUCT_890"=true)
+            OR ("SUM_SENDERLIMIT_MOCK_BY_MONTH"."PRODUCT_TYPE"='AR' AND public."DECLARED_CAPACITY"."PRODUCT_AR"=true))
+        ),
+        "SIMULAZIONI_MOCK" AS (
+        SELECT DISTINCT "SIMULAZIONE_ID", "DELIVERY_DATE"
+        FROM public."SENDER_LIMIT_MOCK"
+        ),
+        "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE" AS (
+        SELECT * 
+        FROM "FILTERED_CAPACITY_BY_PRODUCT"
+        INNER JOIN "SIMULAZIONI_MOCK"
+        ON "FILTERED_CAPACITY_BY_PRODUCT"."ACTIVATION_DATE_FROM" >= 
+            (TO_DATE(CONCAT("SIMULAZIONI_MOCK"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD') + 
+            ((1 - EXTRACT(DOW FROM TO_DATE(CONCAT("SIMULAZIONI_MOCK"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD'))::int + 7) % 7) 
+            * INTERVAL '1 day')
+            AND 
+            "FILTERED_CAPACITY_BY_PRODUCT"."ACTIVATION_DATE_FROM" <= 
+            ((TO_DATE(CONCAT("SIMULAZIONI_MOCK"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD') + INTERVAL '1 month') + ((1 - EXTRACT(DOW FROM TO_DATE(CONCAT("SIMULAZIONI_MOCK"."DELIVERY_DATE", '-01'), 'YYYY-MM-DD') + INTERVAL '1 month')::int + 7) % 7) * INTERVAL '1 day')
+        ), 
+        "JOINED_FILTERED_CAPACITY_BY_PRODUCT_AND_MOCK" AS (
+        SELECT "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE".*, 
+            "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."SUM_MONTHLY_ESTIMATE_MOCK"
+        FROM "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"
+        LEFT JOIN "FILTERED_CAPACITY_BY_PRODUCT_MOCK"
+        ON "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."UNIFIED_DELIVERY_DRIVER" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."UNIFIED_DELIVERY_DRIVER" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."ACTIVATION_DATE_FROM" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."ACTIVATION_DATE_FROM" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."ACTIVATION_DATE_TO" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."ACTIVATION_DATE_TO"
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."CAPACITY" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."CAPACITY" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."PEAK_CAPACITY" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."PEAK_CAPACITY" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."PRODUCTION_CAPACITY" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."PRODUCTION_CAPACITY"
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."REGIONE" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."REGIONE" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."COD_SIGLA_PROVINCIA" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."COD_SIGLA_PROVINCIA" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."PROVINCIA" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."PROVINCIA"
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."PRODUCT_TYPE" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."PRODUCT_TYPE"
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."PRODUCT_890" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."PRODUCT_890" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."PRODUCT_AR" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."PRODUCT_AR" 
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."MONTH_DELIVERY" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."MONTH_DELIVERY"
+        AND "FILTERED_CAPACITY_BY_PRODUCT_AND_SIMULAZIONE"."SIMULAZIONE_ID" = "FILTERED_CAPACITY_BY_PRODUCT_MOCK"."SIMULAZIONE_ID"
+        )
+        SELECT
+        ROW_NUMBER() OVER () AS id,  
+        "UNIFIED_DELIVERY_DRIVER",
+        "SIMULAZIONE_ID",
+        "ACTIVATION_DATE_FROM",
+        "ACTIVATION_DATE_TO",
+        "CAPACITY",
+        "PEAK_CAPACITY",
+        "PRODUCTION_CAPACITY",
+        SUM("SUM_WEEKLY_ESTIMATE") AS "SUM_WEEKLY_ESTIMATE_DEFAULT",
+        SUM("SUM_MONTHLY_ESTIMATE") AS "SUM_MONTHLY_ESTIMATE_DEFAULT",
+        SUM("SUM_MONTHLY_ESTIMATE_MOCK") AS "SUM_MONTHLY_ESTIMATE_MOCK",
+        "REGIONE",
+        "PROVINCIA",
+        "COD_SIGLA_PROVINCIA",
+        "PRODUCT_890",
+        "PRODUCT_AR",
+        "MONTH_DELIVERY"
+        FROM "JOINED_FILTERED_CAPACITY_BY_PRODUCT_AND_MOCK"
+        GROUP BY "UNIFIED_DELIVERY_DRIVER","SIMULAZIONE_ID","COD_SIGLA_PROVINCIA","MONTH_DELIVERY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","CAPACITY","PEAK_CAPACITY","PRODUCTION_CAPACITY","REGIONE","PROVINCIA","PRODUCT_890","PRODUCT_AR"
+        """
+    
+    class Meta:
+        db_table = 'output_capacity_setting_mock'
+        managed = False
+
+
 # VISTA output_capacity_setting
 class view_output_capacity_setting(pg.View):
     id = models.AutoField(primary_key=True)
@@ -364,47 +640,97 @@ class view_output_modified_capacity_setting(pg.View):
     SIMULAZIONE_ID = models.IntegerField(null=True)
 
     sql = """
+        WITH "OUTPUT_DEFAULT" AS (
         SELECT
-            ROW_NUMBER() OVER () AS id,
-            public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER",         
-            CASE 
-                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_FROM"
-                ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
-            END AS "ACTIVATION_DATE_FROM",
-            CASE 
-                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"::date = public."output_capacity_setting"."ACTIVATION_DATE_TO"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_TO"
-                ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"
-            END AS "ACTIVATION_DATE_TO",
-            CASE 
-                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."CAPACITY"
-                ELSE 0
-            END AS "CAPACITY",
-            public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
-            CASE 
-                WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."CAPACITA_SIMULATE"."SUM_WEEKLY_ESTIMATE"
-                ELSE 0
-            END AS "SUM_WEEKLY_ESTIMATE",
-            public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
-            public."CAPACITA_SIMULATE"."REGIONE", 
-            public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
-            public."output_capacity_setting"."PROVINCIA",
-            public."output_capacity_setting"."PRODUCTION_CAPACITY",
-            public."output_capacity_setting"."PEAK_CAPACITY",
-            public."CAPACITA_SIMULATE"."PRODUCT_890",
-            public."CAPACITA_SIMULATE"."PRODUCT_AR",
-            public."output_capacity_setting"."MONTH_DELIVERY",
-            public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+        ROW_NUMBER() OVER () AS id,
+        public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER",         
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_FROM"
+        ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+        END AS "ACTIVATION_DATE_FROM",
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"::date = public."output_capacity_setting"."ACTIVATION_DATE_TO"::date THEN public."output_capacity_setting"."ACTIVATION_DATE_TO"
+        ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"
+        END AS "ACTIVATION_DATE_TO",
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting"."CAPACITY"
+        ELSE 0
+        END AS "CAPACITY",
+        public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date THEN public."CAPACITA_SIMULATE"."SUM_WEEKLY_ESTIMATE"
+        ELSE 0
+        END AS "SUM_WEEKLY_ESTIMATE",
+        public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE", 
+        public."CAPACITA_SIMULATE"."REGIONE", 
+        public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
+        public."output_capacity_setting"."PROVINCIA",
+        public."output_capacity_setting"."PRODUCTION_CAPACITY",
+        public."output_capacity_setting"."PEAK_CAPACITY",
+        public."CAPACITA_SIMULATE"."PRODUCT_890",
+        public."CAPACITA_SIMULATE"."PRODUCT_AR",
+        public."output_capacity_setting"."MONTH_DELIVERY",
+        public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
         FROM public."CAPACITA_SIMULATE"
         LEFT JOIN public."SIMULAZIONE"
-            ON public."CAPACITA_SIMULATE"."SIMULAZIONE_ID" = public."SIMULAZIONE"."ID"
+        ON public."CAPACITA_SIMULATE"."SIMULAZIONE_ID" = public."SIMULAZIONE"."ID"
         LEFT JOIN public."output_capacity_setting"
-            ON public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
-                AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
-                AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
-                AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
-                AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
-                AND public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE" = public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE"
-                AND EXTRACT(MONTH FROM CAST(CONCAT("MESE_SIMULAZIONE",'-01') AS DATE)) = public."output_capacity_setting"."MONTH_DELIVERY"
+        ON public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting"."UNIFIED_DELIVERY_DRIVER"
+        AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting"."ACTIVATION_DATE_FROM"::date
+        AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting"."COD_SIGLA_PROVINCIA"
+        AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting"."PRODUCT_890"
+        AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
+        AND public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE" = public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE"
+        AND EXTRACT(MONTH FROM CAST(CONCAT("MESE_SIMULAZIONE",'-01') AS DATE)) = public."output_capacity_setting"."MONTH_DELIVERY"
+        ),
+        "OUTPUT_MOCK" AS (
+        SELECT
+        ROW_NUMBER() OVER () AS id,
+        public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER",         
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting_mock"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting_mock"."ACTIVATION_DATE_FROM"
+        ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"
+        END AS "ACTIVATION_DATE_FROM",
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"::date = public."output_capacity_setting_mock"."ACTIVATION_DATE_TO"::date THEN public."output_capacity_setting_mock"."ACTIVATION_DATE_TO"
+        ELSE public."CAPACITA_SIMULATE"."ACTIVATION_DATE_TO"
+        END AS "ACTIVATION_DATE_TO",
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting_mock"."ACTIVATION_DATE_FROM"::date THEN public."output_capacity_setting_mock"."CAPACITY"
+        ELSE 0
+        END AS "CAPACITY",
+        public."CAPACITA_SIMULATE"."CAPACITY" AS "MODIFIED_CAPACITY",
+        CASE 
+        WHEN public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting_mock"."ACTIVATION_DATE_FROM"::date THEN public."CAPACITA_SIMULATE"."SUM_WEEKLY_ESTIMATE"
+        ELSE 0
+        END AS "SUM_WEEKLY_ESTIMATE",
+        public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE", 
+        public."CAPACITA_SIMULATE"."REGIONE", 
+        public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA",
+        public."output_capacity_setting_mock"."PROVINCIA",
+        public."output_capacity_setting_mock"."PRODUCTION_CAPACITY",
+        public."output_capacity_setting_mock"."PEAK_CAPACITY",
+        public."CAPACITA_SIMULATE"."PRODUCT_890",
+        public."CAPACITA_SIMULATE"."PRODUCT_AR",
+        public."output_capacity_setting_mock"."MONTH_DELIVERY",
+        public."CAPACITA_SIMULATE"."SIMULAZIONE_ID"
+        FROM public."CAPACITA_SIMULATE"
+        LEFT JOIN public."SIMULAZIONE"
+        ON public."CAPACITA_SIMULATE"."SIMULAZIONE_ID" = public."SIMULAZIONE"."ID"
+        LEFT JOIN public."output_capacity_setting_mock"
+        ON public."CAPACITA_SIMULATE"."UNIFIED_DELIVERY_DRIVER" = public."output_capacity_setting_mock"."UNIFIED_DELIVERY_DRIVER"
+        AND public."CAPACITA_SIMULATE"."ACTIVATION_DATE_FROM"::date = public."output_capacity_setting_mock"."ACTIVATION_DATE_FROM"::date
+        AND public."CAPACITA_SIMULATE"."COD_SIGLA_PROVINCIA" = public."output_capacity_setting_mock"."COD_SIGLA_PROVINCIA"
+        AND public."CAPACITA_SIMULATE"."PRODUCT_890" = public."output_capacity_setting_mock"."PRODUCT_890"
+        AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting_mock"."PRODUCT_AR"
+        AND public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE" = (public."output_capacity_setting_mock"."SUM_MONTHLY_ESTIMATE_MOCK" + public."output_capacity_setting_mock"."SUM_MONTHLY_ESTIMATE_DEFAULT")
+        AND EXTRACT(MONTH FROM CAST(CONCAT("MESE_SIMULAZIONE",'-01') AS DATE)) = public."output_capacity_setting_mock"."MONTH_DELIVERY"
+        )
+        SELECT * 
+        FROM "OUTPUT_DEFAULT"
+        UNION 
+        SELECT * 
+        FROM "OUTPUT_MOCK"
     """
 
     class Meta:

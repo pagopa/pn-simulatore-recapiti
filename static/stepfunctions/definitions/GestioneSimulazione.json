@@ -50,8 +50,39 @@
           "--mese_simulazione.$": "$.mese_simulazione"
         }
       },
-      "Next": "RECUPERO FILE CSV PER IMPORT DATA",
+      "Next": "GENERAZIONE FILE ZIP COMMESSE MOCK",
       "ResultPath": null
+    },
+    "GENERAZIONE FILE ZIP COMMESSE MOCK": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${GenerazioneFileZIPCommesseMockGlueJobName}",
+        "Arguments": {
+          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
+          "--mese_simulazione.$": "$.mese_simulazione"
+        }
+      },
+      "Next": "GENERAZIONE CSV IMPORT DATA MOCK",
+      "ResultPath": null
+    },
+    "GENERAZIONE CSV IMPORT DATA MOCK": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${GenerazioneCsvImportDataMockGlueJobName}",
+        "Arguments": {
+          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
+          "--mese_simulazione.$": "$.mese_simulazione"
+        }
+      },
+      "Next": "WAIT PER INSERT_MOCK_SENDER_LIMITS",
+      "ResultPath": null
+    },
+    "WAIT PER INSERT_MOCK_SENDER_LIMITS": {
+      "Type": "Wait",
+      "Seconds": 5,
+      "Next": "RECUPERO FILE CSV PER IMPORT DATA"
     },
     "RECUPERO FILE CSV PER IMPORT DATA": {
       "Type": "Task",
@@ -110,12 +141,13 @@
                 "BackoffRate": 2
               }
             ],
-            "End": true
+            "End": true,
+            "ResultPath": null
           }
         }
       },
       "ItemsPath": "$.output_lambda_ListaFileImportData.Payload.lista_file_csv",
-      "MaxConcurrency": 10,
+      "MaxConcurrency": 5,
       "Next": "ADD ANY MOCK CAPACITIES",
       "ResultPath": null
     },

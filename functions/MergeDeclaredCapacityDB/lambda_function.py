@@ -5,7 +5,7 @@ Trigger:
     Step function pn-simulatore-recapiti-sf-RecuperoDati-Weekly
 
 Input:
-    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-MM-dd
+    mese_recupero_dati: mese per il recupero dati, nel formato yyyy-MM-dd
 """
 import json
 import boto3
@@ -57,7 +57,7 @@ def lambda_handler(event, context):
     db_host = os.environ['DB_HOST']
     db_name = os.environ['DB_NAME']
     db_port = os.environ['DB_PORT']
-    mese_simulazione = event['mese_simulazione']
+    mese_recupero_dati = event['mese_recupero_dati']
     # recupero credenziali da SecretsManager
     creds = recupero_credenziali_db(secretsManager_SecretId)
     # connessione db
@@ -67,7 +67,7 @@ def lambda_handler(event, context):
     cur.execute('SELECT COUNT(*) FROM public."DECLARED_CAPACITY_DELTA"')
     count_rows_delta_table = int(cur.fetchone()[0])
     if count_rows_delta_table == 0:
-        raise Exception(f"Errore: tabella DECLARED_CAPACITY vuota per il mese di {mese_simulazione[:-3]}") 
+        raise Exception(f"Errore: tabella DECLARED_CAPACITY vuota per il mese di {mese_recupero_dati[:-3]}") 
     cur.execute(
         '''
             MERGE INTO public."DECLARED_CAPACITY"
@@ -79,7 +79,9 @@ def lambda_handler(event, context):
                 public."DECLARED_CAPACITY"."PRODUCT_RS" = public."DECLARED_CAPACITY_DELTA"."PRODUCT_RS" AND
                 public."DECLARED_CAPACITY"."ACTIVATION_DATE_FROM" = public."DECLARED_CAPACITY_DELTA"."ACTIVATION_DATE_FROM") 
             --When records are matched, update the records if there is any change
-            WHEN MATCHED AND public."DECLARED_CAPACITY"."LAST_UPDATE_TIMESTAMP" < public."DECLARED_CAPACITY_DELTA"."LAST_UPDATE_TIMESTAMP" 
+            WHEN MATCHED AND (public."DECLARED_CAPACITY"."CAPACITY" <> public."DECLARED_CAPACITY_DELTA"."CAPACITY" OR 
+                              public."DECLARED_CAPACITY"."PEAK_CAPACITY" <> public."DECLARED_CAPACITY_DELTA"."PEAK_CAPACITY" OR
+                              public."DECLARED_CAPACITY"."PRODUCTION_CAPACITY" <> public."DECLARED_CAPACITY_DELTA"."PRODUCTION_CAPACITY")  
             THEN UPDATE SET 
             "PK" = public."DECLARED_CAPACITY_DELTA"."PK", 
             "CAPACITY" = public."DECLARED_CAPACITY_DELTA"."CAPACITY", "GEOKEY" = public."DECLARED_CAPACITY_DELTA"."GEOKEY", 

@@ -8,6 +8,7 @@ Input:
     settimana_processata_RUN_ALGORITHM: ultima settimana processata tramite l'operazione di RUN_ALGORITHM, nel formato yyyy-MM-dd, utile per calcolare la successiva settimana da processare
     mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-MM-dd
     tipo_simulazione: 'Automatizzata' o 'Manuale'
+    pianificazione_postalizzazioni: scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
 
 Output:
     settimana_processata_RUN_ALGORITHM: fornisce alla LambdaGetPaperDeliveryResidui la settimana corrente appena processata tramite l'operazione di RUN_ALGORITHM nel formato yyyy-MM-dd
@@ -17,13 +18,14 @@ import boto3
 import os
 from datetime import datetime, timedelta
 
-def run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity):
+def run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity, nome_tabella_sender_limit):
     """
-    Effettuiamo l'operazione di RUN_ALGORITHM
+    Funzione che si occupa di effettuare l'operazione di RUN_ALGORITHM
 
     Args:
         settimana_da_processare (string): parametro da dare in input alla RUN_ALGORITHM, nel formato yyyy-MM-dd, per specificare la settimana da processare
         nome_tabella_capacity (string): nome della tabella delle capacità settata sulla base del tipo di simulazione (Automatizzata o Manuale)
+        nome_tabella_sender_limit (string): nome della tabella sender limit settata sulla base del tipo di pianificazione_postalizzazioni scelta dall'utente sulla WebApp
 
     Returns:
         int: HTTP status codes
@@ -36,7 +38,7 @@ def run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity):
             os.environ['TABLE_PAPER_DELIVERY_MOCK'],
             nome_tabella_capacity,
             os.environ['TABLE_DRIVER_USED_CAPACITIES_MOCK'],
-            os.environ['TABLE_SENDER_LIMIT'],
+            nome_tabella_sender_limit,
             os.environ['TABLE_USED_SENDER_LIMIT_MOCK'],
             os.environ['TABLE_COUNTERS_MOCK'],
             os.environ['THRESHOLD_VALUE'],
@@ -61,13 +63,19 @@ def lambda_handler(event, context):
 
     if event["tipo_simulazione"] == 'Automatizzata':
         nome_tabella_capacity = os.environ['TABLE_DRIVER_CAPACITIES']
+        nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT']
     elif event["tipo_simulazione"] == 'Manuale':
         nome_tabella_capacity = os.environ['TABLE_DRIVER_CAPACITIES_MOCK']
+        pianificazione_postalizzazioni = event["output_lambda_ConfigurazioneSimulazione"]['Payload']["pianificazione_postalizzazioni"]
+        if pianificazione_postalizzazioni == 'Utilizza le commesse di default' or pianificazione_postalizzazioni == '-': # per identificare il caso di automatizzata utilizziamo "pianificazione_postalizzazioni == '-'"
+            nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT']
+        else:
+            nome_tabella_sender_limit = os.environ['TABLE_SENDER_LIMIT_MOCK']
     else:
         raise Exception('Parametro tipo_simulazione non valorizzato')
 
     # RUN_ALGORITHM
-    statusCode = run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity)
+    statusCode = run_algorithm_with_lambda(settimana_da_processare, nome_tabella_capacity, nome_tabella_sender_limit)
     # check statusCode dell'operazione RUN_ALGORITHM
     if statusCode == 200:
         return {'statusCode': 200, "settimana_processata_RUN_ALGORITHM": settimana_da_processare}

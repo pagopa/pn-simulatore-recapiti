@@ -6,7 +6,7 @@ from awsglue.context import GlueContext
 from awsglue.job import Job
 
 ## @params: [JOB_NAME]
-args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_simulazione','secretsManager_SecretId','jdbc_connection'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_recupero_dati','secretsManager_SecretId','jdbc_connection'])
 
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -97,7 +97,7 @@ schema_senderlim = T.StructType() \
       .add("ttl",T.StringType(),True) \
       .add("WEEKLY_ESTIMATE",T.IntegerType(),True)
 
-date = args['mese_simulazione']
+date = args['mese_recupero_dati']
 
 for prov in lista_province:
     print(prov)

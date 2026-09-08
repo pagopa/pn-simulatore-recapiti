@@ -191,8 +191,8 @@ STEP_FUNCTION_ARN = os.getenv('STEP_FUNCTION_ARN')
 BUCKET_NAME = os.getenv('BUCKET_NAME')
 
 # variabili d'ambiente "CUTOFF" e "MESI_IN_AVANTI" per funzionalità calendario
-CUTOFF = os.environ.get('CUTOFF','22') # impostiamo '22' come default
-MESI_IN_AVANTI = os.environ.get('MESI_IN_AVANTI','0') # impostiamo il '0' come default
+CUTOFF = os.getenv('CUTOFF','22') # impostiamo '22' come default
+MESI_IN_AVANTI = os.getenv('MESI_IN_AVANTI','0') # impostiamo il '0' come default
 
 LOGGING = {
     "version": 1,
