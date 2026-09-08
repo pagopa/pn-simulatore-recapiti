@@ -16,6 +16,7 @@ Output:
 import json
 from datetime import datetime, timedelta
 import boto3
+import os
 
 def conta_residui(lambda_delayer, settimana_processata):
     """
@@ -31,7 +32,7 @@ def conta_residui(lambda_delayer, settimana_processata):
     # GET_PAPER_DELIVERY - testDelayerLambda
     payload_lambda={
         "operationType": "GET_PAPER_DELIVERY",
-        "parameters": ["pn-DelayerPaperDeliveryMock", settimana_processata, "EVALUATE_SENDER_LIMIT"]
+        "parameters": [os.environ['TABLE_PAPER_DELIVERY_MOCK'], settimana_processata, "EVALUATE_SENDER_LIMIT"]
     }
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()

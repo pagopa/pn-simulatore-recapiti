@@ -7,9 +7,13 @@ Trigger:
 Input:
     tipo_simulazione: 'Automatizzata' o 'Manuale'
     mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-MM-dd
+    id_simulazione_manuale: valorizzata con l'id di simulazione in caso di simulazione 'Manuale', vuota per simulazione 'Automatizzata'
 
 Output:
     id_simulazione_automatizzata: id della simulazione creata sul db solo nel caso in cui tipo_simulazione=='Automatizzata', altrimenti torna '-'
+    start_timestamp_simulazione: timestamp di starting della simulazione
+    pianificazione_postalizzazioni: scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
+    postalizzazioni_fuori_commessa: scelta dell'utente che, tramite la webapp, ha selezionato o meno la checkbox delle postalizzazioni fuori commessa
 """
 import json
 import boto3
@@ -82,10 +86,21 @@ def lambda_handler(event, context):
         )
         id_simulazione_automatizzata = str(cur.fetchone()[0])
         conn.commit()
+        # creiamo le variabili pianificazione_postalizzazioni e postalizzazioni_fuori_commessa assegnando un valore simbolicamente nullo
+        pianificazione_postalizzazioni = '-'
+        postalizzazioni_fuori_commessa = '-'
     
     elif event['tipo_simulazione'] == 'Manuale':
         id_simulazione = event['id_simulazione_manuale']
         id_simulazione_automatizzata = '-'
+        # recuperiamo dal db pianificazione_postalizzazioni e postalizzazioni_fuori_commessa
+        # query
+        cur.execute(    
+        f'''
+            SELECT "PIANIFICAZIONE_POSTALIZZAZIONI","POSTALIZZAZIONI_FUORI_COMMESSA" FROM public."SIMULAZIONE" WHERE "ID"='{id_simulazione}'
+        '''
+        )
+        pianificazione_postalizzazioni,postalizzazioni_fuori_commessa = cur.fetchone()
         # modifica dello stato della simulazione sul db su "In lavorazione" e aggiornamento START_TIMESTAMP
         cur.execute(f'''
             UPDATE public."SIMULAZIONE" 
@@ -101,4 +116,10 @@ def lambda_handler(event, context):
     cur.close()
     conn.close()
 
-    return {'statusCode': 200, 'id_simulazione_automatizzata':id_simulazione_automatizzata, 'start_timestamp_simulazione': start_timestamp_simulazione}
+    return {
+        'statusCode': 200, 
+        'id_simulazione_automatizzata': id_simulazione_automatizzata, 
+        'start_timestamp_simulazione': start_timestamp_simulazione, 
+        'pianificazione_postalizzazioni': pianificazione_postalizzazioni,
+        'postalizzazioni_fuori_commessa': str(postalizzazioni_fuori_commessa)
+    }

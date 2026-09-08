@@ -204,8 +204,8 @@ Parameters:
 
   EventBridgeScheduleExpression:
     Type: String
-    Description: 'Cron expression for the EventBridge rule (e.g., cron(0 21 ? * MON *) for Monday at 21:00 UTC)'
-    Default: 'cron(0 21 ? * MON *)'
+    Description: 'Cron expression for the EventBridge rule (e.g., cron(0 0 ? * TUE *) for Monday at 21:00 UTC)'
+    Default: 'cron(0 0 ? * TUE *)'
 
   EventBridgeRuleInput:
     Type: String
@@ -222,6 +222,10 @@ Parameters:
   TableSenderLimit:
     Type: String
     Description: 'Name of the DynamoDB table for sender limit'
+  
+  TableSenderLimitMock:
+    Type: String
+    Description: 'Name of the DynamoDB table for sender limit mock'
 
   TableUsedSenderLimitMock:
     Type: String
@@ -247,6 +251,11 @@ Parameters:
   LambdaCalcoloPrimaSettimanaMesiInAvanti:
     Type: Number 
     Description: 'MesiInAvanti for the CalcoloPrimaSettimana Lambda function'
+    Default: 0
+  
+  LambdaCalcoloPrimaSettimanaRecuperoMesiIntermedi:
+    Type: String 
+    Description: 'RecuperoMesiIntermedi for the CalcoloPrimaSettimana Lambda function'
     Default: 0
 
   RecuperoRisultatiPaperDeliveryGlueJobWorkerType:
@@ -444,6 +453,7 @@ Resources:
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           cutoff: !Ref LambdaCalcoloPrimaSettimanaCutOffDay
           mesi_in_avanti: !Ref LambdaCalcoloPrimaSettimanaMesiInAvanti
+          recupero_mesi_intermedi: !Ref LambdaCalcoloPrimaSettimanaRecuperoMesiIntermedi
 
   CalcoloPrimaSettimanaLambdaRole:
     Type: AWS::IAM::Role
@@ -920,6 +930,7 @@ Resources:
           TABLE_PAPER_DELIVERY_MOCK: !Ref TablePaperDeliveryMock
           TABLE_DRIVER_USED_CAPACITIES_MOCK: !Ref TableDriverUsedCapacitiesMock
           TABLE_SENDER_LIMIT: !Ref TableSenderLimit
+          TABLE_SENDER_LIMIT_MOCK: !Ref TableSenderLimitMock
           TABLE_USED_SENDER_LIMIT_MOCK: !Ref TableUsedSenderLimitMock
           TABLE_COUNTERS_MOCK: !Ref TableCountersMock
           TABLE_DRIVER_CAPACITIES: !Ref TableDriverCapacities
@@ -1437,6 +1448,74 @@ Resources:
           - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
         MaxConcurrentRuns: 1
+  
+  GenerazioneFileZIPCommesseMockGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneFileZIPCommesseMock"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/GenerazioneFileZIPCommesseMock.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+        "--s3_bucket": !Ref SimulatoreDataBucketName
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+  
+  GenerazioneCsvImportDataMockGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneCsvImportDataMock"
+      Role: !GetAtt GlueJobSimulatoreRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/GenerazioneCsvImportDataMock.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-disable"
+        "--enable-metrics": "true"
+        "--enable-spark-ui": "true"
+        "--spark-event-logs-path": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/sparkHistoryLogs/"
+        "--enable-job-insights": "true"
+        "--enable-glue-datacatalog": "true"
+        "--enable-continuous-cloudwatch-log": "true"
+        "--job-language": "python"
+        "--TempDir": !Sub "s3://aws-glue-assets-${AWS::AccountId}-${AWS::Region}/temporary/"
+        "--jdbc_connection": !Sub "jdbc:postgresql://${RdsSimulatorEndpointAddress}/${RdsSimulatorDbName}"
+        "--secretsManager_SecretId": !Ref SvcSimulatorUserSecretArn
+        "--s3_bucket": !Ref SimulatoreDataBucketName
+      MaxRetries: 0
+      Timeout: 480
+      GlueVersion: "5.0"
+      WorkerType: G.1X
+      NumberOfWorkers: 2
+      ExecutionClass: STANDARD
+      Connections:
+        Connections:
+          - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
 
   RecuperoSenderLimitDeltaGlueJob:
     Type: AWS::Glue::Job
@@ -1597,6 +1676,8 @@ Resources:
         GetUsedCapacityLambdaArn: !GetAtt GetUsedCapacityLambda.Arn
         RecuperoRisultatiPaperDeliveryGlueJobName: !Ref RecuperoRisultatiPaperDeliveryGlueJob
         AssegnazionePeakCapacityCAPGlueJobName: !Ref AssegnazionePeakCapacityCAPGlueJob
+        GenerazioneFileZIPCommesseMockGlueJobName: !Ref GenerazioneFileZIPCommesseMockGlueJob
+        GenerazioneCsvImportDataMockGlueJobName: !Ref GenerazioneCsvImportDataMockGlueJob
         DeleteDataLambdaArn: !GetAtt DeleteDataLambda.Arn
         AggiornaSimulazioneDBLambdaArn: !GetAtt AggiornaSimulazioneDBLambda.Arn
       TracingConfiguration:

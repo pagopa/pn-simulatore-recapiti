@@ -54,16 +54,6 @@ def connessione_db(db_host, db_name, db_port, creds):
     )
     return conn
 
-def rimozione_cartella_temporanea_s3():
-    """
-    Rimozione cartella temporanea su s3 contenente la lista dei file caricati con IMPORT_DATA
-    """
-    source_bucket = os.environ['source_bucket']
-    s3_client = boto3.client('s3')
-    objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix='StepFunction_ListaFileImportData')
-    for obj in objects.get("Contents", []):
-        s3_client.delete_object(Bucket=source_bucket, Key=obj["Key"])
-
 
 def lambda_handler(event, context):
     # recuperiamo l'id_simulazione_automatizzata (se automatizzata dall'output della lambda pn-simulatore-recapiti-CreaSimulazioneAutomatizzataDB, se manuale dai parametri d'ambiente della step function)
@@ -100,7 +90,5 @@ def lambda_handler(event, context):
     conn.commit()
     cur.close()
     conn.close()
-
-    rimozione_cartella_temporanea_s3()
 
     print('statusCode: 200')
