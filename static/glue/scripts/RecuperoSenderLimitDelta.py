@@ -62,10 +62,11 @@ lambda_delayer=boto3.client('lambda')
 
 # Funzione per creare la lista delle righe a partire dal richiamo della lambda
 
-def lambda_to_dict(prov,operationType,list_parameters):
+def lambda_to_dict(operationType,list_parameters):
   payload={
         "operationType": operationType,
         "parameters": {
+            "table": "pn-PaperDeliverySenderLimit",
             "deliveryDate": list_parameters[0],
             "province": list_parameters[1]
         }
@@ -111,10 +112,10 @@ for prov in lista_province:
 
         # Gestione della paginazione: se è la prima chiamata ometto il parametro aggiuntivo, altrimenti viene valutata la sua presenza per continuare la lettura 
         if j==0:
-            dict_response_body_senderlim=lambda_to_dict(prov=prov,operationType='GET_SENDER_LIMIT',list_parameters=list_parameters)
+            dict_response_body_senderlim=lambda_to_dict(operationType='GET_SENDER_LIMIT',list_parameters=list_parameters)
         else:
             list_parameters_v1=list_parameters+[adding_parameter]
-            dict_response_body_senderlim=lambda_to_dict(prov=prov,operationType='GET_SENDER_LIMIT',list_parameters=list_parameters_v1)
+            dict_response_body_senderlim=lambda_to_dict(operationType='GET_SENDER_LIMIT',list_parameters=list_parameters_v1)
     
         # Se è presente il parametro aggiuntivo vado avanti con le chiamate della lambda, altrimenti finisco
         try:

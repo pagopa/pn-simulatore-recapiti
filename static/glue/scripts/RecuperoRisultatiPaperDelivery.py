@@ -304,12 +304,7 @@ if count_residui_ultima_settimana > 0:
         dict_response_items_paperdel_res=dict_response_body_paperdel_res['items']
         for diz in dict_response_items_paperdel_res:
             # Aggiungo le colonne mancanti allo schema target se assenti
-            # AMBIENTE DI DEV
-            '''
             for col in ['priority','senderPaIdOriginalSentAt','tenderId','unifiedDeliveryDriver']:
-            '''
-            # AMBIENTE DI PROD
-            for col in ['priority','tenderId','unifiedDeliveryDriver']:
                 try:
                     col_exists=diz[col]
                 except:
