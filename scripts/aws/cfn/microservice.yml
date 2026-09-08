@@ -204,8 +204,8 @@ Parameters:
 
   EventBridgeScheduleExpression:
     Type: String
-    Description: 'Cron expression for the EventBridge rule (e.g., cron(0 21 ? * MON *) for Monday at 21:00 UTC)'
-    Default: 'cron(0 21 ? * MON *)'
+    Description: 'Cron expression for the EventBridge rule (e.g., cron(0 0 ? * TUE *) for Monday at 21:00 UTC)'
+    Default: 'cron(0 0 ? * TUE *)'
 
   EventBridgeRuleInput:
     Type: String
@@ -251,6 +251,11 @@ Parameters:
   LambdaCalcoloPrimaSettimanaMesiInAvanti:
     Type: Number 
     Description: 'MesiInAvanti for the CalcoloPrimaSettimana Lambda function'
+    Default: 0
+  
+  LambdaCalcoloPrimaSettimanaRecuperoMesiIntermedi:
+    Type: String 
+    Description: 'RecuperoMesiIntermedi for the CalcoloPrimaSettimana Lambda function'
     Default: 0
 
   RecuperoRisultatiPaperDeliveryGlueJobWorkerType:
@@ -448,6 +453,7 @@ Resources:
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           cutoff: !Ref LambdaCalcoloPrimaSettimanaCutOffDay
           mesi_in_avanti: !Ref LambdaCalcoloPrimaSettimanaMesiInAvanti
+          recupero_mesi_intermedi: !Ref LambdaCalcoloPrimaSettimanaRecuperoMesiIntermedi
 
   CalcoloPrimaSettimanaLambdaRole:
     Type: AWS::IAM::Role

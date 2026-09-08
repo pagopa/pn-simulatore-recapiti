@@ -300,7 +300,7 @@ if df_senderlim_mock.count()>0:
     s3_client = boto3.client('s3')
     target_date = date.today()
     
-    for _ in range(120):  # limite di sicurezza a 30 gg
+    for _ in range(120):  # limite di sicurezza a 120 gg
         input_prefix = target_date.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=s3_bucket,
@@ -321,7 +321,7 @@ if df_senderlim_mock.count()>0:
     
     if output_prefix == None:
         # se non viene trovata alcuna cartella corrispondente
-        raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+        raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 120 gg")
         
     else:
         path = "s3://" + s3_bucket+"/" + output_prefix + "dati_extra/postalizzazioni_mock/" + "ID_" + str(id_simulazione)

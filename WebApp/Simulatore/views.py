@@ -1145,7 +1145,7 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
         string: key del file csv recuperato dal bucket; se non trovato ritorna 'None'
     """
 
-    for _ in range(30):  # limite di sicurezza a 30 gg
+    for _ in range(120):  # limite di sicurezza a 120 gg
         prefix = timestamp_esecuzione_simulazione.strftime("%Y/%m/%d/")
         if recupero_capacita_modificate == 'true':
             full_prefix = f'input/{prefix}{mese_simulazione}/dati_extra/cap_capacities/id_{id_simulazione}/unified/modified/'

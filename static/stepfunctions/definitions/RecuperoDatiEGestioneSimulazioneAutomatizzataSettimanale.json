@@ -60,7 +60,7 @@
                     "Parameters": {
                       "JobName": "${RecuperoDeclaredCapacityDeltaGlueJobName}",
                       "Arguments": {
-                        "--mese_simulazione.$": "$.mese_simulazione"
+                        "--mese_recupero_dati.$": "$.mese_recupero_dati"
                       }
                     },
                     "Next": "DECLARED CAPACITY CAP-S3",
@@ -72,7 +72,7 @@
                     "Parameters": {
                       "JobName": "${RecuperoDeclaredCapacityCAPS3GlueJobName}",
                       "Arguments": {
-                        "--mese_simulazione.$": "$.mese_simulazione"
+                        "--mese_recupero_dati.$": "$.mese_recupero_dati"
                       }
                     },
                     "Next": "MERGE DB",
@@ -133,7 +133,7 @@
                     "Parameters": {
                       "JobName": "${RecuperoSenderLimitDeltaGlueJobName}",
                       "Arguments": {
-                        "--mese_simulazione.$": "$.mese_simulazione"
+                        "--mese_recupero_dati.$": "$.mese_recupero_dati"
                       }
                     },
                     "Next": "MERGE  DB",
@@ -184,7 +184,7 @@
                     "Parameters": {
                       "JobName": "${GenerazioneCsvImportDataGlueJobName}",
                       "Arguments": {
-                        "--mese_simulazione.$": "$.mese_simulazione"
+                        "--mese_recupero_dati.$": "$.mese_recupero_dati"
                       }
                     },
                     "End": true
@@ -203,7 +203,7 @@
       },
       "Next": "Run GESTIONE SIMULAZIONE",
       "MaxConcurrency": 1,
-      "ItemsPath": "$.output_lambda_CalcoloPrimaSettimana.Payload.date_simulazione",
+      "ItemsPath": "$.output_lambda_CalcoloPrimaSettimana.Payload.mesi_recupero_dati",
       "ResultPath": null
     },
     "Run GESTIONE SIMULAZIONE": {
@@ -225,7 +225,7 @@
         "Input": {
           "tipo_simulazione": "Automatizzata",
           "id_simulazione_manuale": "-",
-          "mese_simulazione.$": "$.output_lambda_CalcoloPrimaSettimana.Payload.date_simulazione[0]['mese_simulazione']"
+          "mese_simulazione.$": "$.output_lambda_CalcoloPrimaSettimana.Payload.mese_simulazione"
         }
       },
       "End": true

@@ -362,20 +362,6 @@ if count_residui_ultima_settimana > 0:
         .mode("append") \
         .save()
 
-# AMBIENTE DI DEV
-############################################################################
-# Salvataggio file intermedi su S3 (per test)
-path = "s3://" + s3_bucket+"/test/output"
-
-df_paperdel_tot_filtred.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','true').format('csv').save(path + "/df_paperdel_tot_filtred")   
-
-df_paperdel_res_tot_filtred.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','true').format('csv').save(path + "/df_paperdel_res_tot_filtred")   
-#############################################################################
-# AMBIENTE DI PROD
-'''
-'''
-
-
 # id_timestamp=[["1"]]
 # timestamp_df=spark.createDataFrame(id_timestamp,["id"])
 

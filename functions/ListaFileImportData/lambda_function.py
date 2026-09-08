@@ -115,7 +115,7 @@ def upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk):
     return s3_file_key
 
 
-def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simulazione_string,pianificazione_postalizzazioni):
+def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simulazione_string):
     """
     Funzione che recupera i residui attraverso la lambda 'GET_RESIDUAL_PAPERS', salva il/i csv dei residui su s3 (split se vi sono più di 10k righe) e ritorna la lista del/dei csv caricato/i su s3
 
@@ -124,7 +124,6 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
         prefix_s3 (string): prefisso del bucket fino alla cartella dove andremo a depositare la cartella che conterrà il csv dei residui
         id_simulazione (string): identificativo univoco della simulazione sul db
         prima_settimana_simulazione_string (string): data della prima settimana di simulazione, nel formato yyyy-MM-dd
-        pianificazione_postalizzazioni (string): scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
     
     Returns:
         list: lista contenente un dizionario per ogni file csv dei residui che dovrà essere importato nella settimana target di simulazione
@@ -185,7 +184,7 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
     return lista_csv_da_importare
 
 
-def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string, start_timestamp_simulazione, pianificazione_postalizzazioni):
+def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string, start_timestamp_simulazione):
     """
     Funzione che gestisce la logica dei residui e ritorna la lista dei file da importare nella prima settimana di run
 
@@ -193,7 +192,6 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         prefix_s3 (string): prefisso del bucket fino alla cartella dove andremo a depositare la cartella che conterrà il csv dei residui
         id_simulazione (string): identificativo univoco della simulazione sul db
         prima_settimana_simulazione_string (string): data della prima settimana di simulazione, nel formato yyyy-MM-dd
-        pianificazione_postalizzazioni (string): scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
     
     Returns:
         list of dict: lista contenente un dizionario per ogni file csv dei residui che dovrà essere importato nella prima settimana di simulazione
@@ -227,7 +225,7 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
     # recuperiamo i residui per poi fare import data sulla prima settimana di simulazione
     if delivery_date_residui:
         print(f'La delivery date per il recupero dei residui è: {delivery_date_residui}')
-        lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione,prima_settimana_simulazione_string,pianificazione_postalizzazioni)
+        lista_file_residui = recupero_residui(str(delivery_date_residui),prefix_s3,id_simulazione,prima_settimana_simulazione_string)
         if len(lista_file_residui) != 0:
             print("Per questa simulazione ci sono residui!")
         else:
@@ -295,7 +293,7 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
         lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
         lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione,pianificazione_postalizzazioni))  
     # recupero residui
-    lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione, pianificazione_postalizzazioni))
+    lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione))
     return lista_file_csv
 
 
