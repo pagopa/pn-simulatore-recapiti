@@ -89,12 +89,14 @@ schema_senderlim = T.StructType() \
       .add("archiveFileKey",T.StringType(),True) \
       .add("DELIVERY_DATE",T.StringType(),True) \
       .add("fileKey",T.StringType(),True) \
+      .add("firstWeekWeeklyEstimate",T.StringType(),True) \
       .add("MONTHLY_ESTIMATE",T.IntegerType(),True) \
       .add("ORIGINAL_ESTIMATE",T.IntegerType(),True) \
       .add("PA_ID",T.StringType(),True) \
       .add("PK",T.StringType(),True) \
       .add("PRODUCT_TYPE",T.StringType(),True)\
       .add("PROVINCE",T.StringType(),True) \
+      .add("secondWeekWeeklyEstimate",T.StringType(),True) \
       .add("ttl",T.StringType(),True) \
       .add("WEEKLY_ESTIMATE",T.IntegerType(),True)
 
@@ -167,21 +169,6 @@ df_senderlim_tot.write \
     .save()
     
 
-
-
-
-###############################
-df_read = spark.read \
-    .format("jdbc") \
-    .option("url", jdbc_connection) \
-    .option("dbtable", db_table) \
-    .option("user", response_SecretString['username']) \
-    .option("password", response_SecretString['password']) \
-    .option("driver", "org.postgresql.Driver") \
-    .load()
-    
-    
-df_read.show()
 
 # da lasciare come ultimo comando per indicare che il job ha terminato con SUCCESS la sua esecuzione
 job.commit()
