@@ -130,6 +130,13 @@ for prov in lista_province:
         row_list=[]
 
         for diz in dict_response_items_senderlim:
+            # Aggiungo le colonne mancanti allo schema target se assenti
+            cols_facoltative = ['archiveFileKey','fileKey','firstWeekWeeklyEstimate','secondWeekWeeklyEstimate','ttl']
+            for col in cols_facoltative:
+                try:
+                    col_exists=diz[col]
+                except:
+                    diz[col]=''
             # Conversione a interi dei valori decimali
             diz['monthlyEstimate']=int(round(diz['monthlyEstimate'],0))
             # Ordinamento
@@ -167,7 +174,6 @@ df_senderlim_tot.write \
     .option("driver", "org.postgresql.Driver") \
     .mode("append") \
     .save()
-    
 
 
 # da lasciare come ultimo comando per indicare che il job ha terminato con SUCCESS la sua esecuzione
