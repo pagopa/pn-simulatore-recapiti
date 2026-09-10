@@ -165,7 +165,7 @@ for _ in range(120):  # limite di sicurezza a 120 gg
         output_prefix = 'input/'+input_prefix+mese_recupero_dati[:7]+'/'
         break
     # altrimenti vado al giorno precedente
-    target_date -= datetime.timedelta(days=1)
+    target_date -= timedelta(days=1)
 
 if output_prefix == None:
     # se non viene trovata alcuna cartella corrispondente
