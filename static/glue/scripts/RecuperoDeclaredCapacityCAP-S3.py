@@ -88,7 +88,7 @@ def lambda_to_dict(cap,operationType,list_parameters):
 
 
 # Estrazione delle settimane a partire dalla data in input
-data_simulazione=args['mese_recupero_dati']
+mese_recupero_dati=args['mese_recupero_dati']
 
 # Richiamo della lambda per province e settimane
 schema_capacity = T.StructType() \
@@ -109,7 +109,7 @@ print(lista_cap)
 row_list=[]
 for cap in lista_cap:
     print(cap)
-    dict_response_body_capacity=lambda_to_dict(cap=cap,operationType='GET_DECLARED_CAPACITY',list_parameters=["pn-PaperDeliveryDriverCapacities",cap,data_simulazione])
+    dict_response_body_capacity=lambda_to_dict(cap=cap,operationType='GET_DECLARED_CAPACITY',list_parameters=["pn-PaperDeliveryDriverCapacities",cap,mese_recupero_dati])
 
     # Trasformazione della lista di dizionari in dataframe
     dict_response_items_capacity=dict_response_body_capacity['items']
@@ -146,24 +146,38 @@ df_capacity_tot=df_capacity_tot.withColumn('activationDateFrom',F.to_timestamp(F
 
 
 print('Export in S3')
-id_timestamp=[["1"]]
-timestamp_df=spark.createDataFrame(id_timestamp,["id"])
 
-timestamp_df = timestamp_df.withColumn("current_timestamp_string",F.date_format(F.current_timestamp(), "yyyyMMdd"))
+# Recupero path di scrittura
+target_date = date.today()
+output_prefix = None
+# inizializzazione connessione verso s3
+s3_client = boto3.client('s3')
+    
+for _ in range(120):  # limite di sicurezza a 120 gg
+    input_prefix = target_date.strftime("%Y/%m/%d/")
+    response = s3_client.list_objects_v2(
+        Bucket=s3_bucket,
+        Prefix='input/'+input_prefix+mese_recupero_dati[:7]+'/',
+        MaxKeys=1
+    )
+    # se la cartella esiste, esco dal ciclo
+    if 'Contents' in response:
+        output_prefix = 'input/'+input_prefix+mese_recupero_dati[:7]+'/'
+        break
+    # altrimenti vado al giorno precedente
+    target_date -= datetime.timedelta(days=1)
 
-anno_corrente = timestamp_df.collect()[0][1][:4]
-mese_corrente = timestamp_df.collect()[0][1][4:6]
-giorno_corrente = timestamp_df.collect()[0][1][6:8]
+if output_prefix == None:
+    # se non viene trovata alcuna cartella corrispondente
+    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 120 gg")
 
-anno_str = data_simulazione[:4]
-mese_str = data_simulazione[5:7]
 
-path = "s3://"+s3_bucket+"/input/"  + anno_corrente + "/" \
-                                                          + mese_corrente + "/" \
-                                                          + giorno_corrente + "/" \
-                                                          + str(anno_str) + "-" + str(mese_str) + "/" \
-                                                          + 'dati_extra/cap_capacities/original'
+path = "s3://"+s3_bucket+"/"+output_prefix+'dati_extra/cap_capacities/original'
 
+s3_resource = boto3.resource('s3')
+bucket = s3_resource.Bucket(s3_bucket) # eliminiamo eventuali cap capacities esistenti
+bucket.objects.filter(Prefix=path).delete()
+ 
 
 num_rows=df_capacity_tot.count()
 print(num_rows)
