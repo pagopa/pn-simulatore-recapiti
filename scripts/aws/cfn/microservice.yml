@@ -227,6 +227,10 @@ Parameters:
     Type: String
     Description: 'Name of the DynamoDB table for sender limit mock'
 
+  TableUsedSenderLimit:
+    Type: String
+    Description: 'Name of the DynamoDB table for used sender limit'
+
   TableUsedSenderLimitMock:
     Type: String
     Description: 'Name of the DynamoDB table for used sender limit mock'
