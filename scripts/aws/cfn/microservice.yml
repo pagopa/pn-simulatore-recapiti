@@ -883,6 +883,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           source_bucket: !Ref SimulatoreDataBucketName
+          TABLE_DRIVER_CAPACITIES_MOCK: !Ref TableDriverCapacitiesMock
 
   InsertMockCapacitiesLambdaRole:
     Type: AWS::IAM::Role
