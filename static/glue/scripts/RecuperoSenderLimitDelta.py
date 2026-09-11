@@ -62,10 +62,11 @@ lambda_delayer=boto3.client('lambda')
 
 # Funzione per creare la lista delle righe a partire dal richiamo della lambda
 
-def lambda_to_dict(prov,operationType,list_parameters):
+def lambda_to_dict(operationType,list_parameters):
   payload={
         "operationType": operationType,
         "parameters": {
+            "table": "pn-PaperDeliverySenderLimit",
             "deliveryDate": list_parameters[0],
             "province": list_parameters[1]
         }
@@ -88,12 +89,14 @@ schema_senderlim = T.StructType() \
       .add("archiveFileKey",T.StringType(),True) \
       .add("DELIVERY_DATE",T.StringType(),True) \
       .add("fileKey",T.StringType(),True) \
+      .add("firstWeekWeeklyEstimate",T.StringType(),True) \
       .add("MONTHLY_ESTIMATE",T.IntegerType(),True) \
       .add("ORIGINAL_ESTIMATE",T.IntegerType(),True) \
       .add("PA_ID",T.StringType(),True) \
       .add("PK",T.StringType(),True) \
       .add("PRODUCT_TYPE",T.StringType(),True)\
       .add("PROVINCE",T.StringType(),True) \
+      .add("secondWeekWeeklyEstimate",T.StringType(),True) \
       .add("ttl",T.StringType(),True) \
       .add("WEEKLY_ESTIMATE",T.IntegerType(),True)
 
@@ -111,10 +114,10 @@ for prov in lista_province:
 
         # Gestione della paginazione: se è la prima chiamata ometto il parametro aggiuntivo, altrimenti viene valutata la sua presenza per continuare la lettura 
         if j==0:
-            dict_response_body_senderlim=lambda_to_dict(prov=prov,operationType='GET_SENDER_LIMIT',list_parameters=list_parameters)
+            dict_response_body_senderlim=lambda_to_dict(operationType='GET_SENDER_LIMIT',list_parameters=list_parameters)
         else:
             list_parameters_v1=list_parameters+[adding_parameter]
-            dict_response_body_senderlim=lambda_to_dict(prov=prov,operationType='GET_SENDER_LIMIT',list_parameters=list_parameters_v1)
+            dict_response_body_senderlim=lambda_to_dict(operationType='GET_SENDER_LIMIT',list_parameters=list_parameters_v1)
     
         # Se è presente il parametro aggiuntivo vado avanti con le chiamate della lambda, altrimenti finisco
         try:
@@ -127,6 +130,13 @@ for prov in lista_province:
         row_list=[]
 
         for diz in dict_response_items_senderlim:
+            # Aggiungo le colonne mancanti allo schema target se assenti
+            cols_facoltative = ['archiveFileKey','fileKey','firstWeekWeeklyEstimate','secondWeekWeeklyEstimate','ttl']
+            for col in cols_facoltative:
+                try:
+                    col_exists=diz[col]
+                except:
+                    diz[col]=''
             # Conversione a interi dei valori decimali
             diz['monthlyEstimate']=int(round(diz['monthlyEstimate'],0))
             # Ordinamento
@@ -164,23 +174,7 @@ df_senderlim_tot.write \
     .option("driver", "org.postgresql.Driver") \
     .mode("append") \
     .save()
-    
 
-
-
-
-###############################
-df_read = spark.read \
-    .format("jdbc") \
-    .option("url", jdbc_connection) \
-    .option("dbtable", db_table) \
-    .option("user", response_SecretString['username']) \
-    .option("password", response_SecretString['password']) \
-    .option("driver", "org.postgresql.Driver") \
-    .load()
-    
-    
-df_read.show()
 
 # da lasciare come ultimo comando per indicare che il job ha terminato con SUCCESS la sua esecuzione
 job.commit()
