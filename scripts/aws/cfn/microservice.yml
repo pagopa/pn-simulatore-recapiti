@@ -17,10 +17,6 @@ Parameters:
       - prod
     Default: dev
 
-  AlarmSNSTopicArn:
-    Type: String
-    Description: 'ARN of the standard alarm topic for direct EventBridge notifications'
-
   WarningSNSTopicArn:
     Type: String
     Description: 'ARN of the central warning topic for routed CloudWatch alarms'
@@ -1863,73 +1859,7 @@ Resources:
           Id: RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleTarget
           Input: !Ref EventBridgeRuleInput
 
-  ### Enable sending notifications to SNS topic when the step functions are in failed, aborted or timedOut status.
-  StepFunctionAlarmTopicPublisherRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub "${ProjectName}-${MicroServiceUniqueName}-sf-AlarmRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: PublishToSNSPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - sns:Publish
-                Resource: !Ref AlarmSNSTopicArn
-
-  GestioneSimulazioneSFAlarmRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: "EventBridge rule to notify SNS when GestioneSimulazione Step Function fails"
-      EventPattern:
-        source:
-          - aws.states
-        detail-type:
-          - Step Functions Execution Status Change
-        detail:
-          status:
-            - FAILED
-            - TIMED_OUT
-            - ABORTED
-          stateMachineArn:
-            - !GetAtt GestioneSimulazioneStateFunction.Arn
-      State: ENABLED
-      Targets:
-        - Arn: !Ref AlarmSNSTopicArn
-          Id: !Sub "${ProjectName}-gestione-sim-sf-alarm"
-          RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
-
-  RecuperoDatiWeeklySFAlarmRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Description: "EventBridge rule to notify SNS when RecuperoDati Weekly Step Function fails"
-      EventPattern:
-        source:
-          - aws.states
-        detail-type:
-          - Step Functions Execution Status Change
-        detail:
-          status:
-            - FAILED
-            - TIMED_OUT
-            - ABORTED
-          stateMachineArn:
-            - !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
-      State: ENABLED
-      Targets:
-        - Arn: !Ref AlarmSNSTopicArn
-          Id: !Sub "${ProjectName}-recupero-dati-weekly-sf-alarm"
-          RoleArn: !GetAtt StepFunctionAlarmTopicPublisherRole.Arn
-
-  # Alarms for Step Function failures
+  # Alarms for Step Function failed, timed out or aborted executions
   GestioneSimulazioneSFFailedInvocationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -1940,17 +1870,48 @@ Resources:
         - !Ref WarningSNSTopicArn
       OKActions:
         - !Ref WarningSNSTopicArn
-      Dimensions:
-        - Name: RuleName
-          Value: !Ref GestioneSimulazioneSFAlarmRule
       DatapointsToAlarm: 1
-      MetricName: "Invocations"
-      Namespace: "AWS/Events"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 12 # 1 hour
-      Period: 300 # 5 minutes
-      Statistic: Sum
       Threshold: 1
+      Metrics:
+        - Id: total_failures
+          Expression: failed + timed_out + aborted
+          Label: "Failed, timed out or aborted executions"
+          ReturnData: true
+        - Id: failed
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/States
+              MetricName: ExecutionsFailed
+              Dimensions:
+                - Name: StateMachineArn
+                  Value: !GetAtt GestioneSimulazioneStateFunction.Arn
+            Period: 300 # 5 minutes
+            Stat: Sum
+        - Id: timed_out
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/States
+              MetricName: ExecutionsTimedOut
+              Dimensions:
+                - Name: StateMachineArn
+                  Value: !GetAtt GestioneSimulazioneStateFunction.Arn
+            Period: 300 # 5 minutes
+            Stat: Sum
+        - Id: aborted
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/States
+              MetricName: ExecutionsAborted
+              Dimensions:
+                - Name: StateMachineArn
+                  Value: !GetAtt GestioneSimulazioneStateFunction.Arn
+            Period: 300 # 5 minutes
+            Stat: Sum
 
   RecuperoDatiWeeklySFFailedInvocationAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -1962,14 +1923,45 @@ Resources:
         - !Ref WarningSNSTopicArn
       OKActions:
         - !Ref WarningSNSTopicArn
-      Dimensions:
-        - Name: RuleName
-          Value: !Ref RecuperoDatiWeeklySFAlarmRule
       DatapointsToAlarm: 1
-      MetricName: "Invocations"
-      Namespace: "AWS/Events"
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 12 # 1 hour
-      Period: 300 # 5 minutes
-      Statistic: Sum
       Threshold: 1
+      Metrics:
+        - Id: total_failures
+          Expression: failed + timed_out + aborted
+          Label: "Failed, timed out or aborted executions"
+          ReturnData: true
+        - Id: failed
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/States
+              MetricName: ExecutionsFailed
+              Dimensions:
+                - Name: StateMachineArn
+                  Value: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+            Period: 300 # 5 minutes
+            Stat: Sum
+        - Id: timed_out
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/States
+              MetricName: ExecutionsTimedOut
+              Dimensions:
+                - Name: StateMachineArn
+                  Value: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+            Period: 300 # 5 minutes
+            Stat: Sum
+        - Id: aborted
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/States
+              MetricName: ExecutionsAborted
+              Dimensions:
+                - Name: StateMachineArn
+                  Value: !GetAtt RecuperoDatiEGestioneSimulazioneAutomatizzataSettimanaleStateFunction.Arn
+            Period: 300 # 5 minutes
+            Stat: Sum
