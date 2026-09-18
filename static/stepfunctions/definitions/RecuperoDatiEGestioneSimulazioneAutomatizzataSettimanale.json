@@ -63,20 +63,8 @@
                         "--mese_recupero_dati.$": "$.mese_recupero_dati"
                       }
                     },
-                    "Next": "DECLARED CAPACITY CAP-S3",
-                    "ResultPath": null
-                  },
-                  "DECLARED CAPACITY CAP-S3": {
-                    "Type": "Task",
-                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
-                    "Parameters": {
-                      "JobName": "${RecuperoDeclaredCapacityCAPS3GlueJobName}",
-                      "Arguments": {
-                        "--mese_recupero_dati.$": "$.mese_recupero_dati"
-                      }
-                    },
                     "Next": "MERGE DB",
-                    "ResultPath": "$.output_jobGlue_DECLAREDCAPACITY"
+                    "ResultPath": null
                   },
                   "MERGE DB": {
                     "Type": "Task",
@@ -109,9 +97,9 @@
                 }
               },
               {
-                "StartAt": "Run SENDER LIMIT + CREATE CSV POSTALIZZAZIONI?",
+                "StartAt": "Run SENDER LIMIT + CREATE CSV POSTALIZZAZIONI + CAP?",
                 "States": {
-                  "Run SENDER LIMIT + CREATE CSV POSTALIZZAZIONI?": {
+                  "Run SENDER LIMIT + CREATE CSV POSTALIZZAZIONI + CAP?": {
                     "Type": "Choice",
                     "Choices": [
                       {
@@ -183,6 +171,18 @@
                     "Resource": "arn:aws:states:::glue:startJobRun.sync",
                     "Parameters": {
                       "JobName": "${GenerazioneCsvImportDataGlueJobName}",
+                      "Arguments": {
+                        "--mese_recupero_dati.$": "$.mese_recupero_dati"
+                      }
+                    },
+                    "Next": "DECLARED CAPACITY CAP-S3",
+                    "ResultPath": null
+                  },
+                  "DECLARED CAPACITY CAP-S3": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::glue:startJobRun.sync",
+                    "Parameters": {
+                      "JobName": "${RecuperoDeclaredCapacityCAPS3GlueJobName}",
                       "Arguments": {
                         "--mese_recupero_dati.$": "$.mese_recupero_dati"
                       }

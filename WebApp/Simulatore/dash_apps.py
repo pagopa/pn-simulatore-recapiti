@@ -805,7 +805,7 @@ def update_map_recap(recap_only_sel, pathname):
         )
     )
     fig_picchi.update_layout(
-        mapbox_style="carto-positron",
+        mapbox_style="https://tiles.openfreemap.org/styles/positron",
         mapbox_zoom=4.5,
         mapbox_center={"lat": 41.9, "lon": 12.5},
         height=800,
@@ -2399,7 +2399,7 @@ def update_map_recap_1(recap_only_sel,pathname):
         )
     )
     fig_picchi.update_layout(
-        mapbox_style="carto-positron",
+        mapbox_style="https://tiles.openfreemap.org/styles/positron",
         mapbox_zoom=4.5,
         mapbox_center={"lat": 41.9, "lon": 12.5},
         height=800,
@@ -2488,7 +2488,7 @@ def update_map_recap_2(recap_only_sel, pathname):
         )
     )
     fig_picchi.update_layout(
-        mapbox_style="carto-positron",
+        mapbox_style="https://tiles.openfreemap.org/styles/positron",
         mapbox_zoom=4.5,
         mapbox_center={"lat": 41.9, "lon": 12.5},
         height=800,

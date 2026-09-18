@@ -227,6 +227,10 @@ Parameters:
     Type: String
     Description: 'Name of the DynamoDB table for sender limit mock'
 
+  TableUsedSenderLimit:
+    Type: String
+    Description: 'Name of the DynamoDB table for used sender limit'
+
   TableUsedSenderLimitMock:
     Type: String
     Description: 'Name of the DynamoDB table for used sender limit mock'
@@ -663,6 +667,12 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaDeleteData.zip"
+      Environment:
+        Variables:
+          TABLE_PAPER_DELIVERY_MOCK: !Ref TablePaperDeliveryMock
+          TABLE_DRIVER_USED_CAPACITIES_MOCK: !Ref TableDriverUsedCapacitiesMock
+          TABLE_USED_SENDER_LIMIT_MOCK: !Ref TableUsedSenderLimitMock
+          TABLE_COUNTERS_MOCK: !Ref TableCountersMock          
       Timeout: 300
       MemorySize: 128
 
@@ -701,6 +711,9 @@ Resources:
       Code:
         S3Bucket: !Ref MicroserviceBucketName
         S3Key: !Sub "${MicroserviceBucketBaseKey}/functions_zip/LambdaGetPaperDeliveryResidui.zip"
+      Environment:
+        Variables:
+          TABLE_PAPER_DELIVERY_MOCK: !Ref TablePaperDeliveryMock
       Timeout: 300
       MemorySize: 128
 
@@ -751,6 +764,7 @@ Resources:
           DB_PORT: !Ref RdsSimulatorPort
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
+          TABLE_DRIVER_USED_CAPACITIES_MOCK: !Ref TableDriverUsedCapacitiesMock
 
   GetUsedCapacityLambdaRole:
     Type: AWS::IAM::Role
@@ -801,6 +815,12 @@ Resources:
       Environment:
         Variables:
           source_bucket: !Ref SimulatoreDataBucketName
+          TABLE_PAPER_DELIVERY_MOCK: !Ref TablePaperDeliveryMock
+          TABLE_COUNTERS_MOCK: !Ref TableCountersMock
+          TABLE_SENDER_LIMIT: !Ref TableSenderLimit
+          TABLE_USED_SENDER_LIMIT: !Ref TableUsedSenderLimit
+          TABLE_SENDER_LIMIT_MOCK: !Ref TableSenderLimitMock
+          TABLE_USED_SENDER_LIMIT_MOCK: !Ref TableUsedSenderLimitMock
 
   ImportDataLambdaRole:
     Type: AWS::IAM::Role
@@ -863,6 +883,7 @@ Resources:
           DB_NAME: !Ref RdsSimulatorDbName
           secretsManager_SecretId: !Ref SvcSimulatorUserSecretArn
           source_bucket: !Ref SimulatoreDataBucketName
+          TABLE_DRIVER_CAPACITIES_MOCK: !Ref TableDriverCapacitiesMock
 
   InsertMockCapacitiesLambdaRole:
     Type: AWS::IAM::Role
