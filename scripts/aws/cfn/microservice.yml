@@ -19,7 +19,11 @@ Parameters:
 
   AlarmSNSTopicArn:
     Type: String
-    Description: 'ARN of alarm topic'
+    Description: 'ARN of the standard alarm topic for direct EventBridge notifications'
+
+  WarningSNSTopicArn:
+    Type: String
+    Description: 'ARN of the central warning topic for routed CloudWatch alarms'
 
   MicroServiceUniqueName:
     Type: String
@@ -304,7 +308,7 @@ Resources:
         ContainerEnvEntry9: !Sub 'CUTOFF=${LambdaCalcoloPrimaSettimanaCutOffDay}'
         ContainerEnvEntry10: !Sub 'MESI_IN_AVANTI=${LambdaCalcoloPrimaSettimanaMesiInAvanti}'
         ContainerSecret1: !Sub 'DB_PASSWORD=${SvcSimulatorUserSecretArn}:password:AWSCURRENT:'
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
         ContainerImageURI: !Ref ContainerImageUri
         ECSClusterName: !Ref VPNECSClusterName
         Subnets: !Ref VPNServicesSubnetsIds
@@ -655,7 +659,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref FillCapProvRegFromS3LookupLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
 
   DeleteDataLambda:
     Type: AWS::Lambda::Function
@@ -1139,7 +1143,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref RimozioneDuplicatiDeclaredCapacityLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
   
   # Lambda RimozioneDuplicatiSenderLimit
   RimozioneDuplicatiSenderLimitLambda:
@@ -1195,7 +1199,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref RimozioneDuplicatiSenderLimitLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
 
   # Lambda PuliziaTabelleOutput
   PuliziaTabelleOutputLambda:
@@ -1251,7 +1255,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref PuliziaTabelleOutputLambda
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
 
   # Glue Connection
   GlueNetworkConnection:
@@ -1933,9 +1937,9 @@ Resources:
       AlarmDescription: "CloudWatch alarm for when GestioneSimulazione Step Function executions fail, timeout or are aborted."
       TreatMissingData: notBreaching
       AlarmActions:
-        - !Ref AlarmSNSTopicArn
+        - !Ref WarningSNSTopicArn
       OKActions:
-        - !Ref AlarmSNSTopicArn
+        - !Ref WarningSNSTopicArn
       Dimensions:
         - Name: RuleName
           Value: !Ref GestioneSimulazioneSFAlarmRule
@@ -1955,9 +1959,9 @@ Resources:
       AlarmDescription: "CloudWatch alarm for when RecuperoDati Weekly Step Function executions fail, timeout or are aborted."
       TreatMissingData: notBreaching
       AlarmActions:
-        - !Ref AlarmSNSTopicArn
+        - !Ref WarningSNSTopicArn
       OKActions:
-        - !Ref AlarmSNSTopicArn
+        - !Ref WarningSNSTopicArn
       Dimensions:
         - Name: RuleName
           Value: !Ref RecuperoDatiWeeklySFAlarmRule
