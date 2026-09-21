@@ -7,7 +7,7 @@ Trigger:
 Input:
     lista_file_csv: lista dei file assegnati all'IMPORT_DATA per il caricamento
     tipo_simulazione: 'Automatizzata' o 'Manuale'
-    id_simulazione_manuale: valorizzata con l'id di simulazione in caso di simulazione 'Manuale'
+    id_simulazione: valorizzata con l'id di simulazione in caso di simulazione 'Manuale'
 
 Output:
     lista_file_csv_caricati: lista file caricati tramite IMPORT_DATA che servirà per la DELETE_DATA
@@ -20,8 +20,7 @@ import requests
 import pg8000
 import io
 import csv
-from datetime import timezone, date, timedelta
-from botocore.config import Config
+from datetime import datetime, timezone, timedelta
 import math
 
 def recupero_credenziali_db(secretsManager_SecretId):
@@ -104,7 +103,7 @@ def recupero_dati_db(id_simulazione, tabella_sorgente):
     return rows
 
 
-def recupero_ultima_data_estrazione(bucket_name, s3_client, mese_simulazione):
+def recupero_ultima_data_estrazione(bucket_name, s3_client, mese_simulazione, start_timestamp_simulazione):
     """
     Recuperiamo la data dell'ultimo recupero dati sottoforma di prefisso del bucket s3 di progetto
 
@@ -112,13 +111,14 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client, mese_simulazione):
         bucket_name (string): nome del bucket s3 di progetto
         s3_client (botocore.client.S3): connessione ad s3
         mese_simulazione (string): mese di simulazione, formato "yyyy-MM"
+        start_timestamp_simulazione (string): timestamp di stard di esecuzione della step function della simulazione, formato "yyyy-MM-dd HH:mm:ss"
 
     Returns:
         string: prefisso del bucket che va dalla cartella 'input/' fino alla cartella contenente i file che verranno successivamente importati tramite l'operazione di IMPORT_DATA
     """
-    target_date = date.today()
-
-    for _ in range(30):  # limite di sicurezza a 30 gg
+    target_date = datetime.strptime(start_timestamp_simulazione, '%Y-%m-%d %H:%M:%S').date()
+    
+    for _ in range(120):  # limite di sicurezza a 120 gg
         prefix = target_date.strftime("%Y/%m/%d/")
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
@@ -131,7 +131,7 @@ def recupero_ultima_data_estrazione(bucket_name, s3_client, mese_simulazione):
         # altrimenti vado al giorno precedente
         target_date -= timedelta(days=1)
     # se non viene trovata alcuna cartella corrispondente
-    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 30 gg")
+    raise Exception("Nessuna folder input/yyyy/MM/dd_di_estrazione/yyyy_MM_simulazione su S3 creata negli ultimi 120 gg")
 
 def crea_copia_csv_s3(s3_client,bucket_s3,obj_key,source_path,destination_filename):
     """
@@ -185,14 +185,6 @@ def lambda_presigned_url(lambda_delayer, source_filename):
             "presignedUrlType": "UPLOAD"
         }
     }
-    '''
-    nuovo parameters rilascio GA26Q2.A
-    {
-        "fileName": source_filename,
-        "checksumSha256B64": "abcd1234efgh5678ijkl9012mnop3456",
-        "presignedUrlType": "UPLOAD"
-    }
-    '''
     response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
     read_response = response_lambda['Payload'].read()
     string_response = read_response.decode('utf-8')
@@ -204,14 +196,14 @@ def lambda_presigned_url(lambda_delayer, source_filename):
     key = response_dict_body['key']
     return uploadUrl, key
 
-def caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale):
+def caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione):
     """
     Questa funzione gestisce le operazioni di GET_PRESIGNED_URL e caricamento del file csv nel presigned url, con le relative operazioni a corredo
 
     Args:
         db_rows (list): lista dei record delle capacità recuperati dal db per creare il file csv da caricare nel presigned url 
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
-        id_simulazione_manuale (string): identificativo univoco della simulazione sul db
+        id_simulazione (string): identificativo univoco della simulazione sul db
 
     Returns:
         int: esito operazioni (0 se non ci sono errori, 1 se ci sono errori)
@@ -236,7 +228,7 @@ def caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale):
         if row[5]!=None:
             row[5] = row[5].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
-    source_filename = 'mock_capacities_id'+id_simulazione_manuale
+    source_filename = 'mock_capacities_id'+id_simulazione
     
     lista_csv_caricati_su_s3 = []
     # il numero massimo disponibile è 10000, ma per essere sicuri mettiamo 9900
@@ -266,24 +258,25 @@ def caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale):
     return 0, lista_csv_caricati_su_s3
 
 
-def caricamento_csv_cap(s3_client, source_bucket, id_simulazione_manuale, lambda_delayer, mese_simulazione):
+def caricamento_csv_cap(s3_client, source_bucket, id_simulazione, lambda_delayer, mese_simulazione, start_timestamp_simulazione):
     """
     Questa funzione gestisce le operazioni di copia e GET_PRESIGNED_URL, con le relative operazioni a corredo
 
     Args:
         s3_client (botocore.client.S3): connessione ad s3
         source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di INSERT_MOCK_CAPACITIES
-        id_simulazione_manuale (string): identificativo univoco della simulazione sul db
+        id_simulazione (string): identificativo univoco della simulazione sul db
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
         mese_simulazione (string): mese di simulazione, formato "yyyy-MM"
+        start_timestamp_simulazione (string): timestamp di stard di esecuzione della step function della simulazione, formato "yyyy-MM-dd HH:mm:ss"
 
     Returns:
         int: esito operazioni (0 se non ci sono errori, 1 se ci sono errori)
         list: lista dei file csv caricati su s3 da inserire successivamenteo tramite la INSERT_MOCK_CAPACITIES
     """
     # recuperiamo il path s3 per prendere i csv dei cap
-    prefix_s3_settimana_estrazione = recupero_ultima_data_estrazione(source_bucket, s3_client, mese_simulazione)
-    full_prefix = prefix_s3_settimana_estrazione + 'cap_capacities/id_' + id_simulazione_manuale + '/partitioned/'
+    prefix_s3_settimana_estrazione = recupero_ultima_data_estrazione(source_bucket, s3_client, mese_simulazione, start_timestamp_simulazione)
+    full_prefix = prefix_s3_settimana_estrazione + 'dati_extra/cap_capacities/id_' + id_simulazione + '/partitioned/'
     lista_file_csv_cap_caricati_su_s3 = []
     objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=full_prefix)
     for obj in objects.get("Contents", []):
@@ -331,7 +324,7 @@ def lambda_insert_mock_capacities(lambda_delayer,lista_filename_insertMockCapaci
         # INSERT MOCK CAPACITIES - testDelayerLambda
         payload_lambda={
             "operationType": "INSERT_MOCK_CAPACITIES",
-            "parameters": ["pn-PaperDeliveryDriverCapacitiesMock", filename]
+            "parameters": [os.environ['TABLE_DRIVER_CAPACITIES_MOCK'], filename]
         }
         response_lambda=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload_lambda))
         read_response = response_lambda['Payload'].read()
@@ -342,43 +335,32 @@ def lambda_insert_mock_capacities(lambda_delayer,lista_filename_insertMockCapaci
             return 1
     return 0
 
-class S3BodyWrapper:
-    """
-    Wrap dello stream originale leggendo i dati tramite la read() e recuperando la lunghezza del file tramite la __len__()    
-    """
-    def __init__(self, body, length):
-        self.body = body
-        self.length = length
-    def read(self, amt=None):
-        return self.body.read(amt)
-    def __len__(self):
-        return self.length
 
-
-def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale, lambda_delayer, s3_client, source_bucket, mese_simulazione):
+def gestione_insert_mock_capacities(capacity_granularity, id_simulazione, lambda_delayer, s3_client, source_bucket, mese_simulazione, start_timestamp_simulazione):
     """
     Questa funzione gestisce le operazioni di recupero dati delle capacità dal db ed INSERT_MOCK_CAPACITIES, con le relative operazioni a corredo
 
     Args:
         capacity_granularity (string): indica se le capacità sono a livello di provincia o a livello di CAP
-        id_simulazione_manuale (string): identificativo univoco della simulazione sul db
+        id_simulazione (string): identificativo univoco della simulazione sul db
         lambda_delayer (botocore.client.Lambda): connessione alla lambda
         s3_client (botocore.client.S3): connessione ad s3
         source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di INSERT_MOCK_CAPACITIES
-        mese_simulazione (string): mese di simulazione, formato "yyyy-MM-dd"
+        mese_simulazione (string): mese di simulazione, formato "yyyy-MM"
+        start_timestamp_simulazione (string): timestamp di stard di esecuzione della step function della simulazione, formato "yyyy-MM-dd HH:mm:ss"
 
     Returns:
         int: esito operazioni (0 se non ci sono errori, 1 se ci sono errori)
     """
     # recupero dati dal db per creare csv da dare alla INSERT_MOCK_CAPACITIES + upload file sul presigned url
     if capacity_granularity=='province':
-        db_rows = recupero_dati_db(id_simulazione_manuale,'CAPACITA_SIMULATE')
-        errori_presenti_upload, lista_filename_insertMockCapacities = caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione_manuale)
+        db_rows = recupero_dati_db(id_simulazione,'CAPACITA_SIMULATE')
+        errori_presenti_upload, lista_filename_insertMockCapacities = caricamento_csv_prov(db_rows, lambda_delayer, id_simulazione)
         if errori_presenti_upload != 0:
             print(f"Errore durante l'operazione di caricamento delle prov sul presigned url di s3")
             return errori_presenti_upload
     else:
-        errori_presenti_upload, lista_filename_insertMockCapacities = caricamento_csv_cap(s3_client, source_bucket, id_simulazione_manuale, lambda_delayer, mese_simulazione)
+        errori_presenti_upload, lista_filename_insertMockCapacities = caricamento_csv_cap(s3_client, source_bucket, id_simulazione, lambda_delayer, mese_simulazione, start_timestamp_simulazione)
         if errori_presenti_upload != 0:
             print(f"Errore durante l'operazione di caricamento dei cap sul presigned url di s3")
             return errori_presenti_upload
@@ -392,17 +374,24 @@ def gestione_insert_mock_capacities(capacity_granularity, id_simulazione_manuale
 def lambda_handler(event, context):
     # recuperiamo il numero totale di file assegnati alla IMPORT_DATA per il caricamento
     lista_file_da_caricare = event["output_lambda_ListaFileImportData"]['Payload']['lista_file_csv']
-    numero_file_da_caricare = len(lista_file_da_caricare[0]['lista_file_csv_1']) + len(lista_file_da_caricare[1]['lista_file_csv_2']) + len(lista_file_da_caricare[2]['lista_file_csv_3']) + len(lista_file_da_caricare[3]['lista_file_csv_4']) + len(lista_file_da_caricare[4]['lista_file_csv_5']) + len(lista_file_da_caricare[5]['lista_file_csv_6'])
+    numero_file_da_caricare = len(lista_file_da_caricare)
     # recupero parametri d'ambiente dalla step function
     source_bucket = os.environ['source_bucket']
     mese_simulazione = event["mese_simulazione"][:7] # mese_simulazione è del formato yyyy-MM-dd ma a noi interessa solamente yyyy-MM
+    start_timestamp_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['start_timestamp_simulazione']
     # inizializzazione connessione verso s3
     s3_client = boto3.client('s3')
     # inizializzazione connessione lambda
     lambda_delayer=boto3.client('lambda')
-    # recuperiamo la lista dei file effettivamente caricati tramite IMPORT_DATA
+    # recuperiamo la lista dei file effettivamente caricati tramite IMPORT_DATA andando a recuperare i nomi dei file fittizi creato dentro la cartella su S3 StepFunction_ListaFileImportData/id_simulazione_{id_simulazione}/
     lista_file_csv_caricati = []
-    objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix='StepFunction_ListaFileImportData/')
+    if event["tipo_simulazione"] == 'Manuale':
+        id_simulazione = event["id_simulazione_manuale"]
+    elif event['tipo_simulazione'] == 'Automatizzata':
+        id_simulazione = event["output_lambda_ConfigurazioneSimulazione"]['Payload']['id_simulazione_automatizzata']
+    else:
+        raise Exception('tipo_simulazione non conforme')
+    objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=f'StepFunction_ListaFileImportData/id_simulazione_{id_simulazione}/')
     for obj in objects.get("Contents", []):
         if obj["Key"][-4:] == '.csv':
             lista_file_csv_caricati.append({'destination_filename':obj["Key"].split('/')[-1]})
@@ -413,14 +402,11 @@ def lambda_handler(event, context):
 
     if event["tipo_simulazione"] == 'Manuale':
         # Manuale
-        # recupero parametri d'ambiente dalla step function
-        id_simulazione_manuale = event["id_simulazione_manuale"]
-
-        errori_presenti_insert_province = gestione_insert_mock_capacities('province', id_simulazione_manuale, lambda_delayer, s3_client, source_bucket, mese_simulazione)
+        errori_presenti_insert_province = gestione_insert_mock_capacities('province', id_simulazione, lambda_delayer, s3_client, source_bucket, mese_simulazione, start_timestamp_simulazione)
         if errori_presenti_insert_province != 0:
             return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert_province}
 
-        errori_presenti_insert_cap = gestione_insert_mock_capacities('CAP', id_simulazione_manuale, lambda_delayer, s3_client, source_bucket, mese_simulazione)
+        errori_presenti_insert_cap = gestione_insert_mock_capacities('CAP', id_simulazione, lambda_delayer, s3_client, source_bucket, mese_simulazione, start_timestamp_simulazione)
         if errori_presenti_insert_cap != 0:
             return {'statusCode': 500, 'lista_file_csv_caricati': lista_file_csv_caricati, 'errori_presenti':errori_presenti_insert_cap}
 

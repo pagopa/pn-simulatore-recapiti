@@ -33,13 +33,13 @@ id_simulazione_automatizzata = args['id_simulazione_automatizzata'] # tipo: stri
 id_simulazione_manuale = args['id_simulazione_manuale'] # tipo: stringa
 if id_simulazione_automatizzata != '-':
     id_simulazione = int(id_simulazione_automatizzata)
-elif id_simulazione_manuale != '':
+elif id_simulazione_manuale != '-':
     id_simulazione = int(id_simulazione_manuale)
 else:
     raise Exception("I parametri id_simulazione_automatizzata e id_simulazione_manuale sono entrambi nulli!")
 
 lista_date = args['lista_date'] # tipo: lista, formato "yyyy-mm-dd"
-lista_date = ast.literal_eval(lista_date)
+lista_date = json.loads(lista_date)
 count_residui_ultima_settimana = int(args['count_residui_ultima_settimana'])
 
 
@@ -88,15 +88,42 @@ def lambda_to_dict(prov,operationType,list_parameters):
   string_response=read_response.decode('utf-8')
 
   # Trasformazione da stringa in dizionario
-  dict_response=ast.literal_eval(string_response)
+  dict_response=json.loads(string_response)
 
   # Estrazione del body e poi degli items (posti come dizionari innestati)
-  dict_response_body=ast.literal_eval(dict_response['body'])
+  dict_response_body=json.loads(dict_response['body'])
 
   return dict_response_body
   
 # Richiamo della lambda
-
+# AMBIENTE DI DEV
+'''
+schema_paperdel = T.StructType() \
+      .add("attempt",T.StringType(),True) \
+      .add("cap",T.StringType(),True) \
+      .add("communicationType",T.StringType(),True) \
+      .add("createdAt",T.StringType(),True) \
+      #.add("delayed",T.StringType(),True) \
+      .add("deliveryDate",T.StringType(),True) \
+      .add("iun",T.StringType(),True) \
+      .add("notificationSentAt",T.StringType(),True) \
+      .add("pk",T.StringType(),True) \
+      .add("prepareRequestDate",T.StringType(),True)\
+      .add("priority",T.StringType(),True) \
+      .add("productType",T.StringType(),True) \
+      .add("province",T.StringType(),True) \
+      .add("requestId",T.StringType(),True)\
+      .add("senderPaId",T.StringType(),True)\
+      .add("senderPaIdOriginalSentAt",T.StringType(),True)\
+      .add("senderPriority",T.StringType(),True)\
+      .add("sk",T.StringType(),True)\
+      #.add("skipSenderLimit",T.StringType(),True)\
+      .add("tenderId",T.StringType(),True)\
+      .add("unifiedDeliveryDriver",T.StringType(),True)\
+      .add("week_delivery",T.StringType(),True)\
+      .add("workflowStep",T.StringType(),True)
+'''
+# AMBIENTE DI PROD
 schema_paperdel = T.StructType() \
       .add("attempt",T.StringType(),True) \
       .add("cap",T.StringType(),True) \
@@ -277,7 +304,7 @@ if count_residui_ultima_settimana > 0:
         dict_response_items_paperdel_res=dict_response_body_paperdel_res['items']
         for diz in dict_response_items_paperdel_res:
             # Aggiungo le colonne mancanti allo schema target se assenti
-            for col in ['priority','tenderId','unifiedDeliveryDriver']:
+            for col in ['priority','senderPaIdOriginalSentAt','tenderId','unifiedDeliveryDriver']:
                 try:
                     col_exists=diz[col]
                 except:
@@ -357,6 +384,19 @@ if count_residui_ultima_settimana > 0:
         .mode("append") \
         .save()
 
+
+# AMBIENTE DI DEV
+'''
+# Salvataggio file intermedi su S3 (per test)
+path = "s3://" + s3_bucket+"/test/output"
+
+df_paperdel_tot_filtred.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','true').format('csv').save(path + "/df_paperdel_tot_filtred")   
+
+df_paperdel_res_tot_filtred.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','true').format('csv').save(path + "/df_paperdel_res_tot_filtred")   
+'''
+# AMBIENTE DI PROD
+'''
+'''
 
 
 # id_timestamp=[["1"]]

@@ -5,7 +5,7 @@ Trigger:
     Step function pn-simulatore-recapiti-sf-RecuperoDati-Weekly
 
 Input:
-    mese_simulazione: prima settimana del mese di simulazione, nel formato yyyy-MM-dd
+    mese_recupero_dati: mese per il recupero dati, nel formato yyyy-MM-dd
 """
 import json
 import boto3
@@ -52,8 +52,8 @@ def connessione_db(db_host, db_name, db_port, creds):
 
 
 def lambda_handler(event, context):
-    # recupero mese_simulazione dai parametri di input
-    mese_simulazione = event['mese_simulazione']
+    # recupero mese_recupero_dati dai parametri di input
+    mese_recupero_dati = event['mese_recupero_dati']
     # recupero variabili d'ambiente
     secretsManager_SecretId = os.environ['secretsManager_SecretId']
     db_host = os.environ['DB_HOST']
@@ -68,7 +68,7 @@ def lambda_handler(event, context):
     cur.execute('SELECT COUNT(*) FROM public."SENDER_LIMIT_DELTA"')
     count_rows_delta_table = int(cur.fetchone()[0])
     if count_rows_delta_table == 0:
-        raise Exception(f"Errore: tabella SENDER_LIMIT vuota per il mese di {mese_simulazione[:-3]}")
+        raise Exception(f"Errore: tabella SENDER_LIMIT vuota per il mese di {mese_recupero_dati[:-3]}")
     cur.execute(
         '''
             MERGE INTO public."SENDER_LIMIT"
@@ -78,7 +78,7 @@ def lambda_handler(event, context):
                 AND public."SENDER_LIMIT"."PRODUCT_TYPE" = public."SENDER_LIMIT_DELTA"."PRODUCT_TYPE"
                 AND public."SENDER_LIMIT"."DELIVERY_DATE" = public."SENDER_LIMIT_DELTA"."DELIVERY_DATE") 
             --When records are matched, update the records if there is any change
-            WHEN MATCHED AND public."SENDER_LIMIT"."LAST_UPDATE_TIMESTAMP" < public."SENDER_LIMIT_DELTA"."LAST_UPDATE_TIMESTAMP" 
+            WHEN MATCHED AND public."SENDER_LIMIT"."MONTHLY_ESTIMATE" <> public."SENDER_LIMIT_DELTA"."MONTHLY_ESTIMATE" 
             THEN UPDATE SET 
             "PK" = public."SENDER_LIMIT_DELTA"."PK", "DELIVERY_DATE" = public."SENDER_LIMIT_DELTA"."DELIVERY_DATE",
             "WEEKLY_ESTIMATE" = public."SENDER_LIMIT_DELTA"."WEEKLY_ESTIMATE", "MONTHLY_ESTIMATE" = public."SENDER_LIMIT_DELTA"."MONTHLY_ESTIMATE", 
