@@ -6,7 +6,7 @@ from awsglue.context import GlueContext
 from awsglue.job import Job
 
 ## @params: [JOB_NAME]
-args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_simulazione','secretsManager_SecretId','jdbc_connection'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME','mese_recupero_dati','secretsManager_SecretId','jdbc_connection'])
 
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -87,7 +87,7 @@ def lambda_to_dict(prov,operationType,list_parameters):
 
 
 # Estrazione delle settimane a partire dalla data in input
-date_input=args['mese_simulazione']
+date_input=args['mese_recupero_dati']
 date_input_dtfmt=datetime.strptime(date_input,'%Y-%m-%d').date()
 anno=date_input_dtfmt.year
 mese=date_input_dtfmt.month

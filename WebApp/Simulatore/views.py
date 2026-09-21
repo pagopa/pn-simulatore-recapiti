@@ -4,7 +4,8 @@ from PagoPA.settings import *
 from datetime import date, datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from .models import *
-from django.db.models import Q
+from django.db.models import Q, F, Sum, Avg
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.db import connection
 from zoneinfo import ZoneInfo
@@ -22,29 +23,23 @@ def homepage(request):
     """
     Homepage che coincide con la pagina di riepilogo delle simulazioni effettuate
     """
-    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
+    lista_simulazioni = table_simulazione.objects.exclude(STATO='Bozza').order_by('-START_TIMESTAMP')
     # recupero la lista degli id simulazione che hanno capacità simulate per CAP -> serve per capire su quali simulazioni mostrare il button download capacità per CAP 
     lista_idsimulazione_capacita_cap_disponibili = table_capacita_simulate_cap.objects.all().values_list('SIMULAZIONE_ID', flat=True).distinct()
     
     for singola_simulazione in lista_simulazioni:
-        # cambio stato su 'Non completata' se siamo sullo stato 'In lavorazione' da più di 2gg
-        if singola_simulazione.STATO=='In lavorazione' and singola_simulazione.TIMESTAMP_ESECUZIONE < (datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None) - timedelta(days=2)):
-            singola_simulazione.STATO = 'Non completata'
-        # cambio stato su 'In lavorazione' per schedulata con timestamp_esecuzione <= now()
-        if singola_simulazione.STATO=='Schedulata' and singola_simulazione.TRIGGER=='Schedule' and singola_simulazione.TIMESTAMP_ESECUZIONE <= datetime.now(ZoneInfo("Europe/Rome")).replace(tzinfo=None):
-            singola_simulazione.STATO = 'In lavorazione'
         # Get ID per confronto con automatizzata
         singola_simulazione.automatizzata_da_confrontare = None
-        monday_current_week = singola_simulazione.TIMESTAMP_ESECUZIONE.date() - timedelta(days=singola_simulazione.TIMESTAMP_ESECUZIONE.weekday())
+        monday_current_week = singola_simulazione.START_TIMESTAMP.date() - timedelta(days=singola_simulazione.START_TIMESTAMP.weekday())
         if singola_simulazione.TIPO_SIMULAZIONE == 'Automatizzata':
             previous_week_monday = monday_current_week - timedelta(days=7)
             if previous_week_monday.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__date=previous_week_monday).first()
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',START_TIMESTAMP__date=previous_week_monday).order_by("-START_TIMESTAMP").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
         elif singola_simulazione.TIPO_SIMULAZIONE == 'Manuale':
-            if singola_simulazione.TIMESTAMP_ESECUZIONE.month == monday_current_week.month:
-                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',TIMESTAMP_ESECUZIONE__year=monday_current_week.year,TIMESTAMP_ESECUZIONE__month=monday_current_week.month).order_by("-TIMESTAMP_ESECUZIONE").first()
+            if singola_simulazione.START_TIMESTAMP.month == monday_current_week.month:
+                simulazione_recuperata = table_simulazione.objects.filter(TIPO_SIMULAZIONE='Automatizzata',STATO='Lavorata',MESE_SIMULAZIONE=singola_simulazione.MESE_SIMULAZIONE).order_by("-START_TIMESTAMP").first()
                 if simulazione_recuperata:
                     singola_simulazione.automatizzata_da_confrontare = simulazione_recuperata.ID
 
@@ -78,7 +73,7 @@ def bozze(request):
     """
     Pagina che mostra le simulazioni in uno stato di bozza
     """
-    lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-TIMESTAMP_ESECUZIONE')
+    lista_bozze = table_simulazione.objects.filter(STATO='Bozza').order_by('-START_TIMESTAMP')
     context = {
         'lista_bozze': lista_bozze
     }
@@ -89,13 +84,13 @@ def nuova_simulazione(request, id_simulazione):
     Pagina che permette all'utente di inserire una nuova simulazione
     """
     # Mese da simulare
-    lista_mesi = recupero_lista_mesi_simulazione_univoci()
+    lista_mesi = recupero_lista_mesi_simulazione_univoci('nuova_simulazione')
 
     lista_regioni = table_cap_prov_reg.objects.values_list('REGIONE', flat=True).distinct().order_by('REGIONE')
 
     context = {
         'lista_mesi': lista_mesi,
-        'lista_regioni': lista_regioni
+        'lista_regioni': lista_regioni,
     }
     # New_from_old
     new_from_old = None
@@ -103,36 +98,42 @@ def nuova_simulazione(request, id_simulazione):
         new_from_old = request.GET['id']
     # NUOVA SIMULAZIONE
     if id_simulazione == 'new' and new_from_old == None:
-        pass
+        context['simulazione_esistente'] = False
     # New_from_old
     elif id_simulazione == 'new' and new_from_old != None:
         simulazione_selezionata = table_simulazione.objects.get(ID = new_from_old)
+        tabelle_mock = costruisci_postalizzazioni_salvate(simulazione_selezionata.ID)
         simulazione_selezionata.new_from_old = True
         context['simulazione_selezionata'] = simulazione_selezionata
+        context['simulazione_esistente'] = False
+        context['tabelle_mock'] = tabelle_mock
     # MODIFICA SIMULAZIONE
     else:
         simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
+        tabelle_mock = costruisci_postalizzazioni_salvate(simulazione_selezionata.ID)
         simulazione_selezionata.new_from_old = False
         context['simulazione_selezionata'] = simulazione_selezionata
+        context['simulazione_esistente'] = True
+        context['tabelle_mock'] = tabelle_mock
     return render(request, "simulazioni/nuova_simulazione.html", context)
 
 def salva_simulazione(request):
     """
-    Pagina di salvataggio di una simulazione
+    Gestione del salvataggio di una simulazione
     """
     last_update_timestamp = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
     tipo_simulazione = 'Manuale'
     # recupero parametri dalla pagina html
-    nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json = recupero_parametri_input_utente(request)
-
-    # salvataggio simulazione sul db (tabella SIMULAZIONE)
-    if request.POST['id_simulazione'] == '' or 'id_simulazione' not in request.POST or request.POST['new_from_old']=='True': # la prima condizione si verifica con il salva_bozza, la seconda condizione si verifica con avvia scheduling, la terza con new_from_old
-        # nuova simulazione o new_from_old
-        id_simulazione_salvata = salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
+    nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json,lista_tabelle_mock = recupero_parametri_input_utente(request)
+    if request.POST['id_simulazione'] == '':
+        # caso salva_bozza sullo step 1
+        id_simulazione_salvata = salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)    
     else:
-        # simulazione esistente che viene modificata
+        # caso nuova simulazione avviata o salva bozza su step 2/3 aggiornamento simulazione esistente sul db (tabella SIMULAZIONE)
         id_simulazione_salvata = aggiornamento_db_simulazione_esistente(request.POST['id_simulazione'],nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione)
-
+        # rimuoviamo eventuali vecchi dati in tabella per aggiungere i nuovi
+        table_sender_limit_mock.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata).delete()
+        salvataggio_tabelle_mock(lista_tabelle_mock,id_simulazione_salvata,mese_da_simulare)
     # salvataggio sul db capacità modificate dall'utente (tabella CAPACITÀ SIMULATE)
     if mese_da_simulare != None and tipo_capacita_da_modificare != None:
         lista_all_capacita_modificate = table_capacita_simulate.objects.filter(SIMULAZIONE_ID = id_simulazione_salvata)
@@ -163,6 +164,7 @@ def rimuovi_simulazione(request, id_simulazione):
     try:
         simulazione_da_rimuovere = table_simulazione.objects.get(ID=id_simulazione)
         table_capacita_simulate.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID).delete()
+        table_sender_limit_mock.objects.filter(SIMULAZIONE_ID=simulazione_da_rimuovere.ID).delete()
         simulazione_da_rimuovere.delete()
     except:
         pass
@@ -196,19 +198,28 @@ def ajax_recupero_capacita(request):
     mese_da_simulare = request.GET['mese_da_simulare_selezionato']
     tipo_capacita_selezionata = request.GET['tipo_capacita_selezionata']
     id_simulazione = request.GET['id_simulazione']
+    id_old_simulazione = request.GET['id_old_simulazione']
     get_modified_capacity = request.GET['get_modified_capacity']
+    pianificazione_postalizzazioni = request.GET.get('pianificazione_postalizzazioni')
+    checkbox_postalizzazioni_fuori_commessa = request.GET.get('checkbox_postalizzazioni_fuori_commessa')
     # calcolo del primo lunedì del mese successivo al mese selezionato dall'utente per la simulazione
     anno, mese = map(int, mese_da_simulare.split('-'))
     primo_lunedi_mese_successivo = date(anno, mese, 1) + relativedelta(months=+1)
     offset = (0 - primo_lunedi_mese_successivo.weekday()) % 7 # RICORDA: con weekday(), 0=lunedì, 6=domenica
     primo_lunedi_mese_successivo = str(primo_lunedi_mese_successivo + timedelta(days=offset))
     if request.accepts:
-        if id_simulazione == '' or get_modified_capacity=='false':
+        if get_modified_capacity=='false':
             # NUOVA SIMULAZIONE
-            lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(MONTH_DELIVERY=mese).filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
+            if pianificazione_postalizzazioni == 'Utilizza le commesse di default' and checkbox_postalizzazioni_fuori_commessa == 'false':
+                lista_capacita_grezze = list(view_output_capacity_setting.objects.filter(MONTH_DELIVERY=mese).filter(Q(ACTIVATION_DATE_FROM__year=mese_da_simulare.split('-')[0], ACTIVATION_DATE_FROM__month=mese_da_simulare.split('-')[1]) | Q(ACTIVATION_DATE_FROM__year=primo_lunedi_mese_successivo.split('-')[0], ACTIVATION_DATE_FROM__month=primo_lunedi_mese_successivo.split('-')[1], ACTIVATION_DATE_FROM__day=primo_lunedi_mese_successivo.split('-')[2])).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
+            else:
+                lista_capacita_grezze = list(view_output_capacity_setting_mock.objects.filter(SIMULAZIONE_ID = id_simulazione).filter(MONTH_DELIVERY=mese).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').annotate(SUM_MONTHLY_ESTIMATE=Sum(F('SUM_MONTHLY_ESTIMATE_DEFAULT')+Coalesce(F('SUM_MONTHLY_ESTIMATE_MOCK'),0))).values()) # Coalesce mette 0 se ci sono nulli su SUM_MONTHLY_ESTIMATE_MOCK 
             nuova_simulazione = True
         else:
-            # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o nuova simulazione partendo dallo stesso input). Nota: escludiamo gli ACTIVATION_DATE_TO nulli inseriti nella prima fase di creazione della simulazione per capacità con ACTIVATION_DATE_TO NULL. Escludiamo anche PRODUCT_890 e PRODUCT_AR nulli perché riguardano le capacità recuperate a valle del run e capita nel caso di new_simulazione_from_old
+            # RECUPERIAMO LE CAPACITÀ DA UNA SIMULAZIONE ESISTENTE (per modifica simulazione, modifica bozza o new_from_old). Nota: escludiamo gli ACTIVATION_DATE_TO nulli inseriti nella prima fase di creazione della simulazione per capacità con ACTIVATION_DATE_TO NULL. Escludiamo anche PRODUCT_890 e PRODUCT_AR nulli perché riguardano le capacità recuperate a valle del run e capita nel caso di new_simulazione_from_old
+            if id_old_simulazione != '':
+                # caso new_from_old
+                id_simulazione = id_old_simulazione
             lista_capacita_grezze = list(view_output_modified_capacity_setting.objects.filter(SIMULAZIONE_ID = id_simulazione).exclude(ACTIVATION_DATE_TO__isnull=True).exclude(PRODUCT_890__isnull=True).exclude(PRODUCT_AR__isnull=True).order_by('UNIFIED_DELIVERY_DRIVER','REGIONE','PROVINCIA','ACTIVATION_DATE_FROM').values())
             nuova_simulazione = False
         lista_output_capacity_setting = {}
@@ -228,7 +239,6 @@ def ajax_recupero_capacita(request):
                 lista_output_capacity_setting[recapitista] = {}
             if regione+'_'+cod_sigla_provincia+'_'+product not in lista_output_capacity_setting[recapitista]:
                 lista_output_capacity_setting[recapitista][regione+'_'+cod_sigla_provincia+'_'+product] = []
-            
             provincia = item['PROVINCIA']
             post_monthly_estimate = item['SUM_MONTHLY_ESTIMATE']
             if item['PRODUCTION_CAPACITY'] != None:
@@ -250,7 +260,6 @@ def ajax_recupero_capacita(request):
             if activation_date_from.day == 1 and activation_date_from.month == mese:
                 continue
             activation_date_to = item['ACTIVATION_DATE_TO']
-            
             lista_output_capacity_setting[recapitista][regione+'_'+cod_sigla_provincia+'_'+product].append(
                 {
                     'regione': regione,
@@ -274,7 +283,6 @@ def ajax_recupero_capacita(request):
                     if nuova_simulazione:
                         # calcoliamo il numero di postalizzazioni settimanali come postalizzazioni mensili fratto il numero di settimane nel mese
                         singola_riga['post_weekly_estimate'] = int(round(singola_riga['post_monthly_estimate'] / len(righe_tabella), 0))
-
     return JsonResponse({'nuova_simulazione':nuova_simulazione, 'lista_output_capacity_setting': lista_output_capacity_setting, 'tipo_capacita_selezionata': tipo_capacita_selezionata})
 
 
@@ -312,20 +320,160 @@ def recupero_province(request):
         return JsonResponse(lista_province, safe=False)
     return JsonResponse([], safe=False)
 
-
-def recupero_lista_mesi_simulazione_univoci():
+def ajax_recupero_data_residui(request):
     """
-    Questa funzione recupera la lista dei mesi univoci che l'utente può scegliere per creare una nuova simulazione
+    Questa funzione viene invocata tramite tecnologia AJAX e ci permette di recuperare la data dei residui
+
+    Args:
+        request (django.core.handlers.wsgi.WSGIRequest): oggetto creato da Django a partire dalla richiesta HTTP grezza che arriva dal server web e contiene l'input dell'utente
+        
+    Returns:
+        string: data residui in formato yyyy-mm-dd, None se non è previsto il recupero dei residui
+    """
+    select_mese_da_simulare = request.GET['select_mese_da_simulare']
+    radiobox_now = request.GET['radiobox_now']
+    if radiobox_now == 'true':
+        data_residui = gestione_residui(date.today(), calcolo_prima_settimana(select_mese_da_simulare))
+    else:
+        input_datetime_schedule = request.GET['input_datetime_schedule']
+        data_residui = gestione_residui(datetime.strptime(input_datetime_schedule, '%d/%m/%Y %H:%M').date(), calcolo_prima_settimana(select_mese_da_simulare))
+    return JsonResponse({'data_residui': data_residui})
+
+
+def ajax_salvataggio_simulazione_step1(request):
+    """
+    Questa funzione viene invocata tramite tecnologia AJAX e permette di salvare come bozza una nuova simulazione quando si passa dallo STEP 1 allo STEP 2
+
+    Args:
+        request (django.core.handlers.wsgi.WSGIRequest): oggetto creato da Django a partire dalla richiesta HTTP grezza che arriva dal server web e contiene l'input dell'utente
+        
+    Returns:
+        int: identificativo univoco della simulazione salvata
+    """
+    nome = request.GET.get('bozza_nome_simulazione')
+    descrizione = request.GET.get('bozza_descrizione_simulazione')
+    stato = 'Bozza'
+    radiobox_now = request.GET.get('bozza_radiobox_now')
+    radiobox_schedule = request.GET.get('bozza_radiobox_schedule')
+    input_datetime_schedule = request.GET.get('input_datetime_schedule')
+    if radiobox_now == 'true':
+        tipo_trigger = 'Now'
+        timestamp_esecuzione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
+    elif radiobox_schedule == 'true':
+        tipo_trigger = 'Schedule'
+        timestamp_esecuzione = datetime.strptime(input_datetime_schedule, "%d/%m/%Y %H:%M")        
+    else:
+        tipo_trigger = None
+        timestamp_esecuzione = None
+    mese_da_simulare = request.GET.get('bozza_mese_da_simulare')
+    tipo_capacita_da_modificare = None
+    tipo_simulazione = 'Manuale'
+    id_simulazione_salvata = salvataggio_db_nuova_simulazione(nome, descrizione, stato, tipo_trigger, timestamp_esecuzione, mese_da_simulare, tipo_capacita_da_modificare, tipo_simulazione)
+    return JsonResponse({'id_simulazione_salvata': id_simulazione_salvata.ID})
+
+
+def ajax_salvataggio_dati_tabelle_mock(request):
+    id_simulazione = request.GET.get('id_simulazione')
+    lista_tabelle_mock = request.GET.get('dati_tabelle_mock')
+    simulazione_di_riferimento = table_simulazione.objects.get(ID=id_simulazione)
+    # aggiorniamo l'istanza simulazione con le scelte dell'utente nello STEP 2
+    simulazione_di_riferimento.PIANIFICAZIONE_POSTALIZZAZIONI = request.GET.get('pianificazione_postalizzazioni')
+    simulazione_di_riferimento.POSTALIZZAZIONI_FUORI_COMMESSA = True if request.GET.get('checkbox_postalizzazioni_fuori_commessa')=='true' else False
+    simulazione_di_riferimento.save()
+    # rimuoviamo eventuali vecchi dati in tabella per aggiungere i nuovi
+    table_sender_limit_mock.objects.filter(SIMULAZIONE_ID = id_simulazione).delete()
+    salvataggio_tabelle_mock(lista_tabelle_mock,simulazione_di_riferimento,simulazione_di_riferimento.MESE_SIMULAZIONE)
+    return JsonResponse({'esito':200})
+    
+
+def calcolo_numero_settimana_attuale_nel_mese(data_simulazione):
+    """
+    Funzione che calcola e restituisce il numero della settimana nel mese
+
+    Args:
+        data_simulazione (date): data a partire dalla quale calcolare il numero della settimana nel mese
+    
+    Note:
+        - 0=prima settimana, 1=seconda settimana, ...
+        - se il primo del mese è lunedì, la prima settimana la segna come 0
+        - se il primo del mese non è lunedì, la seconda settimana inizia dal primo lunedì
+
+    Returns:
+        int: numero della settimana nel mese
+    """
+    # recuperiamo la data odierna
+    data_input = data_simulazione
+    # calcoliamo il primo giorno del mese corrente
+    primo_del_mese = data_input.replace(day=1)
+    # calcoliamo giorno della settimana del primo del mese (RICORDA: con weekday(), 0=lunedì, 6=domenica)
+    offset = primo_del_mese.weekday()
+    # calcoliamo numero settimana nel mese
+    numero_settimana = (data_input.day + offset - 1) // 7
+    return numero_settimana
+
+def gestione_residui(data_simulazione, prima_settimana_simulazione_string):
+    """
+    Funzione che gestisce la logica dei residui e ritorna la data dei residui
+
+    Args:
+        data_simulazione (date): data in cui partirà la simulazione manuale, nel formato yyyy-MM-dd
+        prima_settimana_simulazione_string (string): data della prima settimana di simulazione, nel formato yyyy-MM-dd
+    
+    Returns:
+        string: data residui in formato yyyy-mm-dd
+    """
+    prima_settimana_simulazione = date.fromisoformat(prima_settimana_simulazione_string)
+    # controlliamo se vogliamo simulare il mese in cui ci troviamo, un mese passato o il mese successivo
+    if (prima_settimana_simulazione.year,prima_settimana_simulazione.month) == (data_simulazione.year,data_simulazione.month):
+        # SIMULAZIONE MESE CORRENTE
+        if calcolo_numero_settimana_attuale_nel_mese(data_simulazione) == 0:
+            # caso in cui siamo nella prima settimana, quindi il mese inizia con lunedì oppure il mese inizia a cavallo con la fine del precedente
+            delivery_date_residui = prima_settimana_simulazione - timedelta(days=7)
+        else:
+            # caso in cui siamo dalla seconda settimana in poi
+            delivery_date_residui = prima_settimana_simulazione
+        # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
+        if data_simulazione==delivery_date_residui:
+            delivery_date_residui = delivery_date_residui - timedelta(days=7)
+    elif (prima_settimana_simulazione.year,prima_settimana_simulazione.month) > (data_simulazione.year,data_simulazione.month):
+        # SIMULAZIONE MESE FUTURO CUT-OFF (ricorda: da requisito, recuperiamo i residui solo se simuliamo il mese successivo)
+        if prima_settimana_simulazione.year == data_simulazione.year and ((prima_settimana_simulazione.month - data_simulazione.month) == 1):
+            delivery_date_residui = data_simulazione - timedelta(days=data_simulazione.weekday())
+            # se siamo al lunedì della settimana corrente devo considerare quella precedente perché pianificazione gira il lunedì
+            if data_simulazione==delivery_date_residui:
+                delivery_date_residui = delivery_date_residui - timedelta(days=7)   
+        else:
+            delivery_date_residui = None
+    else:
+        # SIMULAZIONE MESE PASSATO
+        delivery_date_residui = prima_settimana_simulazione
+    return delivery_date_residui
+
+
+def recupero_lista_mesi_simulazione_univoci(pagina_target):
+    """
+    Questa funzione recupera la lista dei mesi univoci che l'utente può scegliere per creare una nuova simulazione o per la filtrare la vista ente/fornitore
+
+    Args:
+    pagina_target (string): indica se i mesi univoci da recuperare servono per creare una nuova simulazione o per la filtrare la vista ente/fornitore
 
     Returns:
         list of tuple: mesi univoci dove il primo elmento della tupla è nel formato yyyy-MM mentre il secondo elemento della tupla contiene il mese scritto per esteso e l'anno in formato yyyy
     """
     with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'yyyy-MM') as anno_mese
-            FROM public."SENDER_LIMIT"
-            ORDER BY anno_mese
-        """)
+        if pagina_target == 'nuova_simulazione':
+            cursor.execute("""
+                SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'yyyy-MM') as anno_mese
+                FROM public."SENDER_LIMIT"
+                WHERE EXTRACT(MONTH FROM "DELIVERY_DATE") >= EXTRACT(MONTH FROM now()) and EXTRACT(YEAR FROM "DELIVERY_DATE") >= EXTRACT(YEAR FROM now())
+                ORDER BY anno_mese
+            """)
+        else:
+            cursor.execute("""
+                SELECT DISTINCT TO_CHAR("DELIVERY_DATE", 'yyyy-MM') as anno_mese
+                FROM public."SENDER_LIMIT"
+                ORDER BY anno_mese
+            """)
         lista_mesi = []
         for row in cursor.fetchall():
             data_formattata = datetime.strptime(row[0], '%Y-%m').date().strftime("%B %Y").capitalize()
@@ -456,16 +604,17 @@ def recupero_parametri_input_utente(request):
         string: mese della simulazione scelto dall'utente, formato yyyy-MM
         string: BAU, Picco o Combinata
         dict: capacità inserite in input dall'utente con relative informazioni (regione,cod_sigla_provincia,product,postalizzazioni_mensili,postalizzazioni_settimanali,inizioPeriodoValidita,finePeriodoValidita,capacita_reale,flag_default,capacita_bau_originale)
+        list: lista di dizionari dati delle tabelle MOCK
     """
     nome_simulazione = request.POST['nome_simulazione']
     descrizione_simulazione = None
     if request.POST['descrizione_simulazione'] != '':
         descrizione_simulazione = request.POST['descrizione_simulazione']
-    if 'inlineRadioOptions' in request.POST:
-        if request.POST['inlineRadioOptions'] == 'now':
+    if 'radiobutton_trigger' in request.POST:
+        if request.POST['radiobutton_trigger'] == 'now':
             timestamp_esecuzione = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
             tipo_trigger = 'Now'
-        elif request.POST['inlineRadioOptions'] == 'schedule':
+        elif request.POST['radiobutton_trigger'] == 'schedule':
             timestamp_esecuzione = request.POST['schedule_datetime']
             timestamp_esecuzione = datetime.strptime(timestamp_esecuzione, "%d/%m/%Y %H:%M")
             tipo_trigger = 'Schedule'
@@ -488,11 +637,12 @@ def recupero_parametri_input_utente(request):
         tipo_capacita_da_modificare = request.POST['tipo_capacita_da_modificare']
     # recuperiamo le capacità modificate dall'utente
     capacita_json = request.POST.get('capacita_json')
+    lista_tabelle_mock = request.POST.get('dati_tabelle_mock')
     try:
         capacita_json = json.loads(capacita_json)
     except (TypeError, json.JSONDecodeError):
         capacita_json = {}
-    return nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json
+    return nome_simulazione,descrizione_simulazione,timestamp_esecuzione,tipo_trigger,stato,mese_da_simulare,tipo_capacita_da_modificare,capacita_json,lista_tabelle_mock
 
 def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
     """
@@ -517,7 +667,7 @@ def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,st
         DESCRIZIONE = descrizione_simulazione,
         STATO = stato,
         TRIGGER = tipo_trigger,
-        TIMESTAMP_ESECUZIONE = timestamp_esecuzione,
+        START_TIMESTAMP = timestamp_esecuzione,
         MESE_SIMULAZIONE = mese_da_simulare,
         TIPO_CAPACITA = tipo_capacita_da_modificare,
         TIPO_SIMULAZIONE = tipo_simulazione
@@ -533,6 +683,42 @@ def salvataggio_db_nuova_simulazione(nome_simulazione,descrizione_simulazione,st
             # ricreiamo l'eccezione originale triggerata nel try
             raise
     return id_simulazione_salvata
+
+def salvataggio_tabelle_mock(lista_tabelle_mock,istanza_simulazione,mese_da_simulare):
+    """
+    Questa funzione gestisce il caso di inserimento sul db delle tabelle di mock inserite dall'utente nello STEP 2
+    
+    Args:
+        lista_tabelle_mock (list): contiene la lista delle tabelle di mock da salvare sul db
+        istanza_simulazione (table_simulazione): istanza della simulazione di riferimento
+        mese_da_simulare (string): mese della simulazione di riferimento, formato yyyy-MM
+
+    Returns:
+        int: identificativo univoco della simulazione salvata
+    """
+    # salvataggio nuova tabella mock sul DB
+    dati_mock = json.loads(lista_tabelle_mock)
+    for elements in dati_mock:
+        if elements["SUDDIVISIONE_GEOGRAFICA"] != "Italia":
+            # .exists() envia um "EXISTS" otimizado diretamente para o banco de dados
+            if table_cap_prov_reg.objects.filter(REGIONE=elements["SUDDIVISIONE_GEOGRAFICA"]).exists():
+                geo = elements["SUDDIVISIONE_GEOGRAFICA"]
+            else:
+                geo = table_cap_prov_reg.objects.filter(
+                    PROVINCIA=elements["SUDDIVISIONE_GEOGRAFICA"]
+                ).values_list('COD_SIGLA_PROVINCIA', flat=True).distinct().order_by('COD_SIGLA_PROVINCIA') 
+        else:
+            geo = elements["SUDDIVISIONE_GEOGRAFICA"]
+
+        table_sender_limit_mock.objects.create(
+            SIMULAZIONE_ID = istanza_simulazione,
+            DELIVERY_DATE = mese_da_simulare,
+            PA_ID = elements["PA_ID"],
+            MONTHLY_ESTIMATE = elements["MONTHLY_ESTIMATE"],
+            PRODUCT_TYPE = elements["PRODUCT_TYPE"],
+            SUDDIVISIONE_GEOGRAFICA = geo,
+            LAST_UPDATE_TIMESTAMP = datetime.now(ZoneInfo("Europe/Rome")).strftime('%Y-%m-%d %H:%M:%S')
+        )
 
 
 def aggiornamento_db_simulazione_esistente(id_simulazione,nome_simulazione,descrizione_simulazione,stato,tipo_trigger,timestamp_esecuzione,mese_da_simulare,tipo_capacita_da_modificare,tipo_simulazione):
@@ -560,7 +746,7 @@ def aggiornamento_db_simulazione_esistente(id_simulazione,nome_simulazione,descr
     simulazione_da_modificare.DESCRIZIONE = descrizione_simulazione
     simulazione_da_modificare.STATO = stato
     simulazione_da_modificare.TRIGGER = tipo_trigger
-    simulazione_da_modificare.TIMESTAMP_ESECUZIONE = timestamp_esecuzione
+    simulazione_da_modificare.START_TIMESTAMP = timestamp_esecuzione
     simulazione_da_modificare.MESE_SIMULAZIONE = mese_da_simulare
     simulazione_da_modificare.TIPO_CAPACITA = tipo_capacita_da_modificare
     simulazione_da_modificare.TIPO_SIMULAZIONE = tipo_simulazione
@@ -933,7 +1119,7 @@ def download_capacita_per_cap(request, id_simulazione, recupero_capacita_modific
     # recupero simulazione dal db a partire dall'id_simulazione
     simulazione_selezionata = table_simulazione.objects.get(ID = id_simulazione)
     # recuperiamo dal bucket s3 la key del file csv target
-    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.TIMESTAMP_ESECUZIONE, simulazione_selezionata.MESE_SIMULAZIONE, recupero_capacita_modificate)
+    file_key = recupero_filekey_s3(BUCKET_NAME, s3_client, id_simulazione, simulazione_selezionata.START_TIMESTAMP, simulazione_selezionata.MESE_SIMULAZIONE, recupero_capacita_modificate)
     if recupero_capacita_modificate == 'true':
         filename = f"CapacitaModificatePerCAP_id{id_simulazione}.csv"
     else:
@@ -970,12 +1156,12 @@ def recupero_filekey_s3(bucket_name, s3_client, id_simulazione, timestamp_esecuz
         string: key del file csv recuperato dal bucket; se non trovato ritorna 'None'
     """
 
-    for _ in range(30):  # limite di sicurezza a 30 gg
+    for _ in range(120):  # limite di sicurezza a 120 gg
         prefix = timestamp_esecuzione_simulazione.strftime("%Y/%m/%d/")
         if recupero_capacita_modificate == 'true':
-            full_prefix = f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/modified/'
+            full_prefix = f'input/{prefix}{mese_simulazione}/dati_extra/cap_capacities/id_{id_simulazione}/unified/modified/'
         else:
-            full_prefix = f'input/{prefix}{mese_simulazione}/cap_capacities/id_{id_simulazione}/unified/all/'
+            full_prefix = f'input/{prefix}{mese_simulazione}/dati_extra/cap_capacities/id_{id_simulazione}/unified/all/'
         response = s3_client.list_objects_v2(
             Bucket=bucket_name,
             Prefix=full_prefix,
@@ -995,7 +1181,7 @@ def vista_ente_fornitore(request):
     Le tabelle sono diverse e vengono selezionate in base al valore del campo Ente/Fornitore.  
 
     """
-    lista_mesi = recupero_lista_mesi_simulazione_univoci()
+    lista_mesi = recupero_lista_mesi_simulazione_univoci('vista_ente_fornitore')
     context = {"table_flag":"0",
                "lista_mesi": lista_mesi,
                }
@@ -1065,6 +1251,204 @@ def download_vista_fornitore(request, selectedData):
     return response
 
 
+def calcolo_mese_automatizzata(mesi_in_avanti,cutoff,data_auto):
+    # dalle variabili d'ambiente recuperiamo il valore relativo a quanti mesi in avanti vogliamo simulare
+    # mesi_in_avanti = int(os.environ["mesi_in_avanti"])
+    # datetime now
+    #datetime_now = datetime.now(ZoneInfo("Europe/Rome")) + relativedelta(months=mesi_in_avanti)
+    datetime_now = data_auto + relativedelta(months=mesi_in_avanti)
+    giorno = datetime_now.day
+    mese = datetime_now.month
+    anno = datetime_now.year
+ 
+    # REQUISITO: dopo il cut-off (impostato tramite parametro modificabile) del mese corrente bisogna processare il mese successivo
+ 
+    if giorno > int(cutoff):
+        # aumentiamo il mese di 1
+        if mese == 12:
+            anno = anno + 1
+            mese = 1
+        else:
+            mese = mese + 1
+    # primo giorno del mese
+    first = datetime(anno, mese, 1) #2026/08/01
+    # giorno della settimana (lunedì=0, ... domenica=6)
+    weekday = first.weekday() #sabato
+    # calcoliamo quanto manca al primo lunedì
+    giorni_fino_lunedi = (7 - weekday) % 7 # 7-5 % 7
+    # recuperiamo il primo lunedì
+    prima_settimana_da_processare = first + timedelta(days=giorni_fino_lunedi)
+    # se il primo lunedì del mese è 1, prendiamo l'8 come prima settimana da processare
+    if prima_settimana_da_processare.day == 1:
+        prima_settimana_da_processare = prima_settimana_da_processare + timedelta(days=7)
+ 
+    return prima_settimana_da_processare.date()
+ 
+def generazione_eventi_ricorrente(data_inizio,data_fine,giorno_settimana,simul_mean_time,cutoff,mesi_avanti):
+    """ Genera eventi ricorrenti per il calendario.
+         data_inizio: Data inizio del periodo dei eventi ricorrenti
+         data_fine: Data fine del periodo dei eventi ricorrenti
+         giorno_settimana: giorno della settimana in cui si vuole generare l'evento ricorrente
+         simul_mean_time: durata media della simulazione utilizzata come previsione di durata dell'evento ricorrente"""
+   
+    eventi_ricorrenti = []
+    n_giorni = data_fine - data_inizio
+    for giorni in range(0,n_giorni.days):
+        data = data_inizio + timedelta(days=giorni)
+        mese_automatizzata =  calcolo_mese_automatizzata(mesi_avanti,cutoff,data).strftime('%Y-%m')
+        if data.weekday() == giorno_settimana:
+            eventi_ricorrenti.append({
+                'title': 'Automatizzata ' + str(mese_automatizzata) ,
+                'start': data,
+                'end': data + simul_mean_time,
+                'color': 'rgb(130, 130, 130)',
+                'extendedProps': {
+                    'id': '-',
+                    'stato': 'Schedulata',
+                    'descrizione': 'Pianificazione settimanale automatizzata '+str(mese_automatizzata),
+                    'mese_simulazione': str(mese_automatizzata),
+                    'tipo_capacita': 'Produzione'
+                }
+            })
+    return eventi_ricorrenti
+ 
+def cambio_status_ricorrenti(lista_ricorrenti):
+    '''
+    Questa funzione modifica lo stato degli eventi ricorrenti in base alla data di fine simulazione.
+    Cambia di stato schedulata per In lavorazione se la simulazione è in esecuzione
+    '''
+    lista_aux = lista_ricorrenti.copy()
+    for evento in lista_aux:
+        event_day = evento['start'].day
+        if event_day == datetime.now().day and (datetime.now() < evento['end'] and datetime.now() > evento['start']) :
+            evento['extendedProps']['stato'] = 'In lavorazione'
+ 
+    return lista_aux
+ 
+def del_ricorrenti_passati(lista_ricorrenti):
+    '''
+    Questa funzione elimina gli eventi ricorrenti che sono già passati
+    '''
+    oggi = datetime.now()
+    return [evento for evento in lista_ricorrenti if evento['end'] > oggi]
+ 
+def get_calendar_data(request):
+    '''
+    Questa funzione riceve i dati disponibili nella tabella simulazione e li formatta per essere visualizzati nel calendario
+    '''
+ 
+    NUMBER_EVENTS = 5 # parametro per calcolo del tempo medio di simulazione --> default ultimi 5 giorni
+    STATUS_FALLITA = 'Fallita' # Parametro creato per futuramente sostituire il valore 'Fallita' con un valore di "Fallita"
+    ORA_INIZIO_RICORRENTI = '01:00:00'
+    ORA_FINE_RICORRENTI = '23:00:00'
+    DEFAULT_TEMPO_MEDIO = timedelta(hours=15, minutes=0, seconds=0)
+    DATA_INIZIO_RICORRENTI = datetime.strptime(f'2026-06-30 {ORA_INIZIO_RICORRENTI}',  '%Y-%m-%d %H:%M:%S') #inizio della finestra degli eventi ricorrenti
+    DATA_FINE_RICORRENTI = datetime.strptime(f'2026-12-31 {ORA_FINE_RICORRENTI}', '%Y-%m-%d %H:%M:%S') #fine della finestra degli eventi ricorrenti
+ 
+ 
+    events_list = list(table_simulazione.objects.values('ID', 'NOME', 'STATO', 'START_TIMESTAMP','MESE_SIMULAZIONE','END_TIMESTAMP',
+                                                        'DESCRIZIONE','TIPO_CAPACITA').order_by('-START_TIMESTAMP'))
+   
+    last_ids = table_simulazione.objects.filter(END_TIMESTAMP__isnull=False).order_by('-END_TIMESTAMP').values_list('ID', flat=True)[:NUMBER_EVENTS]
+ 
+    media_end_timestamp = table_simulazione.objects.filter(ID__in=list(last_ids)).aggregate(tempo_medio=Avg(F('END_TIMESTAMP') - F('START_TIMESTAMP')))['tempo_medio']
+    if media_end_timestamp is None:
+        media_end_timestamp = DEFAULT_TEMPO_MEDIO
+
+    # Inizio blocco per formattazione eventi da mostrare nel fullcalendar
+    regular_event = []
+    for event in events_list:
+ 
+        # Eliminazione eventi in bozza e senza data di fine
+        if event['STATO'] in ['Lavorata', STATUS_FALLITA] and event['END_TIMESTAMP'] is None:
+            continue
+        elif event['STATO'] == 'Bozza':
+            continue
+ 
+        # Ancora dentro il loop impostazione colore e tempo di previsione per gli eventi
+        elif event['STATO'] in ['Schedulata', 'In lavorazione']:
+            data_fine = media_end_timestamp + event['START_TIMESTAMP']
+            if event['STATO'] == 'Schedulata':
+                background_color = 'rgb(130, 130, 130)'
+            else:
+                background_color = '#3586bd'
+        elif event['STATO'] == STATUS_FALLITA:
+            data_fine = event['END_TIMESTAMP']
+            background_color = "#f88981"
+        else:
+            data_fine = event['END_TIMESTAMP']
+            background_color = 'rgb(2, 153, 108)'
+ 
+        data_inizio = event['START_TIMESTAMP']
+ 
+ 
+        # Questo format è richiesto da FullCalendar per la visualizzazione degli eventi
+        regular_event.append({
+            'title': event['NOME'],
+            'start': data_inizio,
+            'end': data_fine,
+            'color': background_color,
+            'extendedProps': {
+                'id': event['ID'],
+                'stato': event['STATO'],
+                'descrizione': event['DESCRIZIONE'],
+                'mese_simulazione': event['MESE_SIMULAZIONE'],
+                'tipo_capacita': event['TIPO_CAPACITA'],
+                'tempoMedio': str(media_end_timestamp).split('.')[0],
+            }
+        })
+ 
+    # Attenzione qui la seguenza è importante: 1) Generazione eventi ricorrenti 2) cambio stato 3) del eventi ricorrent passati 4)
+    eventi_ricorrente = generazione_eventi_ricorrente(data_inizio = DATA_INIZIO_RICORRENTI,
+                                                      data_fine = DATA_FINE_RICORRENTI,
+                                                      giorno_settimana=0,# Giorno della settimana [0==Lunedi, 1=Martedi....6=Domenica]
+                                                      simul_mean_time = media_end_timestamp,
+                                                      cutoff = int(CUTOFF),
+                                                      mesi_avanti = int(MESI_IN_AVANTI))
+    eventi_ricorrente = cambio_status_ricorrenti(eventi_ricorrente)
+    eventi_ricorrente = del_ricorrenti_passati(eventi_ricorrente)
+    event_formated = regular_event + eventi_ricorrente
+   
+    return JsonResponse({'event_list': event_formated})
+
+
+def costruisci_postalizzazioni_salvate(id_simulazione):
+    from collections import defaultdict
+    record = table_sender_limit_mock.objects.filter(
+        SIMULAZIONE_ID=id_simulazione
+    ).order_by('PA_ID', 'ID')
+
+    tabella_cap_prov_reg = table_cap_prov_reg.objects.all()
+
+    righe = tabella_cap_prov_reg.values("COD_SIGLA_PROVINCIA","REGIONE").distinct()
+    provincia_regione_map = {r["COD_SIGLA_PROVINCIA"]: r["REGIONE"] for r in righe}
+
+    raggruppati = defaultdict(list)
+
+    for r in record:
+        geo = r.SUDDIVISIONE_GEOGRAFICA
+
+        if geo == "Italia":
+            regione = "Tutte le regioni"
+            provincia = "Tutte le province"
+        elif geo in tabella_cap_prov_reg.values_list('REGIONE', flat=True).distinct().order_by('REGIONE'):
+            regione = geo
+            provincia = "Tutte le province"
+        else:
+            provincia = list(table_cap_prov_reg.objects.filter(COD_SIGLA_PROVINCIA=geo).values_list('PROVINCIA', flat=True).distinct().order_by('PROVINCIA') )
+            regione = provincia_regione_map.get(geo, "")
+
+        raggruppati[r.PA_ID].append({
+            "regione": regione,
+            "provincia": provincia,
+            "prodotto": r.PRODUCT_TYPE,
+            "quantita": r.MONTHLY_ESTIMATE,
+        })
+
+    return [
+        {"PA_ID": pa_id, "righe": righe}
+        for pa_id, righe in raggruppati.items()
+    ]
 
 # ERROR PAGES
 def handle_error_400(request, exception):
