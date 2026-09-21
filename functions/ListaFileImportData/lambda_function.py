@@ -234,7 +234,7 @@ def gestione_residui(prefix_s3,id_simulazione,prima_settimana_simulazione_string
         return []
 
 
-def popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione,pianificazione_postalizzazioni):
+def popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione):
     """
         Popoliamo la lista dei file csv postalizzazioni (default o mock) sui quali effettuare l'operazione di IMPORT_DATA
     
@@ -243,7 +243,6 @@ def popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simula
             source_bucket (string): bucket contenente i file csv sorgenti da importare successivamente tramite l'operazione di IMPORT_DATA
             lista_settimane (list): lista settimane di simulazione contenenti postalizzazioni (default o mock), formato "yyyy-MM-dd"
             id_simulazione (string): identificativo univoco della simulazione sul db
-            pianificazione_postalizzazioni (string): scelta dell'utente che, tramite la webapp, ha selezionato il tipo di pianificazione_postalizzazioni
     
         Returns:
             list: lista dei file csv postalizzazioni (default o mock) sui quali effettuare l'operazione di IMPORT_DATA
@@ -283,13 +282,13 @@ def recupero_lista_csv_sorgenti(source_bucket,prefix_s3,id_simulazione,prima_set
         lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
         # siccome stiamo prendendo solo le capacità su provincia, mettiamo un'if per evitare di prendere dati_extra       
         lista_settimane = [x for x in lista_settimane if '/dati_extra/' not in x]
-        lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione,pianificazione_postalizzazioni))
+        lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione))
     # RECUPERO POSTALIZZAZIONI MOCK
     if (pianificazione_postalizzazioni == 'Utilizza le commesse di default e le commesse di mock' or pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock' or postalizzazioni_fuori_commessa=='True'):
         # recuperiamo la lista delle cartelle di interesse sulla cartella di destinazione s3
         objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=prefix_s3+f'dati_extra/postalizzazioni_mock/ID_{id_simulazione}/', Delimiter="/")
         lista_settimane = [cp["Prefix"] for cp in objects.get("CommonPrefixes", [])]
-        lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione,pianificazione_postalizzazioni))  
+        lista_file_csv.extend(popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simulazione))  
     # recupero residui
     lista_file_csv.extend(gestione_residui(prefix_s3, id_simulazione, prima_settimana_simulazione, start_timestamp_simulazione))
     return lista_file_csv
