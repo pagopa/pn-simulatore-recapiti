@@ -43,9 +43,9 @@ Parameters:
     Type: String
     Description: Source VPC CIDR block for RDS ingress rule
 
-  AlarmSNSTopicArn:
+  WarningSNSTopicArn:
     Type: String
-    Description: ARN of the shared SNS topic for alarms
+    Description: ARN of the central warning topic for routed CloudWatch alarms
 
   RdsSimulatorClusterIdentifierSuffix:
     Type: String
@@ -345,7 +345,7 @@ Resources:
         MaxACU: !Ref RdsSimulatorMaxACU
         BackupRetentionPeriod: !Ref RdsSimulatorBackupRetentionPeriod
         DeletionProtectionEnabled: !Ref RdsSimulatorDeletionProtection
-        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        AlarmSNSTopicArn: !Ref WarningSNSTopicArn
         DbCpuAlarmThreshold: !Ref RdsSimulatorDbCpuAlarmThreshold
         DbConnectionsAlarmThreshold: !Ref RdsSimulatorDbConnectionsAlarmThreshold
         EnableMultiAZ: !Ref RdsSimulatorEnableMultiAZ
