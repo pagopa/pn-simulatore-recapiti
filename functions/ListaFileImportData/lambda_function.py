@@ -169,13 +169,13 @@ def recupero_residui(deliveryDate,prefix_s3,id_simulazione,prima_settimana_simul
             chunk.append(row)
             if len(chunk) >= max_rows:
                 s3_file_key = upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk)
-                lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key})
+                lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key, 'id_simulazione':id_simulazione})
                 chunk = []
                 index += 1
         # ultimo chunk
         if chunk:
             s3_file_key = upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk)
-            lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key})                            
+            lista_csv_da_importare.append({'settimana_import': prima_settimana_simulazione_string, 's3_file_key': s3_file_key, 'id_simulazione':id_simulazione})                            
     # chiudiamo la connessione
     response.release_conn()
 
@@ -253,8 +253,8 @@ def popolamento_lista_file_csv(s3_client,source_bucket,lista_settimane,id_simula
         objects = s3_client.list_objects_v2(Bucket=source_bucket, Prefix=singola_settimana)
         for obj in objects.get("Contents", []):
             if obj["Key"][-4:] == '.csv':
-                # nota: singola_settimana ha il formato settimana_import avrà il formato avrà il formato 'yyyy-MM-dd_settimana_esecuzione'
-                lista_file_da_appendere.append({'settimana_import':singola_settimana.split('/')[-2],'s3_file_key':obj["Key"],'id_simulazione':id_simulazione,'pianificazione_postalizzazioni':pianificazione_postalizzazioni})
+                # nota: singola_settimana ha il formato 'yyyy-MM-dd_settimana_esecuzione'
+                lista_file_da_appendere.append({'settimana_import':singola_settimana.split('/')[-2],'s3_file_key':obj["Key"],'id_simulazione':id_simulazione})
     return lista_file_da_appendere
 
 
