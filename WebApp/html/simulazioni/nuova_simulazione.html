@@ -1807,54 +1807,86 @@ function visualizzaTabella(event) {
 </script>
 
 <script>
-    function unioneTabelle(){
+function unioneTabelle() {
+    
+    const tabellaGlobale = document.createElement('table');
+    tabellaGlobale.className = "table table-hover"; 
+    tabellaGlobale.id = "TabellaGloballe";
 
-        const tabellaGlobale = document.createElement('table');
-        tabellaGlobale.id = "TabellaGloballe";
-        const theadGlobale = listaTabelle[0].querySelector('thead');
+    const theadGlobale = document.createElement('thead'); 
+    const tbodyGlobale = document.createElement('tbody');
 
-        if (theadGlobale) {
-            tabellaGlobale.appendChild(theadGlobale.cloneNode(true));
+    
+    const theadOriginale = listaTabelle[0].querySelector('thead');
+    if (theadOriginale) {
+        const trOriginale = theadOriginale.querySelector('tr');
+        if (trOriginale) {
+            
+            const trCloned = trOriginale.cloneNode(true);
+            
+            const cell = document.createElement("th");
+            cell.textContent = 'ID Ente';
+            //trCloned.appendChild(cell);
+             trCloned.insertAdjacentElement('afterbegin',cell);
+            
+            // tr -> thead -> tabela
+            theadGlobale.appendChild(trCloned);
         }
+    }
+    tabellaGlobale.appendChild(theadGlobale);
+    tabellaGlobale.appendChild(tbodyGlobale);
 
-        const tbodyGlobale = document.createElement('tbody');
-        tabellaGlobale.appendChild(tbodyGlobale);
-
-        listaTabelle.forEach(tabella => {
-            const tbodyAux = tabella.querySelector('tbody');
-        
-            if (tbodyAux) {
-                const righe = tbodyAux.querySelectorAll('tr');
-                righe.forEach(lines => {
+    
+    listaTabelle.forEach(tabella => {
+        const tbodyAux = tabella.querySelector('tbody');
+    
+        if (tbodyAux) {
+            const righe = tbodyAux.querySelectorAll('tr');
+            righe.forEach(lines => {
                 const righeCloned = lines.cloneNode(true); 
+                
+                const cellid = document.createElement("td");
+                cellid.textContent = tabella.id; 
+                //righeCloned.appendChild(cellid);
+                righeCloned.insertAdjacentElement('afterbegin',cellid);
                 tbodyGlobale.appendChild(righeCloned);
-                });
-            }
             });
-        
-        const modalBody = document.getElementById('bodyModalVisualizzaTabella');
-        modalBody.innerHTML = "";
-        modalBody.appendChild(tabellaGlobale.cloneNode(true));
+        }
+    });
+    
+   
+    const modalBody = document.getElementById('bodyModalVisualizzaTabella');
+    modalBody.innerHTML = "";
+    
+    modalBody.appendChild(tabellaGlobale); 
 
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('ModalVisualizzaTabella')).show();
-        new DataTable(`#${tabellaGlobale.id}`, {
-            layout:{
+    
+    const modalElement = document.getElementById('ModalVisualizzaTabella');
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+
+    
+    new DataTable(`#${tabellaGlobale.id}`, {
+        retrieve: true,
+        paging: true,
+        layout: {
             bottom2End: {
                 buttons: [
-                        {
-                            extend: 'csv',
-                            text: 'Download CSV',
-                            fieldSeparator: ',',
-                            className: 'btn btn-sm btn-primary',
-                            filename: 'Vista',
-                            exportOptions: {
-                                columns: [0,1,2,3]
-                            }
+                    {
+                        extend: 'csv',
+                        text: 'Download CSV',
+                        fieldSeparator: ',',
+                        className: 'btn btn-sm btn-primary',
+                        filename: 'Vista',
+                        exportOptions: {
+                            columns: [0, 1, 2, 3, 4]
                         }
-                    ],
-               }}
-        });
-    }
+                    }
+                ]
+            }
+        }
+    });
+}
+
 </script>
 
 <script>

@@ -1344,6 +1344,7 @@ def get_calendar_data(request):
     DEFAULT_TEMPO_MEDIO = timedelta(hours=15, minutes=0, seconds=0)
     DATA_INIZIO_RICORRENTI = datetime.strptime(f'2026-06-30 {ORA_INIZIO_RICORRENTI}',  '%Y-%m-%d %H:%M:%S') #inizio della finestra degli eventi ricorrenti
     DATA_FINE_RICORRENTI = datetime.strptime(f'2026-12-31 {ORA_FINE_RICORRENTI}', '%Y-%m-%d %H:%M:%S') #fine della finestra degli eventi ricorrenti
+    GIORNO_SETTIMANA = 1
  
  
     events_list = list(table_simulazione.objects.values('ID', 'NOME', 'STATO', 'START_TIMESTAMP','MESE_SIMULAZIONE','END_TIMESTAMP',
@@ -1401,7 +1402,7 @@ def get_calendar_data(request):
     # Attenzione qui la seguenza è importante: 1) Generazione eventi ricorrenti 2) cambio stato 3) del eventi ricorrent passati 4)
     eventi_ricorrente = generazione_eventi_ricorrente(data_inizio = DATA_INIZIO_RICORRENTI,
                                                       data_fine = DATA_FINE_RICORRENTI,
-                                                      giorno_settimana=0,# Giorno della settimana [0==Lunedi, 1=Martedi....6=Domenica]
+                                                      giorno_settimana=GIORNO_SETTIMANA,# Giorno della settimana [0==Lunedi, 1=Martedi....6=Domenica]
                                                       simul_mean_time = media_end_timestamp,
                                                       cutoff = int(CUTOFF),
                                                       mesi_avanti = int(MESI_IN_AVANTI))
