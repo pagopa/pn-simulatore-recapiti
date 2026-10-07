@@ -96,7 +96,7 @@ def upload_chunk_su_s3(prefix_s3, id_simulazione, key, index, header, chunk):
     Returns:
         string: file_key del file caricato su s3
     """
-    s3_file_key = f'{prefix_s3}residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
+    s3_file_key = f'{prefix_s3}dati_extra/residui/id_simulazione_{id_simulazione}/{key}_part_{index}.csv'
     # componiamo il file csv
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=';', quoting=csv.QUOTE_ALL)
