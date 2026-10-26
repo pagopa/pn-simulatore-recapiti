@@ -1470,14 +1470,14 @@ Resources:
       ExecutionProperty:
         MaxConcurrentRuns: 1
   
-  GenerazioneFileZIPCommesseMockGlueJob:
+  GenerazioneFileZIPCommesseGlueJob:
     Type: AWS::Glue::Job
     Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneFileZIPCommesseMock"
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneFileZIPCommesse"
       Role: !GetAtt GlueJobSimulatoreRole.Arn
       Command:
         Name: glueetl
-        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/GenerazioneFileZIPCommesseMock.py"
+        ScriptLocation: !Sub "s3://${MicroserviceBucketName}/${MicroserviceBucketBaseKey}/static/glue/scripts/GenerazioneFileZIPCommesse.py"
         PythonVersion: "3"
       DefaultArguments:
         "--job-bookmark-option": "job-bookmark-disable"
@@ -1697,7 +1697,7 @@ Resources:
         GetUsedCapacityLambdaArn: !GetAtt GetUsedCapacityLambda.Arn
         RecuperoRisultatiPaperDeliveryGlueJobName: !Ref RecuperoRisultatiPaperDeliveryGlueJob
         AssegnazionePeakCapacityCAPGlueJobName: !Ref AssegnazionePeakCapacityCAPGlueJob
-        GenerazioneFileZIPCommesseMockGlueJobName: !Ref GenerazioneFileZIPCommesseMockGlueJob
+        GenerazioneFileZIPCommesseGlueJobName: !Ref GenerazioneFileZIPCommesseGlueJob
         GenerazioneCsvImportDataMockGlueJobName: !Ref GenerazioneCsvImportDataMockGlueJob
         DeleteDataLambdaArn: !GetAtt DeleteDataLambda.Arn
         AggiornaSimulazioneDBLambdaArn: !GetAtt AggiornaSimulazioneDBLambda.Arn
