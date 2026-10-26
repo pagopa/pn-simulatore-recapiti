@@ -298,9 +298,9 @@ class view_output_capacity_setting_mock(pg.View):
         SELECT "SENDER_LIMIT_MOCK"."SIMULAZIONE_ID", "SENDER_LIMIT_MOCK"."DELIVERY_DATE","SENDER_LIMIT_MOCK"."PRODUCT_TYPE", "SENDER_LIMIT_MOCK"."PA_ID","COD_SIGLA_PROVINCIA", "SENDER_LIMIT_MOCK"."MONTHLY_ESTIMATE"
         FROM public."SENDER_LIMIT_MOCK" 
 		INNER JOIN (SELECT DISTINCT "PROVINCIA", "COD_SIGLA_PROVINCIA" FROM public."CAP_PROV_REG") AS "PROV"
-  		ON "PROV"."PROVINCIA" = public."SENDER_LIMIT_MOCK"."SUDDIVISIONE_GEOGRAFICA"
+  		ON "PROV"."COD_SIGLA_PROVINCIA" = public."SENDER_LIMIT_MOCK"."SUDDIVISIONE_GEOGRAFICA"
         WHERE "SUDDIVISIONE_GEOGRAFICA" IN (
-        SELECT DISTINCT "PROVINCIA" 
+        SELECT DISTINCT "COD_SIGLA_PROVINCIA" 
         FROM public."CAP_PROV_REG"
         )
         ),
@@ -682,6 +682,10 @@ class view_output_modified_capacity_setting(pg.View):
         AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting"."PRODUCT_AR"
         AND public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE" = public."output_capacity_setting"."SUM_MONTHLY_ESTIMATE"
         AND EXTRACT(MONTH FROM CAST(CONCAT("MESE_SIMULAZIONE",'-01') AS DATE)) = public."output_capacity_setting"."MONTH_DELIVERY"
+        WHERE (
+            public."SIMULAZIONE"."PIANIFICAZIONE_POSTALIZZAZIONI" = 'Utilizza le commesse di default' 
+            AND public."SIMULAZIONE"."POSTALIZZAZIONI_FUORI_COMMESSA" = FALSE
+        )
         ),
         "OUTPUT_MOCK" AS (
         SELECT
@@ -725,6 +729,10 @@ class view_output_modified_capacity_setting(pg.View):
         AND public."CAPACITA_SIMULATE"."PRODUCT_AR" = public."output_capacity_setting_mock"."PRODUCT_AR"
         AND public."CAPACITA_SIMULATE"."SUM_MONTHLY_ESTIMATE" = (public."output_capacity_setting_mock"."SUM_MONTHLY_ESTIMATE_MOCK" + public."output_capacity_setting_mock"."SUM_MONTHLY_ESTIMATE_DEFAULT")
         AND EXTRACT(MONTH FROM CAST(CONCAT("MESE_SIMULAZIONE",'-01') AS DATE)) = public."output_capacity_setting_mock"."MONTH_DELIVERY"
+        WHERE (
+            public."SIMULAZIONE"."PIANIFICAZIONE_POSTALIZZAZIONI" != 'Utilizza le commesse di default' 
+            OR public."SIMULAZIONE"."POSTALIZZAZIONI_FUORI_COMMESSA" = TRUE
+        )
         )
         SELECT * 
         FROM "OUTPUT_DEFAULT"
