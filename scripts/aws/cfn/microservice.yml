@@ -1473,7 +1473,7 @@ Resources:
   GenerazioneFileZIPCommesseGlueJob:
     Type: AWS::Glue::Job
     Properties:
-      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneFileZIPCommesse"
+      Name: !Sub "${ProjectName}-${MicroServiceUniqueName}-Glue-GenerazioneFileZIPCommesse-v2"
       Role: !GetAtt GlueJobSimulatoreRole.Arn
       Command:
         Name: glueetl
