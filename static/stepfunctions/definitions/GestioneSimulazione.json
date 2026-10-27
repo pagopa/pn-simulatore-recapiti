@@ -22,12 +22,32 @@
           "JitterStrategy": "FULL"
         }
       ],
-      "Next": "SIMULAZIONE MANUALE?",
+      "Next": "GENERAZIONE FILE ZIP COMMESSE",
       "ResultPath": "$.output_lambda_ConfigurazioneSimulazione",
       "ResultSelector": {
         "Payload.$": "$.Payload"
       },
       "OutputPath": "$"
+    },
+    "GENERAZIONE FILE ZIP COMMESSE": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "${GenerazioneFileZIPCommesseGlueJobName}",
+        "Arguments": {
+          "--id_simulazione_automatizzata.$": "$.output_lambda_ConfigurazioneSimulazione.Payload.id_simulazione_automatizzata",
+          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
+          "--tipo_simulazione.$": "$.tipo_simulazione",
+          "--mese_simulazione.$": "$.mese_simulazione"
+        }
+      },
+      "Next": "WAIT PER INSERT_MOCK_SENDER_LIMITS",
+      "ResultPath": null
+    },
+    "WAIT PER INSERT_MOCK_SENDER_LIMITS": {
+      "Type": "Wait",
+      "Seconds": 14400,
+      "Next": "SIMULAZIONE MANUALE?"
     },
     "SIMULAZIONE MANUALE?": {
       "Type": "Choice",
@@ -50,19 +70,6 @@
           "--mese_simulazione.$": "$.mese_simulazione"
         }
       },
-      "Next": "GENERAZIONE FILE ZIP COMMESSE MOCK",
-      "ResultPath": null
-    },
-    "GENERAZIONE FILE ZIP COMMESSE MOCK": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::glue:startJobRun.sync",
-      "Parameters": {
-        "JobName": "${GenerazioneFileZIPCommesseMockGlueJobName}",
-        "Arguments": {
-          "--id_simulazione_manuale.$": "$.id_simulazione_manuale",
-          "--mese_simulazione.$": "$.mese_simulazione"
-        }
-      },
       "Next": "GENERAZIONE CSV IMPORT DATA MOCK",
       "ResultPath": null
     },
@@ -76,13 +83,8 @@
           "--mese_simulazione.$": "$.mese_simulazione"
         }
       },
-      "Next": "WAIT PER INSERT_MOCK_SENDER_LIMITS",
+      "Next": "RECUPERO FILE CSV PER IMPORT DATA",
       "ResultPath": null
-    },
-    "WAIT PER INSERT_MOCK_SENDER_LIMITS": {
-      "Type": "Wait",
-      "Seconds": 5,
-      "Next": "RECUPERO FILE CSV PER IMPORT DATA"
     },
     "RECUPERO FILE CSV PER IMPORT DATA": {
       "Type": "Task",
