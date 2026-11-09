@@ -1366,7 +1366,7 @@ Resources:
         Connections:
           - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
-        MaxConcurrentRuns: 1
+        MaxConcurrentRuns: 2
 
   RecuperoDeclaredCapacityDeltaGlueJob:
     Type: AWS::Glue::Job
@@ -1399,7 +1399,7 @@ Resources:
         Connections:
           - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
-        MaxConcurrentRuns: 1
+        MaxConcurrentRuns: 2
 
   RecuperoRisultatiPaperDeliveryGlueJob:
     Type: AWS::Glue::Job
@@ -1569,7 +1569,7 @@ Resources:
         Connections:
           - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
-        MaxConcurrentRuns: 1
+        MaxConcurrentRuns: 2
 
   RecuperoDeclaredCapacityCAPS3GlueJob:
     Type: AWS::Glue::Job
@@ -1603,7 +1603,7 @@ Resources:
         Connections:
           - !Sub "pn-simulatore-recapiti-glue-network-connection-${EnvironmentType}"
       ExecutionProperty:
-        MaxConcurrentRuns: 1
+        MaxConcurrentRuns: 2
 
   # Step Functions
   GestioneSimulazioneStateFunctionRole:
