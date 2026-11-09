@@ -20,7 +20,7 @@
     "TableDriverCapacities": "pn-PaperDeliveryDriverCapacities",
     "TableDriverCapacitiesMock": "pn-PaperDeliveryDriverCapacitiesMock",
     "LambdaCalcoloPrimaSettimanaCutOffDay": "22",
-    "LambdaCalcoloPrimaSettimanaMesiInAvanti": "2",
+    "LambdaCalcoloPrimaSettimanaMesiInAvanti": "3",
     "LambdaCalcoloPrimaSettimanaRecuperoMesiIntermedi": "True",
     "RecuperoRisultatiPaperDeliveryGlueJobWorkerType": "G.1X",
     "RecuperoRisultatiPaperDeliveryGlueJobNumberOfWorkers": "2"
