@@ -41,13 +41,8 @@
           "--mese_simulazione.$": "$.mese_simulazione"
         }
       },
-      "Next": "WAIT PER INSERT_MOCK_SENDER_LIMITS",
+      "Next": "SIMULAZIONE MANUALE?",
       "ResultPath": null
-    },
-    "WAIT PER INSERT_MOCK_SENDER_LIMITS": {
-      "Type": "Wait",
-      "Seconds": 14400,
-      "Next": "SIMULAZIONE MANUALE?"
     },
     "SIMULAZIONE MANUALE?": {
       "Type": "Choice",
@@ -58,7 +53,7 @@
           "StringEquals": "Manuale"
         }
       ],
-      "Default": "RECUPERO FILE CSV PER IMPORT DATA"
+      "Default": "WAIT PER INSERT_MOCK_SENDER_LIMITS"
     },
     "ASSEGNAZIONE PEAK CAPACITY CAP": {
       "Type": "Task",
@@ -83,8 +78,13 @@
           "--mese_simulazione.$": "$.mese_simulazione"
         }
       },
-      "Next": "RECUPERO FILE CSV PER IMPORT DATA",
+      "Next": "WAIT PER INSERT_MOCK_SENDER_LIMITS",
       "ResultPath": null
+    },
+    "WAIT PER INSERT_MOCK_SENDER_LIMITS": {
+      "Type": "Wait",
+      "Seconds": 14400,
+      "Next": "RECUPERO FILE CSV PER IMPORT DATA"
     },
     "RECUPERO FILE CSV PER IMPORT DATA": {
       "Type": "Task",
