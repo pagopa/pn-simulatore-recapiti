@@ -12,8 +12,6 @@ import json
 import dash_ag_grid as dag
 import dash_bootstrap_components as dbc
 from django.db.models import F
-from django.conf import settings
-from django_plotly_dash import DjangoDash
 # import datetime
 
 # for js in dag.AgGrid._js_dist:     
@@ -21,7 +19,6 @@ from django_plotly_dash import DjangoDash
 
 
 app_risultati = DjangoDash('dash_risultati', external_stylesheets=[dbc.themes.FLATLY])
-app_risultati.server.secret_key = settings.SECRET_KEY
 
 # caricamento dati json con i limiti di ogni regione come coordinate
 with open(os.path.join(BASE_DIR, 'static/data/limits_IT_regions.json'), encoding = "utf-8") as f:
