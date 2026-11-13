@@ -23,6 +23,8 @@ import ast
 import json
 import datetime
 import math
+from datetime import timedelta
+from pyspark.sql.window import Window
 
 
 # recupero parametri d'ambiente del job
@@ -199,7 +201,7 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
                                      'capacity': row_cap['capacity']*(rows_type==True) + row_cap['peakCapacity']*(rows_type==False),
                                      'peakCapacity': row_cap['capacity']*(rows_type==True) + row_cap['peakCapacity']*(rows_type==False),
                                      'activationDateFrom': row_capsim['ACTIVATION_DATE_FROM'],
-                                     'activationDateTo': row_capsim['ACTIVATION_DATE_TO'],
+                                     'activationDateTo': row_capsim['ACTIVATION_DATE_TO'] + timedelta(milliseconds=999),
                                      'products': row_cap['products'],
                                      'CodSiglaProvincia': row_cap['COD_SIGLA_PROVINCIA'],
                                      'FLAG_DEFAULT': rows_type}
@@ -239,6 +241,33 @@ df_cap_capacities_final_s3_modified = df_cap_capacities_final_stg2.filter(F.col(
                                                                   .select('unifiedDeliveryDriver','geoKey','capacity','peakCapacity','activationDateFrom','activationDateTo','products')
 
 
+# Creazione del dataframe con record raggruppati per capacità uguali consecutive
+def grouping(df):
+    df_ordered = df.orderBy('unifiedDeliveryDriver','geoKey','products','activationDateFrom')
+    # Calcolo della capacità precedente all'interno di ogni tripletta (il valore è NULL se si cambia tripletta)
+    w = Window.partitionBy('unifiedDeliveryDriver','geoKey','products').orderBy('activationDateFrom')
+    df_lagged = df_ordered.withColumn('prev_capacity',F.lag(F.col('capacity'),1).over(w))
+    # Calcolo del flag che individua il punto in cui si cambia gruppo (sia se cambia la tripletta sia se cambiano le capacità sulla stessa tripletta)
+    df_lagged_v1 = df_lagged.withColumn('Flag_change_group',F.when((F.col('prev_capacity')!=F.col('capacity')) | (F.col('prev_capacity').isNull()),1).otherwise(0))
+    # Utilizzo la somma cumulata, ordinata per tripletta e data, del flag precedente per creare i gruppi
+    w = Window.partitionBy().orderBy('unifiedDeliveryDriver','geoKey','products','activationDateFrom')
+    df_lagged_v2 = df_lagged_v1.withColumn('Gruppi',F.sum(F.col('Flag_change_group')).over(w))
+    df_grouped = df_lagged_v2.groupBy('Gruppi')\
+                             .agg(F.first('unifiedDeliveryDriver').alias('unifiedDeliveryDriver'),
+                                  F.first('geoKey').alias('geoKey'),
+                                  F.first('capacity').alias('capacity'),
+                                  F.first('peakCapacity').alias('peakCapacity'),
+                                  F.min('activationDateFrom').alias('activationDateFrom'),
+                                  F.max('activationDateTo').alias('activationDateTo'),
+                                  F.first('products').alias('products')
+                                 )\
+                            .drop('Gruppi')
+    return df_grouped
+
+df_cap_capacities_final_s3_all_grouped = grouping(df_cap_capacities_final_s3_all)
+df_cap_capacities_final_s3_modified_grouped = grouping(df_cap_capacities_final_s3_modified)
+
+
 print('Export su S3')
 # File totale
 export_path_s3_partitioned = 's3://'+s3_bucket+'/' + output_prefix + 'dati_extra/cap_capacities/id_'+ str(id_simulazione_manuale) + '/partitioned/'
@@ -248,11 +277,11 @@ num_rows=df_cap_capacities_final_s3_all.count()
 print(num_rows)
 part=math.ceil(num_rows/max_rows)
 df_cap_capacities_final_s3_all.repartition(part).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_partitioned)
-df_cap_capacities_final_s3_all.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_unified_all)
+df_cap_capacities_final_s3_all_grouped.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_unified_all)
 
 # File con capacità di picco
 export_path_s3_unified_modified = 's3://'+s3_bucket+'/' + output_prefix + 'dati_extra/cap_capacities/id_'+ str(id_simulazione_manuale) + '/unified/modified/'
-df_cap_capacities_final_s3_modified.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_unified_modified)
+df_cap_capacities_final_s3_modified_grouped.repartition(1).write.mode('overwrite').option('header',True).option('sep',';').option('quoteAll','False').format('csv').save(export_path_s3_unified_modified)
 
 
 print('Export su DB')      
