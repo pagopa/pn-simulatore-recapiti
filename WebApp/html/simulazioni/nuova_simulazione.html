@@ -134,14 +134,14 @@
                     <button type="button" class="btn btn-primary btn-md d-none" onclick="getNomeUtente(utenteExtra=true)" id="buttonPostMax"> Inserire postalizzazioni fuori commessa </button>
                 </div>
                 <div class = "col-4 ">
-                    <input class="form-check-input" type="checkbox" value="" id="checkbox_postalizzazioni_fuori_commessa" {% if simulazione_selezionata.POSTALIZZAZIONI_FUORI_COMMESSA %}checked{% endif %}>
+                    <input class="form-check-input" type="checkbox" value="" id="checkbox_postalizzazioni_fuori_commessa" {% if simulazione_selezionata.POSTALIZZAZIONI_FUORI_COMMESSA %}checked{% endif %} disabled>
                     <label class="form-check-label" for="checkbox_postalizzazioni_fuori_commessa"> Aggiungi postalizzazioni fuori commessa</label>
                 </div>
             </div>
             <div class="row">
                     <label class="form-label"><b>Scegliere la modalità di pianificazione delle postalizzazioni:</b></label>
             </div>
-            <select required class="form-select" name="pianificazione_postalizzazioni" id="pianificazione_postalizzazioni" aria-label="Default select example">
+            <select required class="form-select" name="pianificazione_postalizzazioni" id="pianificazione_postalizzazioni" aria-label="Default select example" disabled>
                 <option selected enabled value="Utilizza le commesse di default">Utilizza le commesse di default</option>
                 <option value="Utilizza le commesse di default e le commesse di mock" {% if simulazione_selezionata.PIANIFICAZIONE_POSTALIZZAZIONI == 'Utilizza le commesse di default e le commesse di mock' %}selected{% endif %}>Utilizza le commesse di default e le commesse di mock</option>
                 <option value="Utilizza solo le commesse di mock" {% if simulazione_selezionata.PIANIFICAZIONE_POSTALIZZAZIONI == 'Utilizza solo le commesse di mock' %}selected{% endif %}>Utilizza solo le commesse di mock</option>
