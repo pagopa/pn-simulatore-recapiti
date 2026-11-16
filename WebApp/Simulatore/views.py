@@ -4,7 +4,7 @@ from PagoPA.settings import *
 from datetime import date, datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 from .models import *
-from django.db.models import Q, F, Sum, Avg
+from django.db.models import Q, F, Sum, Avg, Min, Max
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.db import connection
@@ -1051,9 +1051,18 @@ def download_capacita_per_provincia(request, id_simulazione, recupero_capacita_m
     writer.writerow(['unifiedDeliveryDriver','geoKey','capacity','peakCapacity','activationDateFrom','activationDateTo','products'])
     # recuperiamo i record dal db
     if recupero_capacita_modificate == 'true':
-        lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione, FLAG_DEFAULT=False).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+        #lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione, FLAG_DEFAULT=False).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+        lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione, FLAG_DEFAULT=False).values('UNIFIED_DELIVERY_DRIVER','COD_SIGLA_PROVINCIA','CAPACITY','PRODUCT_890','PRODUCT_AR').annotate(
+			ACTIVATION_DATE_FROM=Min('ACTIVATION_DATE_FROM'),
+			ACTIVATION_DATE_TO=Max('ACTIVATION_DATE_TO')
+		).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
     else:
-        lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+        #lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+        lista_capacita = table_capacita_simulate.objects.filter(SIMULAZIONE_ID=id_simulazione).values('UNIFIED_DELIVERY_DRIVER','COD_SIGLA_PROVINCIA','CAPACITY','PRODUCT_890','PRODUCT_AR').annotate(
+            ACTIVATION_DATE_FROM=Min('ACTIVATION_DATE_FROM'),
+            ACTIVATION_DATE_TO=Max('ACTIVATION_DATE_TO')
+        ).values("UNIFIED_DELIVERY_DRIVER","COD_SIGLA_PROVINCIA","CAPACITY","CAPACITY","ACTIVATION_DATE_FROM","ACTIVATION_DATE_TO","PRODUCT_890","PRODUCT_AR")
+    
     # scriviamo sul file con chunk_size=1000
     for row in lista_capacita.iterator(chunk_size=1000):
         # questo filtro evita che vengano inseriti nel csv dei prodotti con AR e 890 settati a None
@@ -1097,7 +1106,7 @@ def elaborazione_capacita_per_provincia(row):
     # adattiamo la data al formato ISO 8601 in UTC -> yyyy-MM-ddTHH:mm:ss.000Z
     row['ACTIVATION_DATE_FROM'] = row['ACTIVATION_DATE_FROM'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
     if row['ACTIVATION_DATE_TO']!=None:
-        row['ACTIVATION_DATE_TO'] = row['ACTIVATION_DATE_TO'].replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        row['ACTIVATION_DATE_TO'] = (row['ACTIVATION_DATE_TO'] + timedelta(milliseconds=999)).replace(tzinfo=timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
     else:
         row['ACTIVATION_DATE_FROM'] = None
     return row 
