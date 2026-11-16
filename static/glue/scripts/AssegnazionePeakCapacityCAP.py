@@ -193,7 +193,7 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
         for row_cap in df_cap_capacities_prov_filtred:
             
             for row_capsim in list_capacita_simulate_recap_prov:
-
+                activationDateTo = row_capsim['ACTIVATION_DATE_TO'] + timedelta(milliseconds=999) if row_capsim['ACTIVATION_DATE_TO']!=None else row_capsim['ACTIVATION_DATE_TO']
                 rows_type = row_capsim['FLAG_DEFAULT']
                 data_adding_row = {'unifiedDeliveryDriver': row_cap['unifiedDeliveryDriver'],
                                      'geoKey': row_cap['geoKey'],
@@ -201,7 +201,7 @@ for recap_prov in df_capacita_simulate.select('UNIFIED_DELIVERY_DRIVER','COD_SIG
                                      'capacity': row_cap['capacity']*(rows_type==True) + row_cap['peakCapacity']*(rows_type==False),
                                      'peakCapacity': row_cap['capacity']*(rows_type==True) + row_cap['peakCapacity']*(rows_type==False),
                                      'activationDateFrom': row_capsim['ACTIVATION_DATE_FROM'],
-                                     'activationDateTo': row_capsim['ACTIVATION_DATE_TO'] + timedelta(milliseconds=999),
+                                     'activationDateTo': activationDateTo,
                                      'products': row_cap['products'],
                                      'CodSiglaProvincia': row_cap['COD_SIGLA_PROVINCIA'],
                                      'FLAG_DEFAULT': rows_type}
