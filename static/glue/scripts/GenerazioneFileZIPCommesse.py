@@ -648,7 +648,7 @@ if tipo_simulazione == 'Manuale':
             zip_buffer = io.BytesIO()
             lavorazione_sender_limit(mode_zip="w", mese=mese)
             if mese==mese_simulazione:
-                lavorazione_sender_limit_mock(mode_zip="a", mese=mese)
+                lavorazione_sender_limit_mock(mode_zip="a")
             insert_mock_sender_limits(mese=mese)
             
     if pianificazione_postalizzazioni == 'Utilizza solo le commesse di mock':
@@ -656,7 +656,7 @@ if tipo_simulazione == 'Manuale':
             print('Lavorazione: ',mese)
             zip_buffer = io.BytesIO()
             if mese==mese_simulazione:
-                lavorazione_sender_limit_mock(mode_zip="w", mese=mese)
+                lavorazione_sender_limit_mock(mode_zip="w")
             else:
                 lavorazione_sender_limit(mode_zip="w", mese=mese)
             insert_mock_sender_limits(mese=mese)    

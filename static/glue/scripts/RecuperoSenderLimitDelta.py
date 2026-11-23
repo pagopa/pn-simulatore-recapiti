@@ -63,26 +63,40 @@ lambda_delayer=boto3.client('lambda')
 # Funzione per creare la lista delle righe a partire dal richiamo della lambda
 
 def lambda_to_dict(operationType,list_parameters):
-  payload={
-        "operationType": operationType,
-        "parameters": {
-            "table": "pn-PaperDeliverySenderLimit",
-            "deliveryDate": list_parameters[0],
-            "province": list_parameters[1]
-        }
-    } 
-  response=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload))
-  # Lettura e decodifica dell'output della lambda
-  read_response=response['Payload'].read()
-  string_response=read_response.decode('utf-8')
+    
+    # Se ho il terzo parametro cambia il payload
+    if len(list_parameters)==2:
+      payload={
+            "operationType": operationType,
+            "parameters": {
+                "table": "pn-PaperDeliverySenderLimit",
+                "deliveryDate": list_parameters[0],
+                "province": list_parameters[1]
+            }
+        } 
+    if len(list_parameters)==3:
+      payload={
+            "operationType": operationType,
+            "parameters": {
+                "table": "pn-PaperDeliverySenderLimit",
+                "deliveryDate": list_parameters[0],
+                "province": list_parameters[1],
+                "lastEvaluatedKey": list_parameters[2]
+            }
+        } 
+    response=lambda_delayer.invoke(FunctionName='pn-testDelayerLambda',Payload=json.dumps(payload))
+    # Lettura e decodifica dell'output della lambda
+    read_response=response['Payload'].read()
+    string_response=read_response.decode('utf-8')
+    
+    # Trasformazione da stringa in dizionario
+    dict_response=json.loads(string_response)
+    
+    # Estrazione del body e poi degli items (posti come dizionari innestati)
+    dict_response_body=json.loads(dict_response['body'])
+    
+    return dict_response_body
 
-  # Trasformazione da stringa in dizionario
-  dict_response=json.loads(string_response)
-
-  # Estrazione del body e poi degli items (posti come dizionari innestati)
-  dict_response_body=json.loads(dict_response['body'])
-
-  return dict_response_body
 
 # Richiamo della lambda per provincia
 schema_senderlim = T.StructType() \
